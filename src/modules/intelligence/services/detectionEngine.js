@@ -1,11 +1,14 @@
 import { eventBus } from '../events/eventBus'
 import { OPERATIONAL_EVENTS } from '../events/eventTaxonomy'
-import * as turf from '@turf/turf'
+import { detectInactivity, detectSpeedAnomaly, detectAccuracyAnomaly } from './detectionRules'
 
 /**
- * SentinelOps — Detection Engine
+ * SentinelOps — Detection Engine (Orchestrator)
  * Evaluates real-time streams (like GPS updates) to detect anomalies.
  * Dispatches events to the EventBus when rules are violated.
+ * 
+ * Note: Actual turf/spatial logic has been moved to detectionRules.js
+ * to prepare for Web Worker migration.
  */
 
 const LOG_PREFIX = '[DetectionEngine]'
@@ -25,55 +28,38 @@ class DetectionEngine {
     const now = Date.now()
     const lastState = this.activeGuards.get(guardId)
 
-    // 1. Detect GPS Anomaly (e.g., accuracy > 100m is unreliable)
-    if (gpsPoint.accuracy && gpsPoint.accuracy > 100) {
+    // 1. Detect GPS Anomaly (Accuracy)
+    const accuracyAnomaly = detectAccuracyAnomaly(gpsPoint)
+    if (accuracyAnomaly) {
       eventBus.publish(OPERATIONAL_EVENTS.GPS_ANOMALY, {
         guardId,
         executionId,
         position: gpsPoint,
-        accuracy: gpsPoint.accuracy,
-        reason: 'Low Accuracy'
+        ...accuracyAnomaly
       })
     }
 
     if (lastState) {
-      // 2. Detect Inactivity (No movement > 15 meters in 5 minutes)
-      const timeDiffMins = (now - lastState.timestamp) / 1000 / 60
-      
-      if (timeDiffMins > 5) {
-        const from = turf.point([lastState.position.lng, lastState.position.lat])
-        const to = turf.point([gpsPoint.lng, gpsPoint.lat])
-        const distanceMeters = turf.distance(from, to, { units: 'kilometers' }) * 1000
-
-        if (distanceMeters < 15) {
-          eventBus.publish(OPERATIONAL_EVENTS.GUARD_INACTIVE, {
-            guardId,
-            executionId,
-            position: gpsPoint,
-            inactiveMinutes: timeDiffMins,
-            distanceMovedMeters: distanceMeters
-          })
-        }
+      // 2. Detect Inactivity
+      const inactivityAlert = detectInactivity(lastState, gpsPoint, now)
+      if (inactivityAlert) {
+        eventBus.publish(OPERATIONAL_EVENTS.GUARD_INACTIVE, {
+          guardId,
+          executionId,
+          position: gpsPoint,
+          ...inactivityAlert
+        })
       }
 
       // 3. Detect Impossible Speed / Teleportation
-      // Speed > 40 km/h for a guard on foot is suspicious
-      if (timeDiffMins > 0) {
-        const from = turf.point([lastState.position.lng, lastState.position.lat])
-        const to = turf.point([gpsPoint.lng, gpsPoint.lat])
-        const distanceKm = turf.distance(from, to, { units: 'kilometers' })
-        const timeDiffHours = timeDiffMins / 60
-        const speedKmh = distanceKm / timeDiffHours
-
-        if (speedKmh > 40) {
-          eventBus.publish(OPERATIONAL_EVENTS.GPS_ANOMALY, {
-            guardId,
-            executionId,
-            position: gpsPoint,
-            speedKmh,
-            reason: 'Impossible Speed'
-          })
-        }
+      const speedAnomaly = detectSpeedAnomaly(lastState, gpsPoint, now)
+      if (speedAnomaly) {
+        eventBus.publish(OPERATIONAL_EVENTS.GPS_ANOMALY, {
+          guardId,
+          executionId,
+          position: gpsPoint,
+          ...speedAnomaly
+        })
       }
     }
 

@@ -1,0 +1,139 @@
+.simulator-page {
+  display: flex;
+  height: 100%;
+  gap: var(--space-4);
+}
+
+.simulator-page__sidebar {
+  width: 350px;
+  background: var(--color-dark-surface);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.simulator-page__map {
+  flex: 1;
+  position: relative;
+}
+
+.simulator-guard-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.guard-dot {
+  width: 16px;
+  height: 16px;
+  background-color: var(--color-primary-500);
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(51, 128, 255, 0.8);
+}
+
+.simulator-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.simulator-panel__header {
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-dark-border);
+  padding-bottom: var(--space-4);
+}
+
+.simulator-panel__header h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-2);
+}
+
+.simulator-panel__network {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+}
+
+.simulator-panel__spawn-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.simulator-panel__select {
+  padding: var(--space-2);
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  color: white;
+  border-radius: var(--radius-md);
+}
+
+.simulator-panel__btn {
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.simulator-panel__btn--primary {
+  background: var(--color-primary-600);
+  color: white;
+}
+
+.simulator-panel__btn--danger {
+  background: var(--color-danger-600);
+  color: white;
+}
+
+.simulator-panel__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.simulator-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.simulator-panel__card {
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.simulator-panel__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.simulator-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.simulator-panel__actions button {
+  padding: var(--space-1);
+  font-size: var(--text-xs);
+  background: var(--color-dark-surface);
+  border: 1px solid var(--color-dark-border);
+  color: var(--color-dark-text);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.simulator-panel__actions button:hover {
+  background: var(--color-primary-600);
+  color: white;
+}

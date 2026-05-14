@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import PlaybackMap from '../components/PlaybackMap'
 import { calculateRouteAdherence } from '../services/patrolCompliance'
 import { calculateOperationalScore } from '../services/operationalScoring'
+import { getHistoricalExecutions, getExecutionTelemetry } from '@/modules/rondas/services/rondaExecutionService'
+import { getRoute } from '@/modules/spatial/services/spatialService'
 import './OperationalIntelligencePage.css'
 
 /**
@@ -9,59 +11,77 @@ import './OperationalIntelligencePage.css'
  * Hub for Spatial Analytics, Scoring, and Patrol Playback
  */
 export default function OperationalIntelligencePage() {
+  const [executions, setExecutions] = useState([])
+  const [selectedExecutionId, setSelectedExecutionId] = useState('')
+  
+  // Real Data State
+  const [activeExecution, setActiveExecution] = useState(null)
+  const [gpsTrack, setGpsTrack] = useState([])
+  const [routeGeometry, setRouteGeometry] = useState(null)
+  const [loadingMapData, setLoadingMapData] = useState(false)
+
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   
-  // Mock Data for Demo (In production, this would be fetched from Firestore using RondaExecution ID)
-  const mockRouteGeometry = {
-    type: 'LineString',
-    coordinates: [
-      [-63.1815, -17.7833],
-      [-63.1820, -17.7840],
-      [-63.1830, -17.7845]
-    ]
-  }
-
-  const mockGpsTrack = [
-    { lng: -63.1815, lat: -17.7833, timestamp: Date.now() },
-    { lng: -63.1818, lat: -17.7838, timestamp: Date.now() + 1000 },
-    { lng: -63.1825, lat: -17.7842, timestamp: Date.now() + 2000 },
-    // A deviation
-    { lng: -63.1840, lat: -17.7860, timestamp: Date.now() + 3000 },
-    { lng: -63.1830, lat: -17.7845, timestamp: Date.now() + 4000 }
-  ]
-
-  const mockExecution = {
-    status: 'completed',
-    checkpointIds: ['cp1', 'cp2'],
-    completedCheckpoints: ['cp1'],
-    events: [{ type: 'GPS_ANOMALY' }]
-  }
-
   // Analytics State
   const [adherence, setAdherence] = useState(null)
   const [score, setScore] = useState(null)
   const timerRef = useRef(null)
 
+  // 1. Fetch available historical executions on mount
   useEffect(() => {
-    // Calculate Analytics
-    const compliance = calculateRouteAdherence(mockGpsTrack, mockRouteGeometry)
-    setAdherence(compliance)
-
-    const finalScore = calculateOperationalScore(mockExecution, compliance)
-    setScore(finalScore)
+    async function loadExecutions() {
+      const execs = await getHistoricalExecutions()
+      setExecutions(execs)
+    }
+    loadExecutions()
   }, [])
+
+  // 2. Fetch telemetry when an execution is selected
+  useEffect(() => {
+    if (!selectedExecutionId) return
+
+    async function fetchPlaybackData() {
+      setLoadingMapData(true)
+      setIsPlaying(false)
+      setCurrentIndex(0)
+      setAdherence(null)
+      setScore(null)
+      
+      const exec = executions.find(e => e.id === selectedExecutionId)
+      setActiveExecution(exec)
+
+      const [track, route] = await Promise.all([
+        getExecutionTelemetry(selectedExecutionId),
+        exec.routeId ? getRoute(exec.routeId) : null
+      ])
+
+      setGpsTrack(track)
+      setRouteGeometry(route?.geometry || null)
+      
+      if (route?.geometry && track.length > 0) {
+        const compliance = calculateRouteAdherence(track, route.geometry)
+        setAdherence(compliance)
+        const finalScore = calculateOperationalScore(exec, compliance)
+        setScore(finalScore)
+      }
+
+      setLoadingMapData(false)
+    }
+
+    fetchPlaybackData()
+  }, [selectedExecutionId, executions])
 
   // Playback Interval Logic
   useEffect(() => {
-    if (isPlaying && mockGpsTrack.length > 0) {
-      const msPerFrame = 100 // Hardcoded speed for demo
+    if (isPlaying && gpsTrack.length > 0) {
+      const msPerFrame = 100 // 10fps for playback
       
       timerRef.current = setInterval(() => {
         setCurrentIndex(prev => {
-          if (prev >= mockGpsTrack.length - 1) {
+          if (prev >= gpsTrack.length - 1) {
             setIsPlaying(false) // Auto-pause at the end
-            return mockGpsTrack.length - 1
+            return gpsTrack.length - 1
           }
           return prev + 1
         })
@@ -71,7 +91,7 @@ export default function OperationalIntelligencePage() {
     }
 
     return () => clearInterval(timerRef.current)
-  }, [isPlaying, mockGpsTrack.length])
+  }, [isPlaying, gpsTrack.length])
 
   const togglePlayback = () => setIsPlaying(!isPlaying)
 
@@ -86,8 +106,8 @@ export default function OperationalIntelligencePage() {
     return 'score-display__circle--low'
   }
 
-  const progressPercent = mockGpsTrack.length > 1 
-    ? Math.round((currentIndex / (mockGpsTrack.length - 1)) * 100) 
+  const progressPercent = gpsTrack.length > 1 
+    ? Math.round((currentIndex / (gpsTrack.length - 1)) * 100) 
     : 0
 
   return (
@@ -104,8 +124,24 @@ export default function OperationalIntelligencePage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
           <div className="intelligence-card">
-            <div className="intelligence-card__title">Scoring Operacional</div>
-            {score && (
+            <div className="intelligence-card__title">Seleccionar Ejecución (Auditoría)</div>
+            <select 
+              value={selectedExecutionId} 
+              onChange={e => setSelectedExecutionId(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem', background: 'var(--color-dark-bg)', color: 'white', border: '1px solid var(--color-dark-border)', borderRadius: '4px' }}
+            >
+              <option value="">-- Seleccione una ronda completada --</option>
+              {executions.map(e => (
+                <option key={e.id} value={e.id}>
+                  {e.id} | Guardia: {e.guardId} | Puntos: {e.gpsTrack?.length || '?'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {score && (
+            <div className="intelligence-card">
+              <div className="intelligence-card__title">Scoring Operacional</div>
               <div className="score-display">
                 <div className={`score-display__circle ${getScoreColor(score.score)}`}>
                   {score.score}
@@ -117,15 +153,12 @@ export default function OperationalIntelligencePage() {
                   <div style={{ color: 'var(--color-danger-400)' }}>⚠ Penalizaciones: -{score.breakdown.penalties}</div>
                 </div>
               </div>
-            )}
-            <p style={{ fontSize: '12px', color: 'var(--color-dark-text-muted)' }}>
-              El scoring se calcula matemáticamente usando Turf.js para analizar la desviación en metros del guardia respecto a la ruta oficial GeoJSON.
-            </p>
-          </div>
+            </div>
+          )}
 
-          <div className="intelligence-card">
-            <div className="intelligence-card__title">Anomalías Espaciales detectadas</div>
-            {adherence && (
+          {adherence && (
+            <div className="intelligence-card">
+              <div className="intelligence-card__title">Anomalías Espaciales</div>
               <div style={{ fontSize: '14px', color: 'var(--color-dark-text)' }}>
                 <div style={{ marginBottom: '8px' }}>
                   <strong>{adherence.deviationsCount}</strong> Desviaciones de ruta (&gt;{25}m)
@@ -137,36 +170,43 @@ export default function OperationalIntelligencePage() {
                   Adherencia Total: {adherence.adherencePercentage}%
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
         </div>
 
         {/* ─── Playback Map ─── */}
         <div className="intelligence-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '1rem', borderBottom: '1px solid var(--color-dark-border)' }}>
-            <div className="intelligence-card__title" style={{ margin: 0 }}>Playback de Ronda (Auditoría Visual)</div>
+            <div className="intelligence-card__title" style={{ margin: 0 }}>
+              Playback de Ronda {loadingMapData ? '(Cargando Chunks...)' : ''}
+            </div>
           </div>
           
           <div style={{ flex: 1, position: 'relative' }}>
             <PlaybackMap 
-              track={mockGpsTrack} 
-              routeGeometry={mockRouteGeometry}
+              track={gpsTrack} 
+              routeGeometry={routeGeometry}
               currentIndex={currentIndex}
             />
           </div>
 
           <div className="playback-controls" style={{ margin: '1rem' }}>
-            <button className="playback-btn" onClick={togglePlayback}>
+            <button 
+              className="playback-btn" 
+              onClick={togglePlayback}
+              disabled={gpsTrack.length === 0}
+            >
               {isPlaying ? '⏸' : '▶'}
             </button>
             <input 
               type="range" 
               className="playback-slider" 
               min="0" 
-              max={mockGpsTrack.length > 0 ? mockGpsTrack.length - 1 : 0} 
+              max={gpsTrack.length > 0 ? gpsTrack.length - 1 : 0} 
               value={currentIndex}
               onChange={handleSliderChange}
+              disabled={gpsTrack.length === 0}
             />
             <span style={{ fontSize: '12px', color: 'var(--color-dark-text-muted)', minWidth: '35px', textAlign: 'right' }}>
               {progressPercent}%

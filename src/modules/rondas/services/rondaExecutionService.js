@@ -235,3 +235,51 @@ export async function getActiveExecutions() {
     throw error
   }
 }
+
+/**
+ * Get historical (completed/failed/late) executions
+ * Used for Playback and Auditing
+ * @returns {Promise<object[]>}
+ */
+export async function getHistoricalExecutions() {
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.RONDA_EXECUTIONS),
+      where('status', 'in', [RONDA_STATES.COMPLETED, RONDA_STATES.LATE, RONDA_STATES.FAILED, RONDA_STATES.CANCELLED]),
+      orderBy('startedAt', 'desc')
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error fetching historical executions:`, error)
+    throw error
+  }
+}
+
+/**
+ * Fetch and reconstruct the telemetry track from chunks
+ * Required for Playback Reconstruction (Phase 12.5)
+ * @param {string} executionId
+ * @returns {Promise<Array<{lat, lng, timestamp}>>}
+ */
+export async function getExecutionTelemetry(executionId) {
+  try {
+    const startTime = performance.now()
+    const chunksRef = collection(db, COLLECTIONS.RONDA_EXECUTIONS, executionId, 'telemetryChunks')
+    const q = query(chunksRef, orderBy('startedAt', 'asc'))
+    
+    const snapshot = await getDocs(q)
+    const chunks = snapshot.docs.map(doc => doc.data())
+    
+    // FlatMap chronological chunks into a single GPS track array
+    const reconstructedTrack = chunks.flatMap(chunk => chunk.points || [])
+    
+    const latencyMs = Math.round(performance.now() - startTime)
+    console.log(`[Playback] Reconstructed ${reconstructedTrack.length} points from ${chunks.length} chunks in ${latencyMs}ms.`)
+    
+    return reconstructedTrack
+  } catch (error) {
+    console.error(`[Playback] Error fetching telemetry chunks for ${executionId}:`, error)
+    return []
+  }
+}

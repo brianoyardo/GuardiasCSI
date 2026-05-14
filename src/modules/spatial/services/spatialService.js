@@ -91,6 +91,16 @@ export async function getRoutes(activeOnly = false) {
   return getSpatialEntities(SPATIAL_COLLECTIONS.ROUTES, activeOnly)
 }
 
+export async function getRoute(id) {
+  try {
+    const snap = await getDoc(doc(db, SPATIAL_COLLECTIONS.ROUTES, id))
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error fetching route ${id}:`, error)
+    return null
+  }
+}
+
 /**
  * Checkpoints (Points)
  */

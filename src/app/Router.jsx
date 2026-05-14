@@ -25,6 +25,7 @@ import { AttendancePage } from '@/modules/attendance'
 import { UsersPage } from '@/modules/users'
 import { SpatialManagementPage } from '@/modules/spatial'
 import { OperationalIntelligencePage } from '@/modules/intelligence'
+import SimulatorPage from '@/modules/guard-simulator/pages/SimulatorPage'
 
 /* Placeholder pages (to be replaced with real modules) */
 function PlaceholderPage({ title }) {
@@ -90,6 +91,7 @@ export default function AppRouter() {
         <Route path="incidents" element={<IncidentManagementPage />} />
         <Route path="analytics" element={<OperationalIntelligencePage />} />
         <Route path="attendance" element={<AttendancePage />} />
+        <Route path="simulator" element={<SimulatorPage />} />
       </Route>
 
       {/* ─── Operations Chief Routes ─── */}
@@ -104,6 +106,7 @@ export default function AppRouter() {
         <Route path="guards" element={<PlaceholderPage title="Guardias" />} />
         <Route path="incidents" element={<IncidentManagementPage />} />
         <Route path="analytics" element={<OperationalIntelligencePage />} />
+        <Route path="simulator" element={<SimulatorPage />} />
       </Route>
 
       {/* ─── Supervisor Routes ─── */}
