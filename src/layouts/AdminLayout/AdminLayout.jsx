@@ -10,7 +10,7 @@ import './AdminLayout.css'
  * Features CSS Grid layout, Zustand state, and Leaflet resize triggers
  */
 export default function AdminLayout() {
-  const { isSidebarCollapsed, toggleMobileSidebar } = useLayoutStore()
+  const { isSidebarCollapsed, isMobileSidebarOpen, toggleMobileSidebar, closeMobileSidebar } = useLayoutStore()
   const layoutRef = useRef(null)
 
   // Dispara el evento 'resize' cuando la transición del grid termina
@@ -38,6 +38,11 @@ export default function AdminLayout() {
       id="admin-layout"
     >
       <Sidebar />
+
+      {/* Mobile Overlay independently rendered outside Sidebar to avoid stacking context issues */}
+      {isMobileSidebarOpen && (
+        <div className="sidebar-overlay" onClick={closeMobileSidebar} />
+      )}
 
       <div className="admin-layout__main">
         <Navbar onMenuClick={toggleMobileSidebar} />

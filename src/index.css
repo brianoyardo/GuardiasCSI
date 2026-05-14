@@ -14,11 +14,11 @@ body,
 .leaflet-pane,
 .leaflet-top,
 .leaflet-bottom {
-  z-index: 1 !important;
+  z-index: var(--z-leaflet) !important;
 }
 
 .leaflet-popup-pane,
 .leaflet-marker-pane,
 .leaflet-pm-toolbar {
-  z-index: 2 !important;
+  z-index: var(--z-leaflet) !important;
 }

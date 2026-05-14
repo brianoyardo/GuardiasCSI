@@ -86,11 +86,6 @@ const Sidebar = memo(function Sidebar() {
           </button>
         </div>
       </aside>
-
-      {/* Mobile overlay */}
-      {isMobileSidebarOpen && (
-        <div className="sidebar-overlay" onClick={closeMobileSidebar} />
-      )}
     </>
   )
 })

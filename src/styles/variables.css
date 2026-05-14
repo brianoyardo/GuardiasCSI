@@ -128,14 +128,10 @@
   --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ─── Z-Index Hierarchy (Strict Stacking Context) ─── */
-  --z-leaflet-base: 1000;
-  --z-leaflet-marker: 1050;
-  --z-leaflet-geoman: 1100;
-  --z-leaflet-control: 1200;
-  --z-dropdown: 3000;
-  --z-sidebar: 3500;
-  --z-navbar: 4000;
-  --z-overlay: 4500;
+  --z-leaflet: 1;
+  --z-overlay: 3000;
+  --z-sidebar: 4000;
+  --z-navbar: 4500;
   --z-modal: 5000;
 
   /* ─── Layout ─── */
