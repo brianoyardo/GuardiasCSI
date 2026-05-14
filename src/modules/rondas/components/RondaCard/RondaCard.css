@@ -1,0 +1,131 @@
+/* ============================================
+   RondaCard — SentinelOps
+   Mobile-first ronda assignment card
+   ============================================ */
+
+.ronda-card {
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.ronda-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.ronda-card--pending::before { background: #64748b; }
+.ronda-card--available::before { background: #3380ff; }
+.ronda-card--in_progress::before { background: #22c55e; }
+.ronda-card--paused::before { background: #f59e0b; }
+.ronda-card--completed::before { background: #16a34a; }
+.ronda-card--late::before { background: #f97316; }
+.ronda-card--missed::before { background: #ef4444; }
+
+.ronda-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ronda-card__title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark-text);
+}
+
+.ronda-card__badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.ronda-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+}
+
+.ronda-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ─── Progress bar ─── */
+.ronda-card__progress {
+  width: 100%;
+  height: 4px;
+  background: var(--color-dark-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.ronda-card__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-500), var(--color-accent-500));
+  border-radius: var(--radius-full);
+  transition: width var(--transition-base);
+}
+
+/* ─── Action button ─── */
+.ronda-card__action {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+  width: 100%;
+}
+
+.ronda-card__action--start {
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+  color: white;
+}
+
+.ronda-card__action--start:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow-primary);
+}
+
+.ronda-card__action--resume {
+  background: linear-gradient(135deg, var(--color-accent-600), var(--color-accent-700));
+  color: white;
+}
+
+.ronda-card__action--view {
+  background: var(--color-dark-surface);
+  color: var(--color-dark-text);
+  border: 1px solid var(--color-dark-border);
+}
+
+.ronda-card__priority {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+}
+
+.ronda-card__priority--urgent { color: var(--color-danger-400); }
+.ronda-card__priority--high { color: #f97316; }
+.ronda-card__priority--normal { color: var(--color-dark-text-muted); }

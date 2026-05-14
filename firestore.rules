@@ -1,0 +1,351 @@
+// ============================================
+// SentinelOps — Firestore Security Rules (RBAC)
+// ============================================
+// Deploy to Firebase Console → Firestore → Rules
+//   or: firebase deploy --only firestore:rules
+//
+// ROLE HIERARCHY:
+//   admin            → Full access (wildcard)
+//   operations_chief → Manage guards, rondas, routes, incidents
+//   supervisor       → Read-only monitoring, rondas, incidents
+//   guard            → Own data only (rondas, checkpoints, incidents)
+//
+// CRITICAL: These rules enforce server-side RBAC.
+//   The frontend also checks permissions, but Firestore rules
+//   are the authoritative security boundary.
+// ============================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════
+    // HELPER FUNCTIONS
+    // ═══════════════════════════════════════════
+
+    // Check if request has a valid auth token
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Get the current user's Firestore profile
+    // IMPORTANT: This performs a document read (counts toward quota)
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check if user profile exists in Firestore
+    function userProfileExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // Check if user has a specific role
+    function hasRole(role) {
+      return isAuthenticated()
+        && userProfileExists()
+        && getUserData().role == role;
+    }
+
+    // Check if user's account is active
+    function isActiveUser() {
+      return isAuthenticated()
+        && userProfileExists()
+        && getUserData().status == 'active';
+    }
+
+    // ─── Role shortcuts ───
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isOpsChief() {
+      return hasRole('operations_chief');
+    }
+
+    function isSupervisor() {
+      return hasRole('supervisor');
+    }
+
+    function isGuard() {
+      return hasRole('guard');
+    }
+
+    // ─── Role combinations ───
+    function isAdminOrOps() {
+      return isAdmin() || isOpsChief();
+    }
+
+    function isAdminOrOpsOrSupervisor() {
+      return isAdmin() || isOpsChief() || isSupervisor();
+    }
+
+    // ─── Ownership ───
+    function isOwnDocument(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+
+    // ═══════════════════════════════════════════
+    // COLLECTION RULES
+    // ═══════════════════════════════════════════
+
+    // ─── Users ───
+    // READ:   Own profile (any role) | Admin/Ops/Supervisor (all profiles)
+    // CREATE: Own profile (for auth sync bootstrap) | Admin
+    // UPDATE: Admin (any field) | Own profile (non-critical fields only)
+    // DELETE: Admin only
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        isOwnDocument(userId) || isAdminOrOpsOrSupervisor()
+      );
+
+      // Allow creating own profile on first login (auth sync)
+      // Admin can create any user profile
+      allow create: if isAuthenticated() && (
+        isOwnDocument(userId) || isAdmin()
+      );
+
+      // Admin can update everything
+      // Users can update their own profile EXCEPT role, status
+      allow update: if isAuthenticated() && (
+        isAdmin() || (
+          isOwnDocument(userId) &&
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['role', 'status', 'createdAt'])
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─── Roles ───
+    // READ:   Any authenticated user (needed for UI permission checks)
+    // WRITE:  Admin only
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── Clients ───
+    // READ:   Admin, Ops Chief
+    // WRITE:  Admin only
+    match /clients/{clientId} {
+      allow read: if isAdminOrOps();
+      allow write: if isAdmin();
+    }
+
+    // ─── Locations ───
+    // READ:   Any authenticated (guards need to see their assigned location)
+    // WRITE:  Admin, Ops Chief
+    match /locations/{locationId} {
+      allow read: if isActiveUser();
+      allow write: if isAdminOrOps();
+    }
+
+    // ─── Routes ───
+    // READ:   Any authenticated (guards need route info for rondas)
+    // WRITE:  Admin, Ops Chief
+    match /routes/{routeId} {
+      allow read: if isActiveUser();
+      allow write: if isAdminOrOps();
+    }
+
+    // ─── Checkpoints ───
+    // READ:   Any authenticated (guards need checkpoint positions)
+    // WRITE:  Admin, Ops Chief
+    match /checkpoints/{checkpointId} {
+      allow read: if isActiveUser();
+      allow write: if isAdminOrOps();
+    }
+
+    // ─── Geofences ───
+    // READ:   Any authenticated (guards need geofences for compliance checks)
+    // WRITE:  Admin, Ops Chief
+    match /geofences/{geofenceId} {
+      allow read: if isActiveUser();
+      allow write: if isAdminOrOps();
+    }
+
+    // ─── Analytics ───
+    // READ:   Admin, Ops Chief, Supervisor
+    // WRITE:  Admin, Ops Chief (from Intelligence Engine)
+    match /analytics/{analyticId} {
+      allow read: if isAdminOrOpsOrSupervisor();
+      allow write: if isAdminOrOps();
+    }
+
+    // ─── Rondas (definitions) ───
+    // READ:   Any authenticated
+    // WRITE:  Admin, Ops Chief
+    match /rondas/{rondaId} {
+      allow read: if isActiveUser();
+      allow write: if isAdminOrOps();
+    }
+
+    // ─── Ronda Assignments ───
+    // READ:   Admin/Ops/Supervisor (all) | Guard (own assignments only)
+    // CREATE: Admin, Ops Chief
+    // UPDATE: Admin/Ops | Guard (own assignment, e.g., start ronda)
+    // DELETE: Admin only
+    match /rondaAssignments/{assignmentId} {
+      allow read: if isAuthenticated() && (
+        isAdminOrOpsOrSupervisor() ||
+        (isGuard() && resource.data.guardId == request.auth.uid)
+      );
+
+      allow create: if isAdminOrOps();
+
+      allow update: if isAuthenticated() && (
+        isAdminOrOps() || (
+          isGuard() &&
+          resource.data.guardId == request.auth.uid &&
+          // Guard can only change status, not reassign
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['guardId', 'rondaId', 'assignedBy'])
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─── Ronda Executions ───
+    // READ:   Any authenticated (monitoring needs visibility)
+    // CREATE: Admin/Ops | Guard (own execution only)
+    // UPDATE: Admin/Ops | Guard (own execution only)
+    // DELETE: Admin only
+    match /rondaExecutions/{executionId} {
+      allow read: if isActiveUser();
+
+      allow create: if isAuthenticated() && (
+        isAdminOrOps() || (
+          isGuard() &&
+          request.resource.data.guardId == request.auth.uid
+        )
+      );
+
+      allow update: if isAuthenticated() && (
+        isAdminOrOps() || (
+          isGuard() &&
+          resource.data.guardId == request.auth.uid &&
+          // Guard cannot change guardId or rondaId
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['guardId', 'rondaId', 'routeId'])
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─── Checkpoint Logs ───
+    // READ:   Any authenticated (monitoring visibility)
+    // CREATE: Guard (own logs) | Admin/Ops
+    // UPDATE: Admin only (logs are immutable)
+    // DELETE: Admin only
+    match /checkpointLogs/{logId} {
+      allow read: if isActiveUser();
+
+      allow create: if isAuthenticated() && (
+        isAdminOrOps() ||
+        (isGuard() && request.resource.data.guardId == request.auth.uid)
+      );
+
+      // Logs are immutable — only admin can modify/delete
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── Incidents ───
+    // READ:   Any authenticated (transparency for operations)
+    // CREATE: Any authenticated (any role can report incidents)
+    // UPDATE: Admin, Ops Chief (status management, resolution)
+    // DELETE: Admin only
+    match /incidents/{incidentId} {
+      allow read: if isActiveUser();
+
+      // Any active user can create an incident report
+      allow create: if isActiveUser();
+
+      // Only admin/ops can update (resolve, escalate, close)
+      allow update: if isAdminOrOps();
+
+      allow delete: if isAdmin();
+    }
+
+    // ─── Notifications ───
+    // READ:   Own notifications | Admin/Ops (all)
+    // CREATE: Admin, Ops Chief (send notifications)
+    // UPDATE: Own notifications (mark as read)
+    // DELETE: Admin only
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdminOrOps()
+      );
+
+      allow create: if isAdminOrOps();
+
+      // Users can only mark their own notifications as read
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─── Attendance ───
+    // READ:   Admin/Ops/Supervisor (all) | Guard (own records)
+    // CREATE: Any authenticated (check-in/check-out)
+    // UPDATE: Admin only (corrections)
+    // DELETE: Admin only
+    match /attendance/{recordId} {
+      allow read: if isAuthenticated() && (
+        isAdminOrOpsOrSupervisor() ||
+        (isGuard() && resource.data.guardId == request.auth.uid)
+      );
+
+      allow create: if isActiveUser();
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── Devices ───
+    // READ:   Own device | Admin/Ops
+    // CREATE: Own device registration
+    // UPDATE: Own device (push token updates)
+    // DELETE: Admin only
+    match /devices/{deviceId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdminOrOps()
+      );
+
+      allow create, update: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow delete: if isAdmin();
+    }
+
+    // ─── Activity Logs (Audit Trail) ───
+    // READ:   Admin, Ops Chief only (audit access)
+    // CREATE: Any authenticated (all actions are logged)
+    // UPDATE: NOBODY (logs are immutable)
+    // DELETE: Admin only (data retention)
+    match /activityLogs/{logId} {
+      allow read: if isAdminOrOps();
+
+      // Any authenticated user creates logs automatically
+      allow create: if isAuthenticated();
+
+      // Logs are immutable — cannot be updated
+      allow update: if false;
+
+      // Only admin can delete (data retention policy)
+      allow delete: if isAdmin();
+    }
+
+    // ─── Catch-all: deny everything not explicitly matched ───
+    // This ensures no unprotected collections can be created
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

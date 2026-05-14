@@ -1,0 +1,173 @@
+/* ============================================
+   SpatialManagementPage — GIS Editor
+   ============================================ */
+
+.spatial-mgmt {
+  display: flex;
+  height: calc(100vh - 70px);
+  background: var(--color-dark-bg);
+  overflow: hidden;
+}
+
+/* ─── Sidebar ─── */
+.spatial-mgmt__sidebar {
+  width: 320px;
+  background: var(--color-dark-surface);
+  border-right: 1px solid var(--color-dark-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.spatial-mgmt__header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-dark-border);
+}
+
+.spatial-mgmt__title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+}
+
+.spatial-mgmt__subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-dark-text-muted);
+}
+
+/* ─── Tools ─── */
+.spatial-mgmt__tools {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-dark-border);
+}
+
+.spatial-mgmt__btn {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  color: var(--color-dark-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  transition: all var(--transition-fast);
+}
+
+.spatial-mgmt__btn:hover {
+  background: var(--color-dark-bg);
+  border-color: var(--color-primary-500);
+}
+
+.spatial-mgmt__btn--active {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-400);
+}
+
+.spatial-mgmt__btn--save {
+  background: var(--color-accent-600);
+  color: white;
+  border: none;
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
+.spatial-mgmt__btn--save:hover {
+  background: var(--color-accent-500);
+}
+
+/* ─── Entity List ─── */
+.spatial-mgmt__list-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.spatial-mgmt__list-title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark-text-muted);
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+}
+
+.spatial-mgmt__item {
+  background: var(--color-dark-bg);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.spatial-mgmt__item:hover {
+  border-color: var(--color-dark-text-muted);
+}
+
+.spatial-mgmt__item-name {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text);
+}
+
+.spatial-mgmt__item-type {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-dark-surface);
+  color: var(--color-dark-text-muted);
+}
+
+/* ─── Form Overlay ─── */
+.spatial-mgmt__form {
+  padding: var(--space-4);
+  background: var(--color-dark-bg);
+  border-bottom: 1px solid var(--color-dark-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.spatial-mgmt__input {
+  background: var(--color-dark-surface);
+  border: 1px solid var(--color-dark-border);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-family: inherit;
+  font-size: var(--text-sm);
+}
+
+.spatial-mgmt__input:focus {
+  outline: none;
+  border-color: var(--color-primary-500);
+}
+
+/* ─── Map Area ─── */
+.spatial-mgmt__map {
+  flex: 1;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .spatial-mgmt {
+    flex-direction: column;
+  }
+  .spatial-mgmt__sidebar {
+    width: 100%;
+    height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid var(--color-dark-border);
+  }
+}

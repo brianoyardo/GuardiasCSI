@@ -1,0 +1,48 @@
+/* ============================================
+   AdminLayout — SentinelOps
+   AppShell: CSS Grid layout
+   ============================================ */
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-rows: 100vh;
+  background: var(--color-dark-bg);
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* overflow: hidden removed to allow dropdowns/modals to escape if needed, though they should be portaled */
+}
+
+.admin-layout--collapsed {
+  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
+}
+
+.admin-layout__main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  /* Grid handles the width, no need for margin-left */
+}
+
+.admin-layout__content {
+  flex: 1;
+  padding: var(--space-6);
+  overflow-y: auto;
+  position: relative;
+}
+
+@media (max-width: 1023px) {
+  .admin-layout {
+    display: flex;
+    flex-direction: column;
+    /* Grid is completely disabled on mobile */
+  }
+  
+  .admin-layout__main {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+    /* Reset any inherited grid behaviors */
+  }
+}
+

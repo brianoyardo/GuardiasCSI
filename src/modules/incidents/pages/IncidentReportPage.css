@@ -1,0 +1,154 @@
+/* ============================================
+   IncidentReportPage — SentinelOps
+   Mobile-first, high-speed reporting
+   ============================================ */
+
+.inc-report {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  background: var(--color-dark-bg);
+  min-height: 100vh;
+  gap: var(--space-4);
+}
+
+.inc-report__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.inc-report__title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+}
+
+.inc-report__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+}
+
+.inc-report__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ─── Type and Severity grids ─── */
+.inc-report__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.inc-report__sel-btn {
+  background: var(--color-dark-surface);
+  border: 1px solid var(--color-dark-border);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  color: var(--color-dark-text-muted);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  text-align: center;
+}
+
+.inc-report__sel-btn--active-type {
+  background: var(--color-primary-600);
+  color: white;
+  border-color: var(--color-primary-500);
+}
+
+.inc-report__sel-btn--active-sev-low { background: #f59e0b; color: white; border-color: #f59e0b; }
+.inc-report__sel-btn--active-sev-medium { background: #f97316; color: white; border-color: #f97316; }
+.inc-report__sel-btn--active-sev-high { background: #ef4444; color: white; border-color: #ef4444; }
+.inc-report__sel-btn--active-sev-critical { background: #dc2626; color: white; border-color: #dc2626; }
+
+/* ─── Inputs ─── */
+.inc-report__input {
+  width: 100%;
+  background: var(--color-dark-surface);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  color: var(--color-dark-text);
+  font-size: var(--text-base);
+  font-family: inherit;
+}
+
+.inc-report__input:focus {
+  outline: none;
+  border-color: var(--color-primary-500);
+}
+
+.inc-report__textarea {
+  min-height: 100px;
+  resize: none;
+}
+
+/* ─── Camera / Photo Upload ─── */
+.inc-report__photo-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-4);
+  background: var(--color-dark-surface);
+  border: 2px dashed var(--color-dark-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-primary-400);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.inc-report__photo-btn:hover {
+  border-color: var(--color-primary-500);
+  background: var(--color-dark-card);
+}
+
+.inc-report__photo-preview {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.inc-report__photo-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  border: 1px solid var(--color-dark-border);
+}
+
+/* ─── Action ─── */
+.inc-report__submit {
+  background: linear-gradient(135deg, var(--color-danger-500), var(--color-danger-600));
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  margin-top: var(--space-4);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  transition: all var(--transition-fast);
+}
+
+.inc-report__submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.inc-report__gps-status {
+  font-size: var(--text-xs);
+  color: var(--color-dark-text-muted);
+  text-align: center;
+  margin-top: var(--space-2);
+}

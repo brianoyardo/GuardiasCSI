@@ -1,0 +1,204 @@
+/* ============================================
+   IncidentManagementPage — Admin View
+   ============================================ */
+
+.inc-mgmt {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 70px);
+  background: var(--color-dark-bg);
+}
+
+.inc-mgmt__header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-dark-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.inc-mgmt__title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+}
+
+.inc-mgmt__content {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── List Sidebar ─── */
+.inc-mgmt__sidebar {
+  border-right: 1px solid var(--color-dark-border);
+  background: var(--color-dark-surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.inc-mgmt__filters {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-dark-border);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.inc-mgmt__filter-btn {
+  flex: 1;
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  color: var(--color-dark-text-muted);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.inc-mgmt__filter-btn--active {
+  background: var(--color-primary-600);
+  color: white;
+  border-color: var(--color-primary-500);
+}
+
+.inc-mgmt__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ─── Incident Card ─── */
+.inc-mgmt__card {
+  background: var(--color-dark-bg);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-3);
+  transition: all var(--transition-fast);
+}
+
+.inc-mgmt__card:hover {
+  background: var(--color-dark-card);
+}
+
+.inc-mgmt__card--active {
+  border-color: var(--color-primary-500);
+  background: var(--color-dark-card);
+}
+
+.inc-mgmt__card-severity {
+  width: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.inc-mgmt__card-info {
+  flex: 1;
+}
+
+.inc-mgmt__card-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark-text);
+  margin-bottom: var(--space-1);
+}
+
+.inc-mgmt__card-meta {
+  font-size: var(--text-xs);
+  color: var(--color-dark-text-muted);
+}
+
+/* ─── Detail View ─── */
+.inc-mgmt__detail {
+  padding: var(--space-6);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.inc-mgmt__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-dark-text-muted);
+}
+
+.inc-mgmt__detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.inc-mgmt__detail-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+  margin-bottom: var(--space-2);
+}
+
+.inc-mgmt__detail-badges {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.inc-mgmt__badge {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+}
+
+.inc-mgmt__detail-desc {
+  background: var(--color-dark-surface);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-dark-border);
+  color: var(--color-dark-text);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+/* ─── Actions ─── */
+.inc-mgmt__actions {
+  display: flex;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-dark-border);
+}
+
+.inc-mgmt__btn {
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  border: none;
+}
+
+.inc-mgmt__btn--resolve {
+  background: var(--color-accent-600);
+  color: white;
+}
+
+.inc-mgmt__btn--investigate {
+  background: var(--color-primary-600);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .inc-mgmt__content {
+    grid-template-columns: 1fr;
+  }
+  .inc-mgmt__sidebar {
+    display: none;
+  }
+}

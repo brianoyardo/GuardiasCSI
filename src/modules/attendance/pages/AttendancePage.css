@@ -1,0 +1,85 @@
+/* ============================================
+   AttendancePage — SentinelOps
+   ============================================ */
+
+.attendance {
+  padding: var(--space-4);
+  background: var(--color-dark-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.attendance__header {
+  text-align: center;
+}
+
+.attendance__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+  margin-bottom: var(--space-2);
+}
+
+.attendance__time {
+  font-size: 3rem;
+  font-weight: var(--font-bold);
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-primary-400);
+}
+
+.attendance__date {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+}
+
+.attendance__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.attendance__btn {
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.attendance__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attendance__btn--in {
+  background: linear-gradient(135deg, var(--color-accent-500), var(--color-accent-600));
+  color: white;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+}
+
+.attendance__btn--out {
+  background: var(--color-dark-surface);
+  border: 1px solid var(--color-dark-border);
+  color: var(--color-dark-text);
+}
+
+.attendance__error {
+  color: var(--color-danger-400);
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+.attendance__gps {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-dark-text-muted);
+}

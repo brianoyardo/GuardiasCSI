@@ -1,0 +1,46 @@
+/* ============================================
+   LoginPage — Full-screen tactical background
+   ============================================ */
+
+.login-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-dark-bg);
+  overflow: hidden;
+}
+
+/* Subtle grid background */
+.login-page__grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(51, 128, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51, 128, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+.login-page__grid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 30%,
+    var(--color-dark-bg) 80%
+  );
+}
+
+.login-page__content {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-6);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 600ms ease forwards;
+}

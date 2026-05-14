@@ -1,0 +1,76 @@
+/* ============================================
+   LoadingScreen — SentinelOps
+   Full-screen loading with radar animation
+   ============================================ */
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-dark-bg);
+  z-index: 9999;
+  gap: var(--space-6);
+}
+
+.loading-screen__radar {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.loading-screen__radar-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--color-primary-500);
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+.loading-screen__radar-ring--inner {
+  inset: 15px;
+}
+
+.loading-screen__radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    var(--color-primary-500) 10%,
+    transparent 15%
+  );
+  animation: radarSweep 2s linear infinite;
+  opacity: 0.6;
+}
+
+.loading-screen__radar-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: var(--color-primary-400);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 12px var(--color-primary-500);
+}
+
+.loading-screen__text {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: var(--font-medium);
+}
+
+.loading-screen__brand {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-primary-400);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}

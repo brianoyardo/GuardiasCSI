@@ -1,0 +1,198 @@
+/* ============================================
+   RondaExecutionPage — Mobile Tactical Center
+   ============================================ */
+
+.ronda-exec {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  gap: 0;
+  background: var(--color-dark-bg);
+}
+
+/* ─── Top status bar ─── */
+.ronda-exec__status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-dark-surface);
+  border-bottom: 1px solid var(--color-dark-border);
+  flex-shrink: 0;
+}
+
+.ronda-exec__status-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ronda-exec__state-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.ronda-exec__timer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+}
+
+.ronda-exec__timer--warning { color: var(--color-warning-400); }
+.ronda-exec__timer--critical { color: var(--color-danger-400); }
+.ronda-exec__timer--overdue { color: var(--color-danger-500); animation: pulse 1s ease-in-out infinite; }
+
+.ronda-exec__progress-text {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+}
+
+/* ─── Map section (takes remaining space) ─── */
+.ronda-exec__map {
+  flex: 1;
+  min-height: 200px;
+  position: relative;
+}
+
+/* ─── Bottom panel ─── */
+.ronda-exec__panel {
+  flex-shrink: 0;
+  background: var(--color-dark-surface);
+  border-top: 1px solid var(--color-dark-border);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+/* ─── Next checkpoint card ─── */
+.ronda-exec__next-cp {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-lg);
+}
+
+.ronda-exec__cp-number {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-600);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-bold);
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+}
+
+.ronda-exec__cp-info {
+  flex: 1;
+}
+
+.ronda-exec__cp-name {
+  font-weight: var(--font-semibold);
+  color: var(--color-dark-text);
+  font-size: var(--text-sm);
+}
+
+.ronda-exec__cp-distance {
+  font-size: var(--text-xs);
+  color: var(--color-dark-text-muted);
+}
+
+/* ─── Action buttons ─── */
+.ronda-exec__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.ronda-exec__btn {
+  flex: 1;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+}
+
+.ronda-exec__btn--checkpoint {
+  background: linear-gradient(135deg, var(--color-accent-600), var(--color-accent-700));
+  color: white;
+  font-size: var(--text-base);
+}
+
+.ronda-exec__btn--checkpoint:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+}
+
+.ronda-exec__btn--checkpoint:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ronda-exec__btn--pause {
+  background: var(--color-dark-card);
+  color: var(--color-warning-400);
+  border: 1px solid var(--color-warning-400);
+}
+
+.ronda-exec__btn--cancel {
+  background: var(--color-dark-card);
+  color: var(--color-danger-400);
+  border: 1px solid var(--color-dark-border);
+}
+
+/* ─── Validation feedback ─── */
+.ronda-exec__feedback {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  animation: fadeIn var(--transition-fast) ease;
+}
+
+.ronda-exec__feedback--success {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--color-accent-400);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.ronda-exec__feedback--error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger-400);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ─── GPS indicator ─── */
+.ronda-exec__gps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-dark-text-muted);
+}
+
+.ronda-exec__gps-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.ronda-exec__gps-dot--ok { background: var(--color-accent-500); box-shadow: 0 0 4px var(--color-accent-500); }
+.ronda-exec__gps-dot--warn { background: var(--color-warning-400); }
+.ronda-exec__gps-dot--bad { background: var(--color-danger-400); }

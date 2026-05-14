@@ -1,0 +1,61 @@
+/* ============================================
+   MisRondasPage — Guard's patrol list
+   ============================================ */
+
+.mis-rondas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.mis-rondas__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mis-rondas__title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+}
+
+.mis-rondas__date {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+}
+
+.mis-rondas__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mis-rondas__section-title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-dark-border);
+}
+
+.mis-rondas__empty {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-dark-text-muted);
+}
+
+.mis-rondas__empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-3);
+}
+
+.mis-rondas__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  color: var(--color-dark-text-muted);
+}

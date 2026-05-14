@@ -1,0 +1,130 @@
+/* ============================================
+   AdminDashboard — SentinelOps
+   ============================================ */
+
+.admin-dash {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.admin-dash__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-dash__title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+}
+
+.admin-dash__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+}
+
+/* ─── KPI Cards Grid ─── */
+.admin-dash__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.admin-dash__kpi {
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-dash__kpi::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.admin-dash__kpi--primary::before { background: var(--color-primary-500); }
+.admin-dash__kpi--success::before { background: var(--color-accent-500); }
+.admin-dash__kpi--warning::before { background: var(--color-warning-400); }
+.admin-dash__kpi--danger::before { background: var(--color-danger-500); }
+
+.admin-dash__kpi-icon {
+  font-size: 1.5rem;
+}
+
+.admin-dash__kpi-value {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-dark-text);
+}
+
+.admin-dash__kpi-label {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+}
+
+/* ─── Activity feed ─── */
+.admin-dash__activity {
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+}
+
+.admin-dash__activity-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--space-3);
+}
+
+.admin-dash__activity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-dark-border);
+}
+
+.admin-dash__activity-item:last-child {
+  border-bottom: none;
+}
+
+.admin-dash__activity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.admin-dash__activity-text {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--color-dark-text);
+}
+
+.admin-dash__activity-time {
+  font-size: var(--text-xs);
+  color: var(--color-dark-text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .admin-dash__kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
