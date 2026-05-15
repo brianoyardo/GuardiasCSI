@@ -1,0 +1,328 @@
+/* ============================================
+   VoiceValidationModal — SentinelOps
+   Full-screen biometric identity verification
+   ============================================ */
+
+.voice-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.voice-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.voice-modal__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-dark-card, #1e1e2e);
+  border: 1px solid var(--color-dark-border, #333);
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* ─── Header ─── */
+.voice-modal__shield {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.5));
+}
+
+.voice-modal__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-dark-text, #e0e0e0);
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.voice-modal__subtitle {
+  font-size: 0.8rem;
+  color: var(--color-dark-text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+/* ─── Guard Info ─── */
+.voice-modal__guard {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 8px;
+}
+
+.voice-modal__guard-icon {
+  font-size: 1.2rem;
+}
+
+.voice-modal__guard-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #8b5cf6;
+}
+
+/* ─── Passphrase ─── */
+.voice-modal__passphrase-section {
+  width: 100%;
+  text-align: center;
+}
+
+.voice-modal__passphrase-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-dark-text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.voice-modal__passphrase {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--color-dark-text, #e0e0e0);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-dark-border, #333);
+  border-radius: 8px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ─── Action Area ─── */
+.voice-modal__action-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 160px;
+  justify-content: center;
+}
+
+/* Mic Button — Ready */
+.voice-modal__mic-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.voice-modal__mic-btn--ready {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.voice-modal__mic-btn--ready .voice-modal__mic-icon {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  background: rgba(139, 92, 246, 0.15);
+  border: 2px solid #8b5cf6;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.voice-modal__mic-btn--ready:hover .voice-modal__mic-icon {
+  background: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  transform: scale(1.05);
+}
+
+.voice-modal__mic-label {
+  font-size: 0.9rem;
+  color: var(--color-dark-text-muted, #888);
+}
+
+/* Mic Button — Recording */
+.voice-modal__mic-btn--recording {
+  pointer-events: none;
+}
+
+.voice-modal__mic-btn--recording .voice-modal__mic-icon {
+  font-size: 2.5rem;
+  animation: micPulse 1s ease-in-out infinite;
+}
+
+.voice-modal__mic-btn--recording .voice-modal__mic-label {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* Mic Button — Analyzing */
+.voice-modal__mic-btn--analyzing {
+  pointer-events: none;
+}
+
+.voice-modal__mic-btn--analyzing .voice-modal__mic-icon {
+  font-size: 2.5rem;
+  animation: micSpin 1.5s linear infinite;
+}
+
+.voice-modal__mic-btn--analyzing .voice-modal__mic-label {
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
+/* Progress Bar */
+.voice-modal__progress-bar {
+  width: 200px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.voice-modal__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b5cf6, #22c55e);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+/* Result — Success */
+.voice-modal__result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.voice-modal__result--success .voice-modal__result-icon {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  background: rgba(34, 197, 94, 0.15);
+  border: 2px solid #22c55e;
+  border-radius: 50%;
+  color: #22c55e;
+}
+
+.voice-modal__result--success .voice-modal__result-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+.voice-modal__result--success .voice-modal__result-score {
+  font-size: 0.85rem;
+  color: var(--color-dark-text-muted, #888);
+}
+
+/* Result — Error */
+.voice-modal__result--error .voice-modal__result-icon {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 2px solid #ef4444;
+  border-radius: 50%;
+  color: #ef4444;
+}
+
+.voice-modal__result--error .voice-modal__result-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.voice-modal__retry-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1.5rem;
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.voice-modal__retry-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ─── Footer ─── */
+.voice-modal__footer {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-dark-border, #333);
+  width: 100%;
+  text-align: center;
+}
+
+.voice-modal__footer-text {
+  font-size: 0.7rem;
+  color: var(--color-dark-text-muted, #666);
+  letter-spacing: 0.5px;
+}
+
+/* ─── Animations ─── */
+@keyframes micPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.7;
+  }
+}
+
+@keyframes micSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 480px) {
+  .voice-modal__content {
+    padding: 1.5rem 1rem;
+    gap: 1.25rem;
+  }
+
+  .voice-modal__title {
+    font-size: 1.25rem;
+  }
+
+  .voice-modal__passphrase {
+    font-size: 1rem;
+    padding: 0.75rem;
+  }
+
+  .voice-modal__mic-btn--ready .voice-modal__mic-icon {
+    width: 70px;
+    height: 70px;
+    font-size: 2rem;
+  }
+}

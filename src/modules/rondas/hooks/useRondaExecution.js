@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { getExecution, transitionExecution, registerCheckpoint, completeExecution } from '@/modules/rondas/services/rondaExecutionService'
+import { getExecution, transitionExecution, registerCheckpoint, completeExecution, updateExecutionPosition } from '@/modules/rondas/services/rondaExecutionService'
 import { startExecution } from '@/modules/rondas/services/rondaExecutionService'
 import { RONDA_STATES, isTerminalState, isActiveState } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { useRondaTimer } from './useRondaTimer'
@@ -26,6 +26,7 @@ const POSITION_SYNC_INTERVAL = 10000 // 10 seconds
  * @param {string} options.guardId
  * @param {object[]} options.checkpoints - Ordered checkpoint objects
  * @param {number} options.scheduledEnd - Unix timestamp
+ * @param {string} [options.executionId] - Pre-existing execution ID (voice validation flow)
  * @param {{ lat: number, lng: number }[]} [options.geofencePolygon]
  */
 export function useRondaExecution(options) {
@@ -36,12 +37,13 @@ export function useRondaExecution(options) {
     guardId,
     checkpoints = [],
     scheduledEnd,
+    executionId: preExistingExecutionId = null,
     geofencePolygon = null,
   } = options
 
-  const [executionId, setExecutionId] = useState(null)
+  const [executionId, setExecutionId] = useState(preExistingExecutionId)
   const [execution, setExecution] = useState(null)
-  const [status, setStatus] = useState(RONDA_STATES.AVAILABLE)
+  const [status, setStatus] = useState(preExistingExecutionId ? RONDA_STATES.IN_PROGRESS : RONDA_STATES.AVAILABLE)
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -104,6 +106,34 @@ export function useRondaExecution(options) {
       setIsLoading(false)
     }
   }, [assignmentId, rondaId, routeId, guardId, checkpointOrder, geo, tracking])
+
+  // ─── Activate existing execution (after voice validation) ───
+  const startWithExecutionId = useCallback(async (existingExecId) => {
+    setExecutionId(existingExecId)
+    setStatus(RONDA_STATES.IN_PROGRESS)
+
+    // Get current position and start tracking
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+          () => reject(new Error('GPS no disponible')),
+          { enableHighAccuracy: true, timeout: 10000 }
+        )
+      })
+
+      geo.startTracking()
+      tracking.startRecording()
+
+      // Update lastPosition in Firestore
+      updateExecutionPosition(existingExecId, pos, pos.coords?.accuracy)
+
+      console.log(`${LOG_PREFIX} ✅ Execution activated: ${existingExecId}`)
+    } catch (err) {
+      console.error(`${LOG_PREFIX} Error activating execution:`, err)
+      setError(err.message)
+    }
+  }, [geo, tracking])
 
   // ─── Register checkpoint ───
   const registerCheckpointHit = useCallback(
@@ -227,6 +257,7 @@ export function useRondaExecution(options) {
               speed: geo.speed,
             })
             appendTrackPoint(executionId, geo.position, geo.accuracy)
+            updateExecutionPosition(executionId, geo.position, geo.accuracy)
           }
         }, POSITION_SYNC_INTERVAL)
       }
@@ -269,6 +300,7 @@ export function useRondaExecution(options) {
 
     // Actions
     start,
+    startWithExecutionId,
     pause,
     resume,
     finishRonda,

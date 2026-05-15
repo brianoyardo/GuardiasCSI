@@ -24,7 +24,7 @@ const LOG_PREFIX = '[ExecutionService]'
 
 /**
  * Start a ronda execution
- * Creates the execution document and transitions assignment to IN_PROGRESS
+ * Creates the execution document and transitions assignment to the initial state
  * 
  * @param {object} data
  * @param {string} data.assignmentId
@@ -33,6 +33,7 @@ const LOG_PREFIX = '[ExecutionService]'
  * @param {string} data.guardId
  * @param {string[]} data.checkpointIds - Ordered checkpoint IDs
  * @param {{ lat: number, lng: number }} data.startPosition
+ * @param {string} [data.initialState] - Initial state (default: IN_PROGRESS, or VALIDATING_VOICE for biometric flow)
  * @param {string} [data.clientId] - Empresa cliente (Catar Seguridad Integral)
  * @param {string} [data.patrolType] - Tipo de patrullaje (PATROL_TYPES)
  * @param {string} [data.vehicleId] - Vehículo asignado (opcional)
@@ -45,23 +46,24 @@ const LOG_PREFIX = '[ExecutionService]'
 export async function startExecution(data) {
   try {
     const execRef = doc(collection(db, COLLECTIONS.RONDA_EXECUTIONS))
+    const initialState = data.initialState || RONDA_STATES.IN_PROGRESS
 
     const execution = {
       assignmentId: data.assignmentId,
       rondaId: data.rondaId,
       routeId: data.routeId,
       guardId: data.guardId,
-      status: RONDA_STATES.IN_PROGRESS,
+      status: initialState,
       checkpointIds: data.checkpointIds,
       completedCheckpoints: [],
-      startedAt: serverTimestamp(),
+      startedAt: initialState === RONDA_STATES.IN_PROGRESS ? serverTimestamp() : null,
       startPosition: data.startPosition || null,
       lastPosition: data.startPosition || null,
       gpsTrack: data.startPosition ? [{ ...data.startPosition, timestamp: Date.now() }] : [],
       endedAt: null,
       totalDistance: 0,
       events: [{
-        type: RONDA_EVENTS.START,
+        type: initialState === RONDA_STATES.VALIDATING_VOICE ? RONDA_EVENTS.VOICE_START : RONDA_EVENTS.START,
         timestamp: Date.now(),
         position: data.startPosition || null,
         details: { assignmentId: data.assignmentId },
@@ -85,19 +87,19 @@ export async function startExecution(data) {
     await setDoc(execRef, execution)
 
     // Update assignment with execution reference
-    await updateAssignmentStatus(data.assignmentId, RONDA_STATES.IN_PROGRESS, {
+    await updateAssignmentStatus(data.assignmentId, initialState, {
       executionId: execRef.id,
     })
 
     // Activity log
-    logActivity(data.guardId, 'ronda_started', 'rondas', {
+    logActivity(data.guardId, initialState === RONDA_STATES.VALIDATING_VOICE ? 'ronda_voice_validation' : 'ronda_started', 'rondas', {
       executionId: execRef.id,
       rondaId: data.rondaId,
       patrolType: execution.patrolType,
       shift: execution.shift,
     })
 
-    console.log(`${LOG_PREFIX} ✅ Execution started: ${execRef.id}`)
+    console.log(`${LOG_PREFIX} ✅ Execution started: ${execRef.id} (state: ${initialState})`)
     return execRef.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error starting execution:`, error)
@@ -340,7 +342,13 @@ export async function getExecutionTelemetry(executionId) {
 
 /**
  * Start voice validation for an execution
- * Transitions to VALIDATING_VOICE state
+ * Transitions from AVAILABLE/PENDING to VALIDATING_VOICE
+ * This is called when the guard confirms the pre-op form
+ * and is about to record their voice.
+ * 
+ * NOTE: In the new flow, startExecution() with initialState: VALIDATING_VOICE
+ * is preferred. This function exists for transitioning an existing execution.
+ * 
  * @param {string} executionId
  * @param {string} currentState
  * @param {{ lat: number, lng: number }} position
@@ -364,6 +372,9 @@ export async function startVoiceValidation(executionId, currentState, position) 
 
 /**
  * Record voice validation result
+ * If passed: transitions to IN_PROGRESS and sets startedAt
+ * If failed: transitions to PENDING (retry) or FAILED
+ * 
  * @param {string} executionId
  * @param {object} voiceResult
  * @param {number} voiceResult.matchScore - Confidence score (0-1)
@@ -380,9 +391,18 @@ export async function recordVoiceValidation(executionId, voiceResult) {
       throw new Error(`Execution ${executionId} not found`)
     }
 
-    const { assignmentId } = execSnap.data()
+    const { assignmentId, status: currentStatus } = execSnap.data()
 
-    await updateDoc(execRef, {
+    // Determine next state based on result
+    const nextState = voiceResult.passed
+      ? RONDA_STATES.IN_PROGRESS
+      : RONDA_STATES.PENDING // Allow retry
+
+    await transitionExecution(executionId, currentStatus, nextState, {
+      position: voiceResult.position,
+    })
+
+    const updates = {
       voiceValidated: voiceResult.passed,
       voiceMatchScore: voiceResult.matchScore,
       audioEvidenceUrl: voiceResult.audioEvidenceUrl || null,
@@ -396,28 +416,23 @@ export async function recordVoiceValidation(executionId, voiceResult) {
         },
       }),
       updatedAt: serverTimestamp(),
-    })
+    }
 
-    console.log(`${LOG_PREFIX} 🎤 Voice validation recorded: ${executionId} (score: ${voiceResult.matchScore}, passed: ${voiceResult.passed})`)
+    // If passed, set startedAt (the ronda officially starts now)
+    if (voiceResult.passed) {
+      updates.startedAt = serverTimestamp()
+    }
+
+    await updateDoc(execRef, updates)
+
+    // If passed, also update assignment to IN_PROGRESS
+    if (voiceResult.passed && assignmentId) {
+      await updateAssignmentStatus(assignmentId, RONDA_STATES.IN_PROGRESS)
+    }
+
+    console.log(`${LOG_PREFIX} 🎤 Voice validation recorded: ${executionId} (score: ${voiceResult.matchScore}, passed: ${voiceResult.passed}) → ${nextState}`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Error recording voice validation:`, error)
     throw error
   }
-}
-
-/**
- * Complete execution after voice validation
- * Transitions from VALIDATING_VOICE to final state
- * @param {string} executionId
- * @param {string} finalState - COMPLETED | LATE | FAILED
- * @param {{ lat: number, lng: number }} position
- * @returns {Promise<void>}
- */
-export async function completeAfterVoiceValidation(executionId, finalState, position) {
-  await transitionExecution(executionId, RONDA_STATES.VALIDATING_VOICE, finalState, {
-    position,
-    details: 'Completed after voice biometric validation',
-  })
-
-  console.log(`${LOG_PREFIX} ✅ Execution ${executionId} completed after voice validation → ${finalState}`)
 }

@@ -49,6 +49,14 @@
       ]
     },
     {
+      "collectionGroup": "rondaAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "guardId", "order": "ASCENDING" },
+        { "fieldPath": "scheduledStart", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "attendance",
       "queryScope": "COLLECTION",
       "fields": [

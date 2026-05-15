@@ -1,20 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { useRondaExecution } from '@/modules/rondas/hooks/useRondaExecution'
+import { startExecution } from '@/modules/rondas/services/rondaExecutionService'
 import { STATE_LABELS, STATE_COLORS, RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { BaseMap, CheckpointLayer, TrackingLayer, GuardMarker } from '@/modules/maps'
+import PreOpModal from '@/modules/rondas/components/PreOpModal/PreOpModal'
+import VoiceValidationModal from '@/modules/rondas/components/VoiceValidationModal/VoiceValidationModal'
+import { VOICE_PASSPHRASES } from '@/config/constants'
 import './RondaExecutionPage.css'
 
 /**
  * RondaExecutionPage — Mobile tactical execution center
  * 
- * Layout: Status Bar → Map → Bottom Panel
- * The guard operates the ronda entirely from this screen.
+ * Flow (Catar Seguridad Integral):
+ *   1. Pre-Operational Modal → collect patrol type, vehicle, shift
+ *   2. Voice Validation Modal → biometric anti-spoofing
+ *   3. Normal Execution UI → checkpoints, GPS tracking, map
  * 
- * NOTE: In a real scenario, assignment/ronda data would be fetched
- * from Firestore via the executionId param. For now, this uses mock data
- * to demonstrate the UI and hook composition.
+ * Layout: Status Bar → Map → Bottom Panel
  */
 
 // Mock checkpoints for development (will be replaced by Firestore data)
@@ -30,16 +34,79 @@ export default function RondaExecutionPage() {
   const { user } = useAuth()
   const [feedback, setFeedback] = useState(null)
 
-  // In production, these would come from Firestore
+  // ─── Phase Management ───
+  // 'preop' → 'voice' → 'execution'
+  const [phase, setPhase] = useState('preop')
+  const [executionId, setExecutionId] = useState(null)
+  const [preOpData, setPreOpData] = useState(null)
+
+  // ─── Execution Hook (only active in 'execution' phase) ───
   const exec = useRondaExecution({
     assignmentId: paramId,
     rondaId: 'ronda-demo',
     routeId: 'route-demo',
     guardId: user?.uid || '',
     checkpoints: MOCK_CHECKPOINTS,
-    scheduledEnd: Date.now() + 2 * 60 * 60 * 1000, // 2 hours from now
+    scheduledEnd: Date.now() + 2 * 60 * 60 * 1000,
+    executionId: phase === 'execution' ? executionId : null,
   })
 
+  // ─── Pre-Op Modal Confirm ───
+  const handlePreOpConfirm = async (data) => {
+    setPreOpData(data)
+
+    try {
+      // Get position first
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+          () => reject(new Error('GPS requerido')),
+          { enableHighAccuracy: true, timeout: 10000 }
+        )
+      })
+
+      // Create execution in VALIDATING_VOICE state
+      const execId = await startExecution({
+        assignmentId: paramId,
+        rondaId: 'ronda-demo',
+        routeId: 'route-demo',
+        guardId: user?.uid || '',
+        checkpointIds: MOCK_CHECKPOINTS.map((cp) => cp.id),
+        startPosition: pos,
+        initialState: RONDA_STATES.VALIDATING_VOICE,
+        patrolType: data.patrolType,
+        vehicleId: data.vehicleId,
+        shift: data.shift,
+        voicePassphrase: VOICE_PASSPHRASES[0],
+      })
+
+      setExecutionId(execId)
+      setPhase('voice')
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message })
+      setTimeout(() => setFeedback(null), 3000)
+    }
+  }
+
+  const handlePreOpCancel = () => {
+    window.history.back()
+  }
+
+  // ─── Voice Validation Success ───
+  const handleVoiceSuccess = () => {
+    // Voice passed → transition to execution phase
+    setPhase('execution')
+    // The execution is now IN_PROGRESS in Firestore
+    // Start the hook's internal execution
+    exec.startWithExecutionId(executionId)
+  }
+
+  const handleVoiceFail = () => {
+    setFeedback({ type: 'error', message: 'Validación biométrica fallida' })
+    setTimeout(() => setFeedback(null), 3000)
+  }
+
+  // ─── Checkpoint Handler ───
   const handleCheckpoint = async () => {
     if (!exec.nextCheckpoint) return
 
@@ -51,7 +118,6 @@ export default function RondaExecutionPage() {
       setFeedback({ type: 'error', message: result.validation?.reason || exec.error })
     }
 
-    // Clear feedback after 3s
     setTimeout(() => setFeedback(null), 3000)
   }
 
@@ -62,6 +128,31 @@ export default function RondaExecutionPage() {
     : 'ronda-exec__gps-dot--bad'
     : ''
 
+  // ─── Render: Pre-Op Modal ───
+  if (phase === 'preop') {
+    return (
+      <PreOpModal
+        rondaName="Patrullaje Diurno"
+        onConfirm={handlePreOpConfirm}
+        onCancel={handlePreOpCancel}
+      />
+    )
+  }
+
+  // ─── Render: Voice Validation Modal ───
+  if (phase === 'voice' && executionId) {
+    return (
+      <VoiceValidationModal
+        executionId={executionId}
+        passphrase={VOICE_PASSPHRASES[0]}
+        guardName={user?.displayName || 'Guardia Operativo'}
+        onSuccess={handleVoiceSuccess}
+        onFail={handleVoiceFail}
+      />
+    )
+  }
+
+  // ─── Render: Normal Execution UI ───
   return (
     <div className="ronda-exec" id="ronda-execution-page">
       {/* ─── Status Bar ─── */}

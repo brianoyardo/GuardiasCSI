@@ -8,6 +8,8 @@ import {
   getDocs,
   query,
   where,
+  onSnapshot,
+  orderBy,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { COLLECTIONS, USER_STATUS } from '@/config/constants'
@@ -296,4 +298,152 @@ export async function getVoiceEnrolledGuards() {
     console.error(`${LOG_PREFIX} Error fetching voice-enrolled guards:`, error)
     throw error
   }
+}
+
+/**
+ * ─── Admin User Management (Secondary App) ───
+ * Creates users via a secondary Firebase App to avoid
+ * logging out the current admin session.
+ */
+
+/**
+ * Create a user in Firebase Auth + Firestore using a secondary app
+ * @param {object} data
+ * @param {string} data.email
+ * @param {string} data.password
+ * @param {string} data.fullName
+ * @param {string} data.role - ROLES.ADMIN | ROLES.OPERATIONS_CHIEF | ROLES.SUPERVISOR | ROLES.GUARD
+ * @param {string} [data.phone]
+ * @param {string} [data.guardId] - e.g. 'G-006'
+ * @returns {Promise<object>} Created user profile
+ */
+export async function adminCreateUser(data) {
+  const { email, password, fullName, role = ROLES.GUARD, phone = '', guardId = '' } = data
+
+  // Dynamic import to avoid SSR issues
+  const { initializeApp: initApp, deleteApp } = await import('firebase/app')
+  const { getAuth, createUserWithEmailAndPassword } = await import('firebase/auth')
+
+  // Same config as primary app
+  const firebaseConfig = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  }
+
+  let secondaryApp
+  let secondaryAuth
+  let createdUid = null
+
+  try {
+    // 1. Create secondary app
+    secondaryApp = initApp(firebaseConfig, 'SecondaryApp_' + Date.now())
+    secondaryAuth = getAuth(secondaryApp)
+
+    // 2. Create Auth user
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password)
+    createdUid = userCredential.user.uid
+
+    // 3. Create Firestore profile
+    const userRef = doc(db, COLLECTIONS.USERS, createdUid)
+    const profile = {
+      uid: createdUid,
+      email,
+      fullName,
+      phone,
+      photoURL: '',
+      role,
+      status: USER_STATUS.ACTIVE,
+      clientId: null,
+      locationId: null,
+      deviceToken: null,
+      voiceProfileId: null,
+      biometricEnrolled: false,
+      voicePassphrase: null,
+      guardId: guardId || null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      lastLogin: null,
+    }
+
+    await setDoc(userRef, profile)
+
+    console.log(`${LOG_PREFIX} ✅ User created: ${email} (${role})`)
+    return { id: createdUid, ...profile }
+  } catch (error) {
+    // Cleanup Auth user if Firestore creation failed
+    if (createdUid && secondaryAuth) {
+      try {
+        await secondaryAuth.currentUser?.delete()
+      } catch (_) {
+        // Ignore cleanup errors
+      }
+    }
+    console.error(`${LOG_PREFIX} ❌ Error creating user:`, error)
+    throw error
+  } finally {
+    // 4. Sign out and delete secondary app
+    if (secondaryAuth) {
+      try {
+        await secondaryAuth.signOut()
+      } catch (_) {}
+    }
+    if (secondaryApp) {
+      try {
+        deleteApp(secondaryApp)
+      } catch (_) {}
+    }
+  }
+}
+
+/**
+ * Update user role
+ * @param {string} uid
+ * @param {string} newRole
+ */
+export async function updateUserRole(uid, newRole) {
+  const userRef = doc(db, COLLECTIONS.USERS, uid)
+  await updateDoc(userRef, {
+    role: newRole,
+    updatedAt: serverTimestamp(),
+  })
+  console.log(`${LOG_PREFIX} Role updated for ${uid} → ${newRole}`)
+}
+
+/**
+ * Toggle user status (active ↔ inactive)
+ * @param {string} uid
+ * @param {string} currentStatus
+ */
+export async function toggleUserStatus(uid, currentStatus) {
+  const newStatus = currentStatus === USER_STATUS.ACTIVE ? USER_STATUS.INACTIVE : USER_STATUS.ACTIVE
+  const userRef = doc(db, COLLECTIONS.USERS, uid)
+  await updateDoc(userRef, {
+    status: newStatus,
+    updatedAt: serverTimestamp(),
+  })
+  console.log(`${LOG_PREFIX} Status toggled for ${uid} → ${newStatus}`)
+  return newStatus
+}
+
+/**
+ * Subscribe to users collection in real-time
+ * @param {Function} callback - Called with array of users on each update
+ * @returns {Function} Unsubscribe function
+ */
+export function subscribeToUsers(callback) {
+  const q = query(
+    collection(db, COLLECTIONS.USERS),
+    orderBy('createdAt', 'desc')
+  )
+
+  return onSnapshot(q, (snapshot) => {
+    const users = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    callback(users)
+  }, (error) => {
+    console.error(`${LOG_PREFIX} Users subscription error:`, error)
+  })
 }
