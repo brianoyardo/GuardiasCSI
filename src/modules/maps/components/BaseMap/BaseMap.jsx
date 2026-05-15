@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
+import { useShallow } from 'zustand/react/shallow'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/config/constants'
 import { useMapLayerStore, MAP_LAYERS_CONFIG, getLayerList } from '@/stores/mapLayerStore'
+import { useRealtimeStore } from '@/stores/realtimeStore'
+import { subscribeToActiveExecutions } from '@/modules/monitoring/services/realtimeMonitoringService'
+import LiveGuardMarker from '@/modules/maps/components/LiveGuardMarker/LiveGuardMarker'
 import './BaseMap.css'
 
 /**
@@ -93,6 +97,20 @@ export default function BaseMap({
   const [isFullscreen, setIsFullscreen] = useState(fullscreen)
   const [showLayers, setShowLayers] = useState(showLayerPanel)
 
+  // ─── Realtime Subscription (mount once, cleanup on unmount) ───
+  useEffect(() => {
+    const unsubscribe = subscribeToActiveExecutions()
+    return () => unsubscribe()
+  }, [])
+
+  // ─── Active Execution IDs (shallow equality — no re-render on position changes) ───
+  const activeExecutionIds = useRealtimeStore(
+    useShallow((state) => Object.keys(state.activeExecutions))
+  )
+
+  // ─── Layer visibility from Zustand store ───
+  const showGuards = useMapLayerStore((s) => s.guards)
+
   // Layer visibility from Zustand store (shared across all components)
   const layerStore = useMapLayerStore()
   const layerList = useMemo(() => getLayerList(layerStore), [layerStore])
@@ -137,6 +155,11 @@ export default function BaseMap({
 
         <MapController onMapReady={onMapReady} />
         <MapSizeSync isFullscreen={isFullscreen} />
+
+        {/* ─── Live Guard Markers (Zero-Render Thrashing) ─── */}
+        {showGuards && activeExecutionIds.map((id) => (
+          <LiveGuardMarker key={id} executionId={id} />
+        ))}
 
         {/* Render children (layers, markers, etc.) */}
         {children}
