@@ -1,9 +1,8 @@
-import { useEffect, useMemo } from 'react'
 import useMonitoringStore from '@/stores/monitoringStore'
 import useIncidentStore from '@/stores/incidentStore'
 import { useOperationsListener } from '@/modules/monitoring/realtime/useOperationsListener'
-import { BaseMap, GuardMarker, CheckpointLayer, TrackingLayer } from '@/modules/maps'
-import { STATE_COLORS, STATE_LABELS, RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
+import { BaseMap } from '@/modules/maps'
+import { STATE_COLORS, STATE_LABELS } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import './CommandCenterPage.css'
 
 /**
@@ -21,7 +20,6 @@ export default function CommandCenterPage() {
 
   // Read from Zustand stores (no Firestore calls in UI)
   const {
-    guardPositions,
     activeExecutions,
     alerts,
     unreadAlertCount,
@@ -30,14 +28,6 @@ export default function CommandCenterPage() {
   } = useMonitoringStore()
 
   const { incidents, openCount, criticalCount } = useIncidentStore()
-
-  // Convert Map to array for rendering
-  const guardMarkers = useMemo(() => {
-    return Array.from(guardPositions.entries()).map(([guardId, data]) => ({
-      guardId,
-      ...data,
-    }))
-  }, [guardPositions])
 
   const formatTime = (ts) => {
     if (!ts) return ''
@@ -87,19 +77,7 @@ export default function CommandCenterPage() {
       <div className="cc__main">
         {/* Map */}
         <div className="cc__map-section">
-          <BaseMap darkMode showControls showLayerPanel>
-            {/* Render active guard positions */}
-            {guardMarkers.map((guard) => (
-              <GuardMarker
-                key={guard.guardId}
-                position={{ lat: guard.lat, lng: guard.lng }}
-                state={guard.status === RONDA_STATES.IN_PROGRESS ? 'tracking' : 'active'}
-                guardId={guard.guardId}
-                accuracy={guard.accuracy}
-                name={`Guard ${guard.guardId.slice(-4)}`}
-              />
-            ))}
-          </BaseMap>
+          <BaseMap darkMode showControls showLayerPanel />
         </div>
 
         {/* Sidebar */}
