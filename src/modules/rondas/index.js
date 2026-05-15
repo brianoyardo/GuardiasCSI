@@ -53,6 +53,7 @@ export { default as RondaExecutionPage } from './pages/RondaExecutionPage'
 export {
   startExecution,
   registerCheckpoint,
+  updateExecutionPosition,
   transitionExecution,
   completeExecution,
   getExecution,

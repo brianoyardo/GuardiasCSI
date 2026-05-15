@@ -155,6 +155,35 @@ export async function registerCheckpoint(executionId, checkpointId, position, di
 }
 
 /**
+ * Update the execution's last known GPS position
+ * Called by the telemetry engine on each GPS tick
+ * Updates the root-level lastPosition field (critical for realtimeStore + LiveGuardMarker)
+ *
+ * @param {string} executionId
+ * @param {{ lat: number, lng: number }} position
+ * @param {number} [accuracy] - GPS accuracy in meters
+ * @returns {Promise<void>}
+ */
+export async function updateExecutionPosition(executionId, position, accuracy = null) {
+  try {
+    const execRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, executionId)
+
+    await updateDoc(execRef, {
+      lastPosition: {
+        lat: position.lat,
+        lng: position.lng,
+        timestamp: Date.now(),
+        accuracy,
+      },
+      updatedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    // Non-blocking — telemetry can continue even if this fails
+    console.warn(`${LOG_PREFIX} Failed to update lastPosition for ${executionId}:`, error)
+  }
+}
+
+/**
  * Transition execution to a new state
  * Uses the state machine to validate the transition
  * 
