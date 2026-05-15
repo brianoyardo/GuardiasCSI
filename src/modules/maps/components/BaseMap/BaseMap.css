@@ -28,9 +28,17 @@
 .basemap--fullscreen .leaflet-container {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 9999 !important;
+  z-index: 1 !important;
   width: 100vw !important;
   height: 100vh !important;
+}
+
+/* Controls and panels MUST float above the Leaflet container in fullscreen */
+.basemap--fullscreen .basemap__controls,
+.basemap--fullscreen .basemap__layer-panel,
+.basemap--fullscreen .basemap__gps-status {
+  position: fixed !important;
+  z-index: 10000 !important;
 }
 
 /* Native browser fullscreen API support */

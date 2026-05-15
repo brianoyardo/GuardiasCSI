@@ -36,6 +36,25 @@ function MapController({ onMapReady }) {
 }
 
 /**
+ * MapSizeSync — calls invalidateSize() when container dimensions change
+ * Fixes Leaflet tile grid not recalculating after CSS fullscreen toggle
+ */
+function MapSizeSync({ isFullscreen }) {
+  const map = useMap()
+
+  useEffect(() => {
+    // Leaflet needs a small delay after DOM changes to recalculate tile grid
+    const timer = setTimeout(() => {
+      map.invalidateSize({ animate: false })
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [map, isFullscreen])
+
+  return null
+}
+
+/**
  * BaseMap — Professional GIS map foundation
  * 
  * Architecture:
@@ -117,6 +136,7 @@ export default function BaseMap({
         />
 
         <MapController onMapReady={onMapReady} />
+        <MapSizeSync isFullscreen={isFullscreen} />
 
         {/* Render children (layers, markers, etc.) */}
         {children}

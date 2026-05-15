@@ -214,7 +214,7 @@ async function seedSpatialData() {
     const cpIds = []
 
     for (let i = 0; i < cpDistances.length; i++) {
-      const cpId = `cp_${zone.id}_${i}`
+      const cpId = `${routeId}_cp_${i}`
       const ptFeature = turf.along(lineFeature, cpDistances[i], { units: 'kilometers' })
       const ptGeo = ptFeature.geometry // {type: 'Point', coordinates: [lng, lat]}
 
