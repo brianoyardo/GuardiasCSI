@@ -73,6 +73,10 @@ export async function createUserProfile(firebaseUser, overrides = {}) {
     clientId: null,
     locationId: null,
     deviceToken: null,
+    // Biometría de Voz — Catar Seguridad Integral
+    voiceProfileId: null,     // Azure Speech / IA voice profile ID
+    biometricEnrolled: false, // Whether guard has completed voice enrollment
+    voicePassphrase: null,    // Assigned passphrase for voice verification
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     lastLogin: serverTimestamp(),
@@ -158,6 +162,9 @@ function validateProfile(profile) {
     clientId: null,
     locationId: null,
     deviceToken: null,
+    voiceProfileId: null,
+    biometricEnrolled: false,
+    voicePassphrase: null,
   }
 
   const validated = { ...defaults, ...profile }
@@ -216,6 +223,77 @@ export async function getAllUsers(filters = {}) {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   } catch (error) {
     console.error(`${LOG_PREFIX} Error fetching users:`, error)
+    throw error
+  }
+}
+
+/**
+ * ─── Biometría de Voz — Catar Seguridad Integral ───
+ */
+
+/**
+ * Enroll a guard's voice profile
+ * @param {string} uid
+ * @param {object} voiceData
+ * @param {string} voiceData.voiceProfileId - Azure/IA voice profile ID
+ * @param {string} voiceData.voicePassphrase - Assigned passphrase
+ * @returns {Promise<void>}
+ */
+export async function enrollVoiceProfile(uid, voiceData) {
+  try {
+    const userRef = doc(db, COLLECTIONS.USERS, uid)
+    await updateDoc(userRef, {
+      voiceProfileId: voiceData.voiceProfileId,
+      voicePassphrase: voiceData.voicePassphrase,
+      biometricEnrolled: true,
+      updatedAt: serverTimestamp(),
+    })
+    console.log(`${LOG_PREFIX} 🎤 Voice profile enrolled for: ${uid}`)
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error enrolling voice profile:`, error)
+    throw error
+  }
+}
+
+/**
+ * Update voice verification result for a guard
+ * @param {string} uid
+ * @param {object} voiceResult
+ * @param {number} voiceResult.matchScore - Confidence score (0-1)
+ * @param {boolean} voiceResult.verified - Whether verification passed
+ * @returns {Promise<void>}
+ */
+export async function updateVoiceVerification(uid, voiceResult) {
+  try {
+    const userRef = doc(db, COLLECTIONS.USERS, uid)
+    await updateDoc(userRef, {
+      lastVoiceScore: voiceResult.matchScore,
+      lastVoiceVerified: voiceResult.verified,
+      lastVoiceVerifiedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    console.log(`${LOG_PREFIX} 🎤 Voice verification updated for: ${uid} (score: ${voiceResult.matchScore})`)
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error updating voice verification:`, error)
+    throw error
+  }
+}
+
+/**
+ * Get guards eligible for voice verification (enrolled and active)
+ * @returns {Promise<object[]>}
+ */
+export async function getVoiceEnrolledGuards() {
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.USERS),
+      where('biometricEnrolled', '==', true),
+      where('status', '==', USER_STATUS.ACTIVE)
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error fetching voice-enrolled guards:`, error)
     throw error
   }
 }

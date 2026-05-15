@@ -29,7 +29,44 @@ export const RONDA_STATUS = {
   LATE: 'late',
   MISSED: 'missed',
   CANCELLED: 'cancelled',
+  VALIDATING_VOICE: 'validating_voice',
 }
+
+/* ─── Catar Seguridad Integral — Tipos de Patrullaje ─── */
+export const PATROL_TYPES = {
+  A_PIE: 'A_PIE',
+  MOTORIZADO: 'MOTORIZADO',
+  DRON: 'DRON',
+  OTRO: 'OTRO',
+}
+
+/* ─── Catar Seguridad Integral — Estados de Reporte ─── */
+export const REPORT_STATES = {
+  S_N: 'S_N',       // Sin Novedad
+  C_N: 'C_N',       // Con Novedad
+  PENDIENTE: 'PENDIENTE',
+  INCOMPLETO: 'INCOMPLETO',
+}
+
+/* ─── Catar Seguridad Integral — Tipos de Turno ─── */
+export const SHIFT_TYPES = {
+  DIURNO: 'DIURNO',
+  NOCTURNO: 'NOCTURNO',
+  PRIMER_TURNO: 'PRIMER_TURNO',
+  SEGUNDO_TURNO: 'SEGUNDO_TURNO',
+  PERSONALIZADO: 'PERSONALIZADO',
+}
+
+/* ─── Catar Seguridad Integral — Frases de Biometría de Voz ─── */
+export const VOICE_PASSPHRASES = [
+  'Guardia Operacional empezando ronda',
+  'Verificación biométrica de voz activa',
+  'SentinelOps control de presencia activado',
+]
+
+/* ─── Catar Seguridad Integral — Umbrales de Biometría ─── */
+export const VOICE_CONFIDENCE_THRESHOLD = 0.75
+export const VOICE_MAX_RETRIES = 3
 
 /* ─── Incident Severity ─── */
 export const INCIDENT_SEVERITY = {

@@ -48,3 +48,18 @@ export { default as RondaCard } from './components/RondaCard/RondaCard'
 // Pages
 export { default as MisRondasPage } from './pages/MisRondasPage'
 export { default as RondaExecutionPage } from './pages/RondaExecutionPage'
+
+// Services — Execution (Catar + Biometría)
+export {
+  startExecution,
+  registerCheckpoint,
+  transitionExecution,
+  completeExecution,
+  getExecution,
+  getActiveExecutions,
+  getHistoricalExecutions,
+  getExecutionTelemetry,
+  startVoiceValidation,
+  recordVoiceValidation,
+  completeAfterVoiceValidation,
+} from './services/rondaExecutionService'

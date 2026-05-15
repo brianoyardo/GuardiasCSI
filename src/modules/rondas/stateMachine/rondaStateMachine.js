@@ -26,6 +26,7 @@ export const RONDA_STATES = {
   MISSED: 'missed',
   CANCELLED: 'cancelled',
   FAILED: 'failed',
+  VALIDATING_VOICE: 'validating_voice',
 }
 
 export const STATE_LABELS = {
@@ -38,6 +39,7 @@ export const STATE_LABELS = {
   [RONDA_STATES.MISSED]: 'No Realizada',
   [RONDA_STATES.CANCELLED]: 'Cancelada',
   [RONDA_STATES.FAILED]: 'Fallida',
+  [RONDA_STATES.VALIDATING_VOICE]: 'Validando Voz',
 }
 
 export const STATE_COLORS = {
@@ -50,6 +52,7 @@ export const STATE_COLORS = {
   [RONDA_STATES.MISSED]: '#ef4444',
   [RONDA_STATES.CANCELLED]: '#94a3b8',
   [RONDA_STATES.FAILED]: '#dc2626',
+  [RONDA_STATES.VALIDATING_VOICE]: '#8b5cf6',
 }
 
 // ─── Terminal States ───
@@ -80,10 +83,16 @@ const TRANSITIONS = {
     RONDA_STATES.LATE,
     RONDA_STATES.FAILED,
     RONDA_STATES.CANCELLED,
+    RONDA_STATES.VALIDATING_VOICE,
   ],
   [RONDA_STATES.PAUSED]: [
     RONDA_STATES.IN_PROGRESS,
     RONDA_STATES.CANCELLED,
+    RONDA_STATES.FAILED,
+  ],
+  [RONDA_STATES.VALIDATING_VOICE]: [
+    RONDA_STATES.COMPLETED,
+    RONDA_STATES.LATE,
     RONDA_STATES.FAILED,
   ],
   // Terminal states: no transitions out
@@ -113,6 +122,9 @@ export const RONDA_EVENTS = {
   GPS_UPDATE: 'gps.update',
   GEOFENCE_EXIT: 'geofence.exit',
   INCIDENT_REPORTED: 'incident.reported',
+  VOICE_START: 'voice.validation_started',
+  VOICE_PASS: 'voice.validation_passed',
+  VOICE_FAIL: 'voice.validation_failed',
 }
 
 // ─── Public API ───
@@ -171,6 +183,10 @@ function resolveEvent(from, to) {
     [`${RONDA_STATES.IN_PROGRESS}_${RONDA_STATES.LATE}`]: RONDA_EVENTS.COMPLETE_LATE,
     [`${RONDA_STATES.AVAILABLE}_${RONDA_STATES.MISSED}`]: RONDA_EVENTS.MISS,
     [`${RONDA_STATES.IN_PROGRESS}_${RONDA_STATES.FAILED}`]: RONDA_EVENTS.FAIL,
+    [`${RONDA_STATES.IN_PROGRESS}_${RONDA_STATES.VALIDATING_VOICE}`]: RONDA_EVENTS.VOICE_START,
+    [`${RONDA_STATES.VALIDATING_VOICE}_${RONDA_STATES.COMPLETED}`]: RONDA_EVENTS.VOICE_PASS,
+    [`${RONDA_STATES.VALIDATING_VOICE}_${RONDA_STATES.LATE}`]: RONDA_EVENTS.VOICE_PASS,
+    [`${RONDA_STATES.VALIDATING_VOICE}_${RONDA_STATES.FAILED}`]: RONDA_EVENTS.VOICE_FAIL,
   }
 
   return eventMap[`${from}_${to}`] || RONDA_EVENTS.CANCEL

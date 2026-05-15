@@ -3,7 +3,7 @@ import {
   query, where, orderBy, serverTimestamp, arrayUnion,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
-import { COLLECTIONS } from '@/config/constants'
+import { COLLECTIONS, REPORT_STATES, PATROL_TYPES, SHIFT_TYPES } from '@/config/constants'
 import { transition, RONDA_STATES, RONDA_EVENTS } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { updateAssignmentStatus } from './rondaAssignmentService'
 import { logActivity } from '@/modules/auth/services/authService'
@@ -33,6 +33,13 @@ const LOG_PREFIX = '[ExecutionService]'
  * @param {string} data.guardId
  * @param {string[]} data.checkpointIds - Ordered checkpoint IDs
  * @param {{ lat: number, lng: number }} data.startPosition
+ * @param {string} [data.clientId] - Empresa cliente (Catar Seguridad Integral)
+ * @param {string} [data.patrolType] - Tipo de patrullaje (PATROL_TYPES)
+ * @param {string} [data.vehicleId] - Vehículo asignado (opcional)
+ * @param {string} [data.trackerId] - Identificador del smartphone/dispositivo
+ * @param {string} [data.shift] - Tipo de turno (SHIFT_TYPES)
+ * @param {string} [data.reportState] - Estado del reporte (REPORT_STATES)
+ * @param {string} [data.voicePassphrase] - Frase biométrica esperada
  * @returns {Promise<string>} Execution ID
  */
 export async function startExecution(data) {
@@ -61,6 +68,18 @@ export async function startExecution(data) {
       }],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      // ─── Catar Seguridad Integral ───
+      clientId: data.clientId || null,
+      patrolType: data.patrolType || PATROL_TYPES.A_PIE,
+      vehicleId: data.vehicleId || null,
+      trackerId: data.trackerId || null,
+      shift: data.shift || SHIFT_TYPES.DIURNO,
+      reportState: data.reportState || REPORT_STATES.PENDIENTE,
+      // ─── Biometría de Voz ───
+      voiceValidated: false,
+      voiceMatchScore: null,
+      audioEvidenceUrl: null,
+      voicePassphrase: data.voicePassphrase || null,
     }
 
     await setDoc(execRef, execution)
@@ -74,6 +93,8 @@ export async function startExecution(data) {
     logActivity(data.guardId, 'ronda_started', 'rondas', {
       executionId: execRef.id,
       rondaId: data.rondaId,
+      patrolType: execution.patrolType,
+      shift: execution.shift,
     })
 
     console.log(`${LOG_PREFIX} ✅ Execution started: ${execRef.id}`)
@@ -282,4 +303,92 @@ export async function getExecutionTelemetry(executionId) {
     console.error(`[Playback] Error fetching telemetry chunks for ${executionId}:`, error)
     return []
   }
+}
+
+/**
+ * ─── Biometría de Voz — Catar Seguridad Integral ───
+ */
+
+/**
+ * Start voice validation for an execution
+ * Transitions to VALIDATING_VOICE state
+ * @param {string} executionId
+ * @param {string} currentState
+ * @param {{ lat: number, lng: number }} position
+ * @returns {Promise<void>}
+ */
+export async function startVoiceValidation(executionId, currentState, position) {
+  await transitionExecution(executionId, currentState, RONDA_STATES.VALIDATING_VOICE, {
+    position,
+    details: 'Voice biometric validation initiated',
+  })
+
+  const execRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, executionId)
+  await updateDoc(execRef, {
+    voiceValidated: false,
+    voiceMatchScore: null,
+    updatedAt: serverTimestamp(),
+  })
+
+  console.log(`${LOG_PREFIX} 🎤 Voice validation started: ${executionId}`)
+}
+
+/**
+ * Record voice validation result
+ * @param {string} executionId
+ * @param {object} voiceResult
+ * @param {number} voiceResult.matchScore - Confidence score (0-1)
+ * @param {boolean} voiceResult.passed - Whether voice matched
+ * @param {string} [voiceResult.audioEvidenceUrl] - Appwrite URL del audio
+ * @param {{ lat: number, lng: number }} [voiceResult.position] - GPS al momento de validar
+ * @returns {Promise<void>}
+ */
+export async function recordVoiceValidation(executionId, voiceResult) {
+  try {
+    const execRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, executionId)
+    const execSnap = await getDoc(execRef)
+    if (!execSnap.exists()) {
+      throw new Error(`Execution ${executionId} not found`)
+    }
+
+    const { assignmentId } = execSnap.data()
+
+    await updateDoc(execRef, {
+      voiceValidated: voiceResult.passed,
+      voiceMatchScore: voiceResult.matchScore,
+      audioEvidenceUrl: voiceResult.audioEvidenceUrl || null,
+      events: arrayUnion({
+        type: voiceResult.passed ? RONDA_EVENTS.VOICE_PASS : RONDA_EVENTS.VOICE_FAIL,
+        timestamp: Date.now(),
+        position: voiceResult.position || null,
+        details: {
+          matchScore: voiceResult.matchScore,
+          passed: voiceResult.passed,
+        },
+      }),
+      updatedAt: serverTimestamp(),
+    })
+
+    console.log(`${LOG_PREFIX} 🎤 Voice validation recorded: ${executionId} (score: ${voiceResult.matchScore}, passed: ${voiceResult.passed})`)
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error recording voice validation:`, error)
+    throw error
+  }
+}
+
+/**
+ * Complete execution after voice validation
+ * Transitions from VALIDATING_VOICE to final state
+ * @param {string} executionId
+ * @param {string} finalState - COMPLETED | LATE | FAILED
+ * @param {{ lat: number, lng: number }} position
+ * @returns {Promise<void>}
+ */
+export async function completeAfterVoiceValidation(executionId, finalState, position) {
+  await transitionExecution(executionId, RONDA_STATES.VALIDATING_VOICE, finalState, {
+    position,
+    details: 'Completed after voice biometric validation',
+  })
+
+  console.log(`${LOG_PREFIX} ✅ Execution ${executionId} completed after voice validation → ${finalState}`)
 }
