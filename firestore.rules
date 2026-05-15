@@ -235,6 +235,19 @@ service cloud.firestore {
       );
 
       allow delete: if isAdmin();
+
+      // ─── Telemetry Chunks (subcollection) ───
+      // GPS telemetry stored in batches for offline-first persistence
+      match /telemetryChunks/{chunkId} {
+        allow read: if isActiveUser();
+        allow create: if isAuthenticated() && (
+          isAdminOrOps() || (
+            isGuard() &&
+            get(/databases/$(database)/documents/rondaExecutions/$(executionId)).data.guardId == request.auth.uid
+          )
+        );
+        allow update, delete: if isAdmin();
+      }
     }
 
     // ─── Checkpoint Logs ───

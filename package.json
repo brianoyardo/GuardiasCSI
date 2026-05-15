@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "seed": "node scripts/seedFirestore.mjs"
+    "seed": "node scripts/seedFirestore.mjs",
+    "seed:ops": "node scripts/seedOperationalData.mjs"
   },
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.19.3",

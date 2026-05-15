@@ -1,5 +1,5 @@
 import {
-  collection, doc, getDocs, setDoc, updateDoc,
+  collection, doc, getDoc, getDocs, setDoc, updateDoc,
   query, where, serverTimestamp, deleteDoc
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
@@ -52,6 +52,24 @@ async function saveSpatialEntity(collectionName, entityId, data, userId) {
   }
 }
 
+function deserializeGeometry(geometry) {
+  if (!geometry || !geometry.coordinatesFirestore) return geometry
+  
+  let coordinates
+  if (geometry.type === 'LineString') {
+    coordinates = geometry.coordinatesFirestore.map(c => [c.lng, c.lat])
+  } else if (geometry.type === 'Polygon') {
+    coordinates = [geometry.coordinatesFirestore.map(c => [c.lng, c.lat])]
+  } else if (geometry.type === 'Point') {
+    coordinates = [geometry.coordinatesFirestore.lng, geometry.coordinatesFirestore.lat]
+  }
+  
+  return {
+    ...geometry,
+    coordinates
+  }
+}
+
 /**
  * Generic fetch function for spatial entities
  */
@@ -67,7 +85,11 @@ async function getSpatialEntities(collectionName, activeOnly = false) {
       q = query(q, where('status', '==', 'active'))
     }
     const snapshot = await getDocs(q)
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+    return snapshot.docs.map(d => {
+      const data = d.data()
+      if (data.geometry) data.geometry = deserializeGeometry(data.geometry)
+      return { id: d.id, ...data }
+    })
   } catch (error) {
     console.error(`${LOG_PREFIX} Error fetching ${collectionName}:`, error)
     return []; // Return empty array on failure to prevent crashing UI
@@ -94,7 +116,10 @@ export async function getRoutes(activeOnly = false) {
 export async function getRoute(id) {
   try {
     const snap = await getDoc(doc(db, SPATIAL_COLLECTIONS.ROUTES, id))
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null
+    if (!snap.exists()) return null
+    const data = snap.data()
+    if (data.geometry) data.geometry = deserializeGeometry(data.geometry)
+    return { id: snap.id, ...data }
   } catch (error) {
     console.error(`${LOG_PREFIX} Error fetching route ${id}:`, error)
     return null
