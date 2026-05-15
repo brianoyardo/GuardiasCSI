@@ -38,7 +38,7 @@ export function useOperationsListener() {
     // ─── 1. Active Ronda Executions ───
     const execQuery = query(
       collection(db, COLLECTIONS.RONDA_EXECUTIONS),
-      where('status', 'in', [RONDA_STATES.IN_PROGRESS, RONDA_STATES.PAUSED])
+      where('status', 'in', [RONDA_STATES.IN_PROGRESS, RONDA_STATES.PAUSED, RONDA_STATES.VALIDATING_VOICE])
     )
 
     const unsubExec = onSnapshot(execQuery, (snapshot) => {
