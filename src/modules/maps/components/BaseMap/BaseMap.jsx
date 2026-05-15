@@ -1,7 +1,7 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/config/constants'
-import { useLayerManager, MAP_LAYERS } from '@/modules/maps/services/layerManager'
+import { useMapLayerStore, MAP_LAYERS_CONFIG, getLayerList } from '@/stores/mapLayerStore'
 import './BaseMap.css'
 
 /**
@@ -28,10 +28,9 @@ const TILE_PROVIDERS = {
 function MapController({ onMapReady }) {
   const map = useMap()
 
-  // Expose map instance to parent on first render
-  useState(() => {
+  useEffect(() => {
     if (onMapReady) onMapReady(map)
-  })
+  }, [map, onMapReady])
 
   return null
 }
@@ -74,7 +73,10 @@ export default function BaseMap({
 }) {
   const [isFullscreen, setIsFullscreen] = useState(fullscreen)
   const [showLayers, setShowLayers] = useState(showLayerPanel)
-  const layerManager = useLayerManager()
+
+  // Layer visibility from Zustand store (shared across all components)
+  const layerStore = useMapLayerStore()
+  const layerList = useMemo(() => getLayerList(layerStore), [layerStore])
 
   const mapCenter = useMemo(
     () => center ? [center.lat, center.lng] : [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng],
@@ -145,7 +147,7 @@ export default function BaseMap({
       {showLayers && (
         <div className="basemap__layer-panel">
           <div className="basemap__layer-title">Capas</div>
-          {layerManager.layerList.map((layer) => (
+          {layerList.map((layer) => (
             <label
               key={layer.id}
               className={`basemap__layer-item ${!layer.visible ? 'basemap__layer-item--hidden' : ''}`}
@@ -154,7 +156,7 @@ export default function BaseMap({
                 type="checkbox"
                 className="basemap__layer-checkbox"
                 checked={layer.visible}
-                onChange={() => layerManager.toggleLayer(layer.id)}
+                onChange={() => layerStore.toggleLayer(layer.id)}
               />
               <span>{layer.icon}</span>
               <span>{layer.label}</span>

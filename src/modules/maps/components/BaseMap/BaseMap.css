@@ -14,12 +14,35 @@
 }
 
 .basemap--fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-overlay);
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
   border-radius: 0;
   border: none;
   min-height: 100vh;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* Leaflet container in fullscreen — must break out of parent stacking */
+.basemap--fullscreen .leaflet-container {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* Native browser fullscreen API support */
+.basemap:fullscreen,
+.basemap:-webkit-full-screen,
+.basemap:-moz-full-screen {
+  position: fixed !important;
+  z-index: 9999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0;
+  border: none;
 }
 
 /* ─── Dark tile filter (Removed: Using native Carto Dark) ─── */

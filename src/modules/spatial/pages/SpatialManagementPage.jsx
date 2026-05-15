@@ -4,8 +4,35 @@ import GisEditorMap from '@/modules/spatial/components/GisEditorMap'
 import { saveRoute, saveGeofence, saveCheckpoint, getRoutes, getGeofences, getCheckpoints } from '@/modules/spatial/services/spatialService'
 import { latLngToGeoJsonPoint, latLngsToGeoJsonLineString, latLngsToGeoJsonPolygon } from '@/modules/spatial/utils/geoJsonUtils'
 import { RouteLayer, GeofenceLayer, CheckpointMarker } from '@/modules/maps'
+import { useMapLayerStore } from '@/stores/mapLayerStore'
 import GISErrorBoundary from '@/modules/spatial/components/GISErrorBoundary'
 import './SpatialManagementPage.css'
+
+/**
+ * Convert GeoJSON coordinates (from Firestore via deserializeGeometry)
+ * to Leaflet-compatible format [{lat, lng}]
+ */
+function geoJsonToLeafletPositions(geometry) {
+  if (!geometry || !geometry.coordinates) return []
+
+  if (geometry.type === 'LineString') {
+    // [[lng, lat], ...] → [{lat, lng}, ...]
+    return geometry.coordinates.map(([lng, lat]) => ({ lat, lng }))
+  }
+
+  if (geometry.type === 'Polygon') {
+    // [[[lng, lat], ...]] → [{lat, lng}, ...] (outer ring only)
+    return geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }))
+  }
+
+  if (geometry.type === 'Point') {
+    // [lng, lat] → {lat, lng}
+    const [lng, lat] = geometry.coordinates
+    return { lat, lng }
+  }
+
+  return []
+}
 
 export default function SpatialManagementPage() {
   const { user } = useAuth()
@@ -23,6 +50,11 @@ export default function SpatialManagementPage() {
   // Status
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Layer visibility
+  const showRoutes = useMapLayerStore((s) => s.routes)
+  const showGeofences = useMapLayerStore((s) => s.geofences)
+  const showCheckpoints = useMapLayerStore((s) => s.checkpoints)
 
   useEffect(() => {
     loadEntities()
@@ -215,16 +247,25 @@ export default function SpatialManagementPage() {
             onDrawCreated={handleDrawCreated}
             onDrawDeleted={handleDrawDeleted}
           >
-            {/* Render Saved Entities */}
-            {routes.map(r => (
-              <RouteLayer key={r.id} route={{ ...r, coordinates: r.geometry.coordinates }} isEditing={false} />
-            ))}
-            {geofences.map(g => (
-              <GeofenceLayer key={g.id} geofence={{ ...g, coordinates: g.geometry.coordinates }} />
-            ))}
-            {checkpoints.map(c => (
-              <CheckpointMarker key={c.id} checkpoint={{ ...c, lat: c.geometry.coordinates[1], lng: c.geometry.coordinates[0] }} />
-            ))}
+          {/* Render Saved Entities — conditional on layer visibility */}
+          {showRoutes && routes.map(r => {
+            const waypoints = geoJsonToLeafletPositions(r.geometry)
+            return (
+              <RouteLayer key={r.id} waypoints={waypoints} state={r.status || 'default'} name={r.name} />
+            )
+          })}
+          {showGeofences && geofences.map(g => {
+            const positions = geoJsonToLeafletPositions(g.geometry)
+            return (
+              <GeofenceLayer key={g.id} geofences={[{ id: g.id, name: g.name, type: g.type, polygon: positions }]} />
+            )
+          })}
+          {showCheckpoints && checkpoints.map(c => {
+            const position = geoJsonToLeafletPositions(c.geometry)
+            return (
+              <CheckpointMarker key={c.id} position={position} name={c.name} description={c.description} />
+            )
+          })}
           </GisEditorMap>
         </div>
       </div>
