@@ -14,6 +14,7 @@ import LoginPage from '@/modules/auth/pages/LoginPage'
 /* Ronda Pages */
 import MisRondasPage from '@/modules/rondas/pages/MisRondasPage'
 import RondaExecutionPage from '@/modules/rondas/pages/RondaExecutionPage'
+import RondasAdminPage from '@/modules/rondas/pages/RondasAdminPage'
 
 /* Monitoring Pages */
 import AdminDashboardPage from '@/modules/monitoring/pages/AdminDashboardPage'
@@ -81,7 +82,7 @@ export default function AppRouter() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
         <Route path="monitoring" element={<CommandCenterPage />} />
-        <Route path="rondas" element={<PlaceholderPage title="Gestión de Rondas" />} />
+        <Route path="rondas" element={<RondasAdminPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="spatial" element={<SpatialManagementPage />} />
         {/* Redirect old paths to spatial editor */}
@@ -102,7 +103,7 @@ export default function AppRouter() {
       }>
         <Route index element={<Navigate to="monitoring" replace />} />
         <Route path="monitoring" element={<CommandCenterPage />} />
-        <Route path="rondas" element={<PlaceholderPage title="Rondas Operativas" />} />
+        <Route path="rondas" element={<RondasAdminPage />} />
         <Route path="guards" element={<PlaceholderPage title="Guardias" />} />
         <Route path="incidents" element={<IncidentManagementPage />} />
         <Route path="analytics" element={<OperationalIntelligencePage />} />
@@ -117,7 +118,7 @@ export default function AppRouter() {
       }>
         <Route index element={<Navigate to="monitoring" replace />} />
         <Route path="monitoring" element={<CommandCenterPage />} />
-        <Route path="rondas" element={<PlaceholderPage title="Rondas" />} />
+        <Route path="rondas" element={<RondasAdminPage />} />
         <Route path="incidents" element={<IncidentManagementPage />} />
       </Route>
 

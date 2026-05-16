@@ -4,7 +4,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { SPATIAL_COLLECTIONS } from '../constants/spatialCollections'
-import { normalizeGeometry } from '../utils/geoJsonUtils'
+import { normalizeGeometry, sanitizeForFirestore } from '../utils/geoJsonUtils'
 
 /**
  * SentinelOps — Spatial Service
@@ -32,7 +32,7 @@ async function saveSpatialEntity(collectionName, entityId, data, userId) {
 
     const payload = {
       ...data,
-      geometry: normalizeGeometry(data.geometry),
+      geometry: sanitizeForFirestore(data.geometry),
       updatedAt: serverTimestamp(),
       updatedBy: userId,
       geometryVersion: isNew ? 1 : (data.geometryVersion || 1) + 1,

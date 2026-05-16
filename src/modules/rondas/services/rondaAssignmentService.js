@@ -99,7 +99,7 @@ export async function createAssignment(data) {
       scheduledEnd: data.scheduledEnd,
       assignedBy: data.assignedBy,
       priority: data.priority || 'normal',
-      status: RONDA_STATES.PENDING,
+      status: RONDA_STATES.AVAILABLE,
       executionId: null,
       notes: data.notes || '',
       createdAt: serverTimestamp(),

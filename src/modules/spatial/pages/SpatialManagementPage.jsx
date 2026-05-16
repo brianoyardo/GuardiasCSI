@@ -5,6 +5,7 @@ import { saveRoute, saveGeofence, saveCheckpoint, getRoutes, getGeofences, getCh
 import { latLngToGeoJsonPoint, latLngsToGeoJsonLineString, latLngsToGeoJsonPolygon } from '@/modules/spatial/utils/geoJsonUtils'
 import { RouteLayer, GeofenceLayer, CheckpointMarker } from '@/modules/maps'
 import { useMapLayerStore } from '@/stores/mapLayerStore'
+import { useMapControlStore } from '@/stores/mapControlStore'
 import GISErrorBoundary from '@/modules/spatial/components/GISErrorBoundary'
 import './SpatialManagementPage.css'
 
@@ -55,6 +56,9 @@ export default function SpatialManagementPage() {
   const showRoutes = useMapLayerStore((s) => s.routes)
   const showGeofences = useMapLayerStore((s) => s.geofences)
   const showCheckpoints = useMapLayerStore((s) => s.checkpoints)
+
+  // FlyTo control
+  const triggerFlyTo = useMapControlStore((s) => s.triggerFlyTo)
 
   useEffect(() => {
     loadEntities()
@@ -213,28 +217,54 @@ export default function SpatialManagementPage() {
             ) : (
               <>
                 <div className="spatial-mgmt__list-title">Geocercas ({geofences.length})</div>
-                {geofences.map(g => (
-                  <div key={g.id} className="spatial-mgmt__item">
-                    <span className="spatial-mgmt__item-name">{g.name}</span>
-                    <span className="spatial-mgmt__item-type">{g.type}</span>
-                  </div>
-                ))}
+                {geofences.map(g => {
+                  const pos = geoJsonToLeafletPositions(g.geometry)
+                  const center = Array.isArray(pos) && pos.length > 0 ? pos[0] : null
+                  return (
+                    <div
+                      key={g.id}
+                      className="spatial-mgmt__item"
+                      style={{ cursor: center ? 'pointer' : 'default' }}
+                      onClick={() => center && triggerFlyTo(center.lat, center.lng, 16)}
+                    >
+                      <span className="spatial-mgmt__item-name">{g.name}</span>
+                      <span className="spatial-mgmt__item-type">{g.type}</span>
+                    </div>
+                  )
+                })}
 
                 <div className="spatial-mgmt__list-title" style={{marginTop: '1rem'}}>Rutas ({routes.length})</div>
-                {routes.map(r => (
-                  <div key={r.id} className="spatial-mgmt__item">
-                    <span className="spatial-mgmt__item-name">{r.name}</span>
-                    <span className="spatial-mgmt__item-type">LineString</span>
-                  </div>
-                ))}
+                {routes.map(r => {
+                  const waypoints = geoJsonToLeafletPositions(r.geometry)
+                  const center = Array.isArray(waypoints) && waypoints.length > 0 ? waypoints[0] : null
+                  return (
+                    <div
+                      key={r.id}
+                      className="spatial-mgmt__item"
+                      style={{ cursor: center ? 'pointer' : 'default' }}
+                      onClick={() => center && triggerFlyTo(center.lat, center.lng, 16)}
+                    >
+                      <span className="spatial-mgmt__item-name">{r.name}</span>
+                      <span className="spatial-mgmt__item-type">LineString</span>
+                    </div>
+                  )
+                })}
 
                 <div className="spatial-mgmt__list-title" style={{marginTop: '1rem'}}>Checkpoints ({checkpoints.length})</div>
-                {checkpoints.map(c => (
-                  <div key={c.id} className="spatial-mgmt__item">
-                    <span className="spatial-mgmt__item-name">{c.name}</span>
-                    <span className="spatial-mgmt__item-type">Point</span>
-                  </div>
-                ))}
+                {checkpoints.map(c => {
+                  const position = geoJsonToLeafletPositions(c.geometry)
+                  return (
+                    <div
+                      key={c.id}
+                      className="spatial-mgmt__item"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => triggerFlyTo(position.lat, position.lng, 16)}
+                    >
+                      <span className="spatial-mgmt__item-name">{c.name}</span>
+                      <span className="spatial-mgmt__item-type">Point</span>
+                    </div>
+                  )
+                })}
               </>
             )}
           </div>

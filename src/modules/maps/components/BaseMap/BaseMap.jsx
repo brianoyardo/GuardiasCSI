@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/config/constants'
 import { useMapLayerStore, MAP_LAYERS_CONFIG, getLayerList } from '@/stores/mapLayerStore'
 import { useRealtimeStore } from '@/stores/realtimeStore'
+import { useMapControlStore } from '@/stores/mapControlStore'
 import { subscribeToActiveExecutions } from '@/modules/monitoring/services/realtimeMonitoringService'
 import LiveGuardMarker from '@/modules/maps/components/LiveGuardMarker/LiveGuardMarker'
 import './BaseMap.css'
@@ -54,6 +55,27 @@ function MapSizeSync({ isFullscreen }) {
 
     return () => clearTimeout(timer)
   }, [map, isFullscreen])
+
+  return null
+}
+
+/**
+ * MapFlyToListener — listens to mapControlStore and triggers flyTo animation
+ */
+function MapFlyToListener() {
+  const map = useMap()
+  const flyToTarget = useMapControlStore((s) => s.flyToTarget)
+  const clearFlyTo = useMapControlStore((s) => s.clearFlyTo)
+
+  useEffect(() => {
+    if (flyToTarget) {
+      map.flyTo([flyToTarget.lat, flyToTarget.lng], flyToTarget.zoom, {
+        animate: true,
+        duration: 1.5,
+      })
+      clearFlyTo()
+    }
+  }, [map, flyToTarget, clearFlyTo])
 
   return null
 }
@@ -155,6 +177,7 @@ export default function BaseMap({
 
         <MapController onMapReady={onMapReady} />
         <MapSizeSync isFullscreen={isFullscreen} />
+        <MapFlyToListener />
 
         {/* ─── Live Guard Markers (Zero-Render Thrashing) ─── */}
         {showGuards && activeExecutionIds.map((id) => (

@@ -30,6 +30,42 @@ export function normalizeGeometry(geometry, expectedType) {
 }
 
 /**
+ * Sanitize GeoJSON geometry for Firestore storage.
+ * Converts nested arrays [[lng, lat]] → flat objects [{lng, lat}]
+ * to avoid Firestore "nested arrays not supported" error.
+ *
+ * @param {object} geometry - GeoJSON geometry from Leaflet/Turf
+ * @returns {object} Firestore-safe geometry with coordinatesFirestore
+ */
+export function sanitizeForFirestore(geometry) {
+  if (!geometry || !geometry.type) return geometry
+
+  if (geometry.type === 'LineString') {
+    return {
+      type: 'LineString',
+      coordinatesFirestore: geometry.coordinates.map(c => ({ lng: c[0], lat: c[1] })),
+    }
+  }
+
+  if (geometry.type === 'Polygon') {
+    const ring = geometry.coordinates[0]
+    return {
+      type: 'Polygon',
+      coordinatesFirestore: ring.map(c => ({ lng: c[0], lat: c[1] })),
+    }
+  }
+
+  if (geometry.type === 'Point') {
+    return {
+      type: 'Point',
+      coordinatesFirestore: { lng: geometry.coordinates[0], lat: geometry.coordinates[1] },
+    }
+  }
+
+  return geometry
+}
+
+/**
  * Creates a GeoJSON Feature
  * @param {object} geometry - Valid GeoJSON Geometry
  * @param {object} properties - Custom properties
