@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { useRondaExecution } from '@/modules/rondas/hooks/useRondaExecution'
 import { startExecution } from '@/modules/rondas/services/rondaExecutionService'
+import { getAssignment } from '@/modules/rondas/services/rondaAssignmentService'
+import { getRoute, getCheckpointsByRoute } from '@/modules/spatial/services/spatialService'
 import { STATE_LABELS, STATE_COLORS, RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { BaseMap, CheckpointLayer, TrackingLayer } from '@/modules/maps'
 import { useMapControlStore } from '@/stores/mapControlStore'
@@ -22,13 +24,20 @@ import './RondaExecutionPage.css'
  * Layout: Status Bar → Map → Bottom Panel
  */
 
-// Mock checkpoints for development (will be replaced by Firestore data)
-const MOCK_CHECKPOINTS = [
-  { id: 'cp1', name: 'Entrada Principal', lat: -16.4990, lng: -68.1490, order: 1 },
-  { id: 'cp2', name: 'Estacionamiento', lat: -16.4995, lng: -68.1495, order: 2 },
-  { id: 'cp3', name: 'Bodega', lat: -16.5000, lng: -68.1500, order: 3 },
-  { id: 'cp4', name: 'Perímetro Norte', lat: -16.4985, lng: -68.1505, order: 4 },
-]
+/**
+ * Convert checkpoint geometry to flat format for CheckpointLayer
+ */
+function checkpointToFlat(cp) {
+  if (!cp.geometry || !cp.geometry.coordinates) return null
+  const [lng, lat] = cp.geometry.coordinates
+  return {
+    id: cp.id,
+    name: cp.name,
+    lat,
+    lng,
+    order: cp.order || 0,
+  }
+}
 
 export default function RondaExecutionPage() {
   const { executionId: paramId } = useParams()
@@ -36,6 +45,44 @@ export default function RondaExecutionPage() {
   const [feedback, setFeedback] = useState(null)
   const triggerFlyTo = useMapControlStore((s) => s.triggerFlyTo)
   const hasCentered = useRef(false)
+
+  // ─── Real Data Loading ───
+  const [loading, setLoading] = useState(true)
+  const [assignment, setAssignment] = useState(null)
+  const [route, setRoute] = useState(null)
+  const [checkpoints, setCheckpoints] = useState([])
+
+  useEffect(() => {
+    if (!paramId) return
+
+    async function loadData() {
+      try {
+        const assign = await getAssignment(paramId)
+        if (!assign) {
+          setFeedback({ type: 'error', message: 'Asignación no encontrada' })
+          setLoading(false)
+          return
+        }
+        setAssignment(assign)
+
+        if (assign.routeId) {
+          const [r, cps] = await Promise.all([
+            getRoute(assign.routeId),
+            getCheckpointsByRoute(assign.routeId),
+          ])
+          if (r) setRoute(r)
+          setCheckpoints(cps.filter(Boolean).map(checkpointToFlat).filter(Boolean))
+        }
+      } catch (err) {
+        console.error('Error loading execution data:', err)
+        setFeedback({ type: 'error', message: 'Error cargando datos de la ronda' })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [paramId])
 
   // ─── Phase Management ───
   // 'preop' → 'voice' → 'execution'
@@ -46,11 +93,11 @@ export default function RondaExecutionPage() {
   // ─── Execution Hook (only active in 'execution' phase) ───
   const exec = useRondaExecution({
     assignmentId: paramId,
-    rondaId: 'ronda-demo',
-    routeId: 'route-demo',
+    rondaId: assignment?.rondaId || '',
+    routeId: assignment?.routeId || '',
     guardId: user?.uid || '',
-    checkpoints: MOCK_CHECKPOINTS,
-    scheduledEnd: Date.now() + 2 * 60 * 60 * 1000,
+    checkpoints,
+    scheduledEnd: assignment?.scheduledEnd || (Date.now() + 2 * 60 * 60 * 1000),
     executionId: phase === 'execution' ? executionId : null,
   })
 
@@ -64,17 +111,17 @@ export default function RondaExecutionPage() {
         navigator.geolocation.getCurrentPosition(
           (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
           () => reject(new Error('GPS requerido')),
-          { enableHighAccuracy: true, timeout: 10000 }
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
         )
       })
 
       // Create execution in VALIDATING_VOICE state
       const execId = await startExecution({
         assignmentId: paramId,
-        rondaId: 'ronda-demo',
-        routeId: 'route-demo',
+        rondaId: assignment?.rondaId || '',
+        routeId: assignment?.routeId || '',
         guardId: user?.uid || '',
-        checkpointIds: MOCK_CHECKPOINTS.map((cp) => cp.id),
+        checkpointIds: checkpoints.map((cp) => cp.id),
         startPosition: pos,
         initialState: RONDA_STATES.VALIDATING_VOICE,
         patrolType: data.patrolType,
@@ -139,11 +186,20 @@ export default function RondaExecutionPage() {
     : 'ronda-exec__gps-dot--bad'
     : ''
 
+  // ─── Render: Loading ───
+  if (loading) {
+    return (
+      <div className="ronda-exec__loading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-dark-bg)', color: 'var(--color-dark-text)' }}>
+        <span>Cargando datos de la ronda...</span>
+      </div>
+    )
+  }
+
   // ─── Render: Pre-Op Modal ───
   if (phase === 'preop') {
     return (
       <PreOpModal
-        rondaName="Patrullaje Diurno"
+        rondaName={route?.name || assignment?.rondaName || 'Ronda Operativa'}
         onConfirm={handlePreOpConfirm}
         onCancel={handlePreOpCancel}
       />
@@ -197,7 +253,7 @@ export default function RondaExecutionPage() {
           showGpsStatus={false}
         >
           <CheckpointLayer
-            checkpoints={MOCK_CHECKPOINTS}
+            checkpoints={checkpoints}
             completedIds={exec.validation.completedIds}
             activeId={exec.nextCheckpoint?.id}
           />

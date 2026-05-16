@@ -19,6 +19,22 @@ import { RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
 const LOG_PREFIX = '[AssignmentService]'
 
 /**
+ * Get a single assignment by ID
+ * @param {string} assignmentId
+ * @returns {Promise<object|null>}
+ */
+export async function getAssignment(assignmentId) {
+  try {
+    const snap = await getDoc(doc(db, COLLECTIONS.RONDA_ASSIGNMENTS, assignmentId))
+    if (!snap.exists()) return null
+    return { id: snap.id, ...snap.data() }
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error fetching assignment ${assignmentId}:`, error)
+    return null
+  }
+}
+
+/**
  * Get assignments for a specific guard
  * @param {string} guardId
  * @param {object} [filters] - { status, date }

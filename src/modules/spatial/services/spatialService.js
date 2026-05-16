@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc,
-  query, where, serverTimestamp, deleteDoc
+  query, where, orderBy, serverTimestamp, deleteDoc
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { SPATIAL_COLLECTIONS } from '../constants/spatialCollections'
@@ -143,6 +143,30 @@ export async function saveCheckpoint(id, data, userId) {
 
 export async function getCheckpoints(activeOnly = false) {
   return getSpatialEntities(SPATIAL_COLLECTIONS.CHECKPOINTS, activeOnly)
+}
+
+/**
+ * Get checkpoints belonging to a specific route, ordered by sequence
+ * @param {string} routeId
+ * @returns {Promise<object[]>}
+ */
+export async function getCheckpointsByRoute(routeId) {
+  try {
+    const q = query(
+      collection(db, SPATIAL_COLLECTIONS.CHECKPOINTS),
+      where('routeId', '==', routeId),
+      orderBy('order', 'asc')
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(d => {
+      const data = d.data()
+      if (data.geometry) data.geometry = deserializeGeometry(data.geometry)
+      return { id: d.id, ...data }
+    })
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error fetching checkpoints for route ${routeId}:`, error)
+    return []
+  }
 }
 
 /**
