@@ -18,6 +18,7 @@ export default function UsersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState(null)
+  const [modalError, setModalError] = useState(null)
 
   // Create form state
   const [form, setForm] = useState({
@@ -62,12 +63,12 @@ export default function UsersPage() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault()
     if (!form.fullName || !form.email || !form.password) {
-      setError('Nombre, correo y contraseña son obligatorios')
+      setModalError('Nombre, correo y contraseña son obligatorios')
       return
     }
 
     setCreating(true)
-    setError(null)
+    setModalError(null)
 
     try {
       await adminCreateUser(form)
@@ -80,7 +81,7 @@ export default function UsersPage() {
         : err.code === 'auth/weak-password'
         ? 'La contraseña debe tener al menos 6 caracteres'
         : 'Error al crear usuario'
-      setError(msg)
+      setModalError(msg)
     } finally {
       setCreating(false)
     }
@@ -96,9 +97,15 @@ export default function UsersPage() {
   }
 
   const formatDate = (ts) => {
-    if (!ts) return 'Nunca'
+    if (!ts) return '—'
     const d = ts.toMillis ? new Date(ts.toMillis()) : new Date(ts)
-    return d.toLocaleDateString('es-BO')
+    return d.toLocaleDateString('es-BO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   return (
@@ -115,10 +122,6 @@ export default function UsersPage() {
           + Nuevo Usuario
         </button>
       </div>
-
-      {error && (
-        <div className="users-page__error-banner">{error}</div>
-      )}
 
       <div className="users-page__content">
         <div className="users-page__toolbar">
@@ -220,8 +223,12 @@ export default function UsersPage() {
           <div className="users-page__modal" onClick={(e) => e.stopPropagation()}>
             <div className="users-page__modal-header">
               <h2>Crear Nuevo Usuario</h2>
-              <button className="users-page__modal-close" onClick={() => setShowCreateModal(false)}>✕</button>
+              <button className="users-page__modal-close" onClick={() => { setShowCreateModal(false); setModalError(null) }}>✕</button>
             </div>
+
+            {modalError && (
+              <div className="users-page__modal-error">{modalError}</div>
+            )}
 
             <form onSubmit={handleCreateSubmit} className="users-page__modal-form">
               <div className="users-page__modal-field">
