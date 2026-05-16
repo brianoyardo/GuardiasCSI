@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/modules/auth/context/AuthContext'
-import { getGuardAssignments } from '@/modules/rondas/services/rondaAssignmentService'
+import { subscribeToGuardAssignments } from '@/modules/rondas/services/rondaAssignmentService'
 import { RONDA_STATES, isActiveState, isTerminalState } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import RondaCard from '@/modules/rondas/components/RondaCard/RondaCard'
 import './MisRondasPage.css'
@@ -18,18 +18,13 @@ export default function MisRondasPage() {
   useEffect(() => {
     if (!user?.uid) return
 
-    async function fetch() {
-      try {
-        const data = await getGuardAssignments(user.uid)
-        setAssignments(data)
-      } catch (err) {
-        console.error('Error loading assignments:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
+    setLoading(true)
+    const unsubscribe = subscribeToGuardAssignments(user.uid, (data) => {
+      setAssignments(data)
+      setLoading(false)
+    })
 
-    fetch()
+    return () => unsubscribe()
   }, [user?.uid])
 
   // Group assignments by category

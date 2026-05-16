@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { useRondaExecution } from '@/modules/rondas/hooks/useRondaExecution'
 import { startExecution } from '@/modules/rondas/services/rondaExecutionService'
 import { STATE_LABELS, STATE_COLORS, RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
-import { BaseMap, CheckpointLayer, TrackingLayer, GuardMarker } from '@/modules/maps'
+import { BaseMap, CheckpointLayer, TrackingLayer } from '@/modules/maps'
+import { useMapControlStore } from '@/stores/mapControlStore'
 import PreOpModal from '@/modules/rondas/components/PreOpModal/PreOpModal'
 import VoiceValidationModal from '@/modules/rondas/components/VoiceValidationModal/VoiceValidationModal'
 import { VOICE_PASSPHRASES } from '@/config/constants'
@@ -33,6 +34,8 @@ export default function RondaExecutionPage() {
   const { executionId: paramId } = useParams()
   const { user } = useAuth()
   const [feedback, setFeedback] = useState(null)
+  const triggerFlyTo = useMapControlStore((s) => s.triggerFlyTo)
+  const hasCentered = useRef(false)
 
   // ─── Phase Management ───
   // 'preop' → 'voice' → 'execution'
@@ -105,6 +108,14 @@ export default function RondaExecutionPage() {
     setFeedback({ type: 'error', message: 'Validación biométrica fallida' })
     setTimeout(() => setFeedback(null), 3000)
   }
+
+  // Auto-center map on guard position once
+  useEffect(() => {
+    if (phase === 'execution' && exec.position && !hasCentered.current) {
+      triggerFlyTo(exec.position.lat, exec.position.lng, 18)
+      hasCentered.current = true
+    }
+  }, [phase, exec.position, triggerFlyTo])
 
   // ─── Checkpoint Handler ───
   const handleCheckpoint = async () => {
@@ -193,15 +204,6 @@ export default function RondaExecutionPage() {
 
           {exec.trail.length > 1 && (
             <TrackingLayer trail={exec.trail} state="tracking" />
-          )}
-
-          {exec.position && (
-            <GuardMarker
-              position={exec.position}
-              state={exec.isActive ? 'tracking' : 'inactive'}
-              name="Tu posición"
-              accuracy={exec.accuracy}
-            />
           )}
         </BaseMap>
       </div>

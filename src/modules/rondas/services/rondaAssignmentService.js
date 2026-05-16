@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc,
-  query, where, orderBy, serverTimestamp,
+  query, where, orderBy, serverTimestamp, onSnapshot,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { COLLECTIONS } from '@/config/constants'
@@ -44,6 +44,29 @@ export async function getGuardAssignments(guardId, filters = {}) {
     console.error(`${LOG_PREFIX} Error fetching guard assignments:`, error)
     throw error
   }
+}
+
+/**
+ * Subscribe to assignments for a specific guard (real-time)
+ * @param {string} guardId
+ * @param {function} callback - Called with array of assignments on each update
+ * @returns {function} Unsubscribe function
+ */
+export function subscribeToGuardAssignments(guardId, callback) {
+  const q = query(
+    collection(db, COLLECTIONS.RONDA_ASSIGNMENTS),
+    where('guardId', '==', guardId),
+    orderBy('scheduledStart', 'desc')
+  )
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const assignments = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+    callback(assignments)
+  }, (error) => {
+    console.error(`${LOG_PREFIX} Error in guard assignments subscription:`, error)
+  })
+
+  return unsubscribe
 }
 
 /**

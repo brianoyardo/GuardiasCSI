@@ -57,10 +57,10 @@ export function useRondaTimer(options = {}) {
   }, [scheduledEnd])
 
   useEffect(() => {
-    if (isRunning) {
-      tick() // Immediate update
-      intervalRef.current = setInterval(tick, updateInterval)
-    }
+    if (!isRunning) return
+
+    tick()
+    intervalRef.current = setInterval(tick, updateInterval)
 
     return () => {
       if (intervalRef.current) {
@@ -68,7 +68,7 @@ export function useRondaTimer(options = {}) {
         intervalRef.current = null
       }
     }
-  }, [isRunning, tick, updateInterval])
+  }, [isRunning, updateInterval])
 
   return {
     elapsed,
