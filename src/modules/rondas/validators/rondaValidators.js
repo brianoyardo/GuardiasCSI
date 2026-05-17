@@ -82,6 +82,7 @@ export function validateCheckpointOrder(checkpointId, expectedOrder, completedId
  * @param {number} [maxAccuracy=50] - Maximum acceptable accuracy
  * @returns {{ valid: boolean, quality: string, message: string }}
  */
+//export function validateGPSAccuracy(accuracy, maxAccuracy = 50) {
 export function validateGPSAccuracy(accuracy, maxAccuracy = 250) {
   if (accuracy === null || accuracy === undefined) {
     return { valid: false, quality: 'none', message: 'Sin señal GPS' }
