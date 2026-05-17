@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { useRondaExecution } from '@/modules/rondas/hooks/useRondaExecution'
-import { startExecution, getExecution } from '@/modules/rondas/services/rondaExecutionService'
+import { startExecution, getExecution, findActiveExecutionByAssignment } from '@/modules/rondas/services/rondaExecutionService'
 import { getAssignment } from '@/modules/rondas/services/rondaAssignmentService'
 import { getRoute, getCheckpointsByRoute } from '@/modules/spatial/services/spatialService'
 import { STATE_LABELS, STATE_COLORS, RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
-import { BaseMap, CheckpointLayer, TrackingLayer } from '@/modules/maps'
+import { BaseMap, CheckpointLayer, TrackingLayer, GuardMarker } from '@/modules/maps'
 import { useMapControlStore } from '@/stores/mapControlStore'
 import PreOpModal from '@/modules/rondas/components/PreOpModal/PreOpModal'
 import VoiceValidationModal from '@/modules/rondas/components/VoiceValidationModal/VoiceValidationModal'
@@ -99,6 +99,18 @@ export default function RondaExecutionPage() {
             }
 
             console.log('[RondaExecution] State restored:', exec.status, '→ phase:', phase)
+          }
+        } else if (
+          assign.status === RONDA_STATES.IN_PROGRESS ||
+          assign.status === RONDA_STATES.PAUSED
+        ) {
+          // ─── RESCUE QUERY: assignment is active but executionId is missing (orphaned session) ───
+          console.log('[RondaExecution] ⚠️ Active assignment without executionId — running rescue query')
+          const rescued = await findActiveExecutionByAssignment(paramId)
+          if (rescued) {
+            setExecutionId(rescued.id)
+            setPhase('execution')
+            console.log('[RondaExecution] ✅ Rescued execution:', rescued.id)
           }
         }
       } catch (err) {
@@ -290,6 +302,8 @@ export default function RondaExecutionPage() {
           showControls={false}
           showGpsStatus={false}
         >
+          <GuardMarker position={exec.position} accuracy={exec.accuracy} name="Tú" />
+
           <CheckpointLayer
             checkpoints={checkpoints}
             completedIds={exec.validation.completedIds}

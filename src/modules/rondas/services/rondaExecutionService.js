@@ -289,6 +289,28 @@ export async function getActiveExecutions() {
 }
 
 /**
+ * Find active execution by assignmentId (rescue query for orphaned sessions)
+ * @param {string} assignmentId
+ * @returns {Promise<{id: string, data: object}|null>}
+ */
+export async function findActiveExecutionByAssignment(assignmentId) {
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.RONDA_EXECUTIONS),
+      where('assignmentId', '==', assignmentId),
+      where('status', 'in', [RONDA_STATES.IN_PROGRESS, RONDA_STATES.PAUSED])
+    )
+    const snapshot = await getDocs(q)
+    if (snapshot.empty) return null
+    const doc = snapshot.docs[0]
+    return { id: doc.id, ...doc.data() }
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error finding active execution for assignment ${assignmentId}:`, error)
+    return null
+  }
+}
+
+/**
  * Get historical (completed/failed/late) executions
  * Used for Playback and Auditing
  * @returns {Promise<object[]>}

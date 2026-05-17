@@ -81,15 +81,9 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
         </button>
       )}
 
-      {status === 'paused' && (
+      {(status === 'paused' || status === 'in_progress') && (
         <button className="ronda-card__action ronda-card__action--resume" onClick={handleAction}>
-          ▶ Reanudar Ronda
-        </button>
-      )}
-
-      {status === 'in_progress' && (
-        <button className="ronda-card__action ronda-card__action--view" onClick={handleAction}>
-          Ver Ronda Activa →
+          ▶ Continuar Ronda
         </button>
       )}
     </div>

@@ -18,8 +18,8 @@ export const GPS_OPTIONS = {
   timeout: 15000,
   maximumAge: 10000,
 }
-export const MAX_CHECKPOINT_DISTANCE_METERS = 20
-
+export const MAX_CHECKPOINT_DISTANCE_METERS = 100
+//export const MAX_CHECKPOINT_DISTANCE_METERS = 20
 /* ─── Ronda States ─── */
 export const RONDA_STATUS = {
   PENDING: 'pending',
