@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc,
-  query, where, orderBy, serverTimestamp,
+  query, where, orderBy, serverTimestamp, onSnapshot,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { COLLECTIONS } from '@/config/constants'
@@ -116,5 +116,30 @@ export async function getIncident(incidentId) {
   } catch (error) {
     console.error(`${LOG_PREFIX} Error fetching incident:`, error)
     throw error
+  }
+}
+
+/**
+ * Subscribe to active incidents (open or in_progress) in real time
+ * @param {function} callback - receives array of incident objects
+ * @returns {function} unsubscribe
+ */
+export function subscribeToActiveIncidents(callback) {
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.INCIDENTS),
+      where('status', 'in', ['open', 'in_progress'])
+    )
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const incidents = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+      callback(incidents)
+    }, (error) => {
+      console.error(`${LOG_PREFIX} Error subscribing to active incidents:`, error)
+      callback([])
+    })
+    return unsubscribe
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error setting up incident subscription:`, error)
+    return () => {}
   }
 }

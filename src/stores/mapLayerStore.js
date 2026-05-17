@@ -63,6 +63,9 @@ export const useMapLayerStore = create((set) => ({
   },
 
   resetDefaults: () => set(defaultState),
+
+  toggleIncidents: () =>
+    set((state) => ({ incidents: !state.incidents })),
 }))
 
 /**

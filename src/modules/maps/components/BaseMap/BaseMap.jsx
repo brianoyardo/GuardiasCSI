@@ -6,7 +6,9 @@ import { useMapLayerStore, MAP_LAYERS_CONFIG, getLayerList } from '@/stores/mapL
 import { useRealtimeStore } from '@/stores/realtimeStore'
 import { useMapControlStore } from '@/stores/mapControlStore'
 import { subscribeToActiveExecutions } from '@/modules/monitoring/services/realtimeMonitoringService'
+import { subscribeToActiveIncidents } from '@/modules/incidents/services/incidentService'
 import LiveGuardMarker from '@/modules/maps/components/LiveGuardMarker/LiveGuardMarker'
+import IncidentMarker from '@/modules/maps/components/IncidentMarker/IncidentMarker'
 import './BaseMap.css'
 
 /**
@@ -125,6 +127,17 @@ export default function BaseMap({
     return () => unsubscribe()
   }, [])
 
+  // ─── Active Incidents Subscription ───
+  const [activeIncidents, setActiveIncidents] = useState([])
+
+  useEffect(() => {
+    const unsubscribe = subscribeToActiveIncidents(setActiveIncidents)
+    return () => unsubscribe()
+  }, [])
+
+  // ─── Layer visibility: incidents ───
+  const showIncidents = useMapLayerStore((s) => s.incidents)
+
   // ─── Active Execution IDs (shallow equality — no re-render on position changes) ───
   const activeExecutionIds = useRealtimeStore(
     useShallow((state) => Object.keys(state.activeExecutions))
@@ -182,6 +195,11 @@ export default function BaseMap({
         {/* ─── Live Guard Markers (Zero-Render Thrashing) ─── */}
         {showGuards && activeExecutionIds.map((id) => (
           <LiveGuardMarker key={id} executionId={id} />
+        ))}
+
+        {/* ─── Active Incident Markers ─── */}
+        {showIncidents && activeIncidents.map((inc) => (
+          <IncidentMarker key={inc.id} incident={inc} />
         ))}
 
         {/* Render children (layers, markers, etc.) */}
