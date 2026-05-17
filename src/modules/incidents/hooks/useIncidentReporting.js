@@ -63,7 +63,7 @@ async function compressImage(file, maxWidth = 1200, quality = 0.7) {
                 reject(new Error('Canvas toBlob returned null'))
                 return
               }
-              const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+              const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg') || 'image.jpg', {
                 type: 'image/jpeg',
               })
               console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
@@ -169,6 +169,7 @@ export function useIncidentReporting() {
             const result = await uploadEvidence(uploadFile)
             if (result && result.fileId) evidenceIds.push(result.fileId)
           } catch (uploadErr) {
+            alert('Error de Subida a Appwrite: ' + (uploadErr.message || JSON.stringify(uploadErr)))
             console.error(`${LOG_PREFIX} ⚠️ Failed to upload evidence:`, uploadErr)
           }
         }
