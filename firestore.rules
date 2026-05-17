@@ -260,7 +260,7 @@ service cloud.firestore {
 
       allow create: if isAuthenticated() && (
         isAdminOrOps() ||
-        (isGuard() && request.resource.data.guardId == request.auth.uid)
+        isGuard()
       );
 
       // Logs are immutable — only admin can modify/delete

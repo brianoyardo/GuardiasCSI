@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+import { db } from '@/config/firebase'
+import { COLLECTIONS } from '@/config/constants'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { useRondaExecution } from '@/modules/rondas/hooks/useRondaExecution'
 import { startExecution, getExecution, findActiveExecutionByAssignment } from '@/modules/rondas/services/rondaExecutionService'
@@ -74,8 +77,25 @@ export default function RondaExecutionPage() {
           setCheckpoints(cps.filter(Boolean).map(checkpointToFlat).filter(Boolean))
         }
 
-        // ─── STATE RESTORATION: Check for existing execution ───
-        if (assign.executionId) {
+        // ─── STATE RESTORATION: Direct Firestore query FIRST (anti-ghost) ───
+        const execQ = query(
+          collection(db, COLLECTIONS.RONDA_EXECUTIONS),
+          where('assignmentId', '==', paramId),
+          where('status', 'in', ['in_progress', 'paused', 'validating_voice'])
+        )
+        const execSnap = await getDocs(execQ)
+        if (!execSnap.empty) {
+          const execDoc = execSnap.docs[0]
+          const execData = { id: execDoc.id, ...execDoc.data() }
+          console.log('[RondaExecution] 🔒 Found live execution via direct query:', execDoc.id, execData.status)
+          setExecutionId(execDoc.id)
+
+          if (execData.status === RONDA_STATES.VALIDATING_VOICE) {
+            setPhase('voice')
+          } else {
+            setPhase('execution')
+          }
+        } else if (assign.executionId) {
           const exec = await getExecution(assign.executionId)
           if (exec) {
             setExecutionId(exec.id)
