@@ -135,8 +135,10 @@ export async function saveCheckpoint(id, data, userId) {
     description: data.description || '',
     status: data.status || 'active',
     qrCode: data.qrCode || null,
-    radius: data.radius || 50, // Validation radius in meters
-    geometry: data.geometry, // Expected Point
+    radius: data.radius || 50,
+    geometry: data.geometry,
+    routeId: data.routeId || null,
+    order: typeof data.order === 'number' ? data.order : 0,
     ...data
   }, userId)
 }
@@ -175,9 +177,10 @@ export async function getCheckpointsByRoute(routeId) {
 export async function saveGeofence(id, data, userId) {
   return saveSpatialEntity(SPATIAL_COLLECTIONS.GEOFENCES, id, {
     name: data.name,
-    type: data.type || 'restricted', // restricted | patrol | warning
+    type: data.type || 'restricted',
     status: data.status || 'active',
-    geometry: data.geometry, // Expected Polygon
+    geometry: data.geometry,
+    routeId: data.routeId || null,
     ...data
   }, userId)
 }

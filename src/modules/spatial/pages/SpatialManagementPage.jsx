@@ -46,7 +46,7 @@ export default function SpatialManagementPage() {
 
   // Pending Entity (currently being drawn)
   const [pendingFeature, setPendingFeature] = useState(null)
-  const [formData, setFormData] = useState({ name: '', description: '', type: 'restricted' })
+  const [formData, setFormData] = useState({ name: '', description: '', type: 'restricted', routeId: '', order: 1 })
 
   // Status
   const [loading, setLoading] = useState(true)
@@ -97,6 +97,11 @@ export default function SpatialManagementPage() {
 
     if (geometry) {
       setPendingFeature({ layer, geometry })
+
+      if (mode === 'draw_checkpoint') {
+        const nextOrder = checkpoints.length + 1
+        setFormData((prev) => ({ ...prev, order: nextOrder }))
+      }
     }
   }
 
@@ -110,21 +115,32 @@ export default function SpatialManagementPage() {
   const handleSave = async () => {
     if (!pendingFeature || !formData.name) return
 
+    if ((mode === 'draw_checkpoint' || mode === 'draw_geofence') && !formData.routeId) {
+      setError('Debes asociar una ruta para guardar esta entidad')
+      return
+    }
+
     try {
       if (mode === 'draw_route') {
         await saveRoute(null, { name: formData.name, description: formData.description, geometry: pendingFeature.geometry }, user.uid)
       } else if (mode === 'draw_geofence') {
-        await saveGeofence(null, { name: formData.name, type: formData.type, geometry: pendingFeature.geometry }, user.uid)
+        await saveGeofence(null, { name: formData.name, type: formData.type, routeId: formData.routeId, geometry: pendingFeature.geometry }, user.uid)
       } else if (mode === 'draw_checkpoint') {
-        await saveCheckpoint(null, { name: formData.name, description: formData.description, geometry: pendingFeature.geometry }, user.uid)
+        await saveCheckpoint(null, {
+          name: formData.name,
+          description: formData.description,
+          routeId: formData.routeId,
+          order: parseInt(formData.order, 10) || 0,
+          geometry: pendingFeature.geometry,
+        }, user.uid)
       }
 
       // Cleanup
-      pendingFeature.layer.remove() // Remove raw drawing
+      pendingFeature.layer.remove()
       setPendingFeature(null)
-      setFormData({ name: '', description: '', type: 'restricted' })
+      setFormData({ name: '', description: '', type: 'restricted', routeId: '', order: 1 })
       setMode('view')
-      loadEntities() // Reload from DB
+      loadEntities()
     } catch (err) {
       console.error('Save failed', err)
       setError('Error al guardar la entidad: ' + err.message)
@@ -134,7 +150,7 @@ export default function SpatialManagementPage() {
   const cancelDrawing = () => {
     if (pendingFeature) pendingFeature.layer.remove()
     setPendingFeature(null)
-    setFormData({ name: '', description: '', type: 'restricted' })
+    setFormData({ name: '', description: '', type: 'restricted', routeId: '', order: 1 })
     setMode('view')
   }
 
@@ -183,14 +199,39 @@ export default function SpatialManagementPage() {
           {/* Pending Form */}
           {pendingFeature && (
             <div className="spatial-mgmt__form">
-              <input 
+              <input
                 className="spatial-mgmt__input"
                 placeholder="Nombre de la entidad..."
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
               />
+
+              {(mode === 'draw_checkpoint' || mode === 'draw_geofence') && (
+                <select
+                  className="spatial-mgmt__input"
+                  value={formData.routeId}
+                  onChange={(e) => setFormData({...formData, routeId: e.target.value})}
+                >
+                  <option value="">— Asociar a Ruta —</option>
+                  {routes.map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              )}
+
+              {mode === 'draw_checkpoint' && (
+                <input
+                  className="spatial-mgmt__input"
+                  type="number"
+                  min="1"
+                  placeholder="Orden de visita"
+                  value={formData.order}
+                  onChange={(e) => setFormData({...formData, order: e.target.value})}
+                />
+              )}
+
               {mode === 'draw_geofence' && (
-                <select 
+                <select
                   className="spatial-mgmt__input"
                   value={formData.type}
                   onChange={(e) => setFormData({...formData, type: e.target.value})}
@@ -200,10 +241,11 @@ export default function SpatialManagementPage() {
                   <option value="warning">Advertencia</option>
                 </select>
               )}
-              <button 
+
+              <button
                 className="spatial-mgmt__btn spatial-mgmt__btn--save"
                 onClick={handleSave}
-                disabled={!formData.name || loading}
+                disabled={!formData.name || ((mode === 'draw_checkpoint' || mode === 'draw_geofence') && !formData.routeId) || loading}
               >
                 {loading ? 'Guardando...' : 'Guardar Entidad GeoJSON'}
               </button>
@@ -220,6 +262,7 @@ export default function SpatialManagementPage() {
                 {geofences.map(g => {
                   const pos = geoJsonToLeafletPositions(g.geometry)
                   const center = Array.isArray(pos) && pos.length > 0 ? pos[0] : null
+                  const parentRoute = routes.find((r) => r.id === g.routeId)
                   return (
                     <div
                       key={g.id}
@@ -228,7 +271,7 @@ export default function SpatialManagementPage() {
                       onClick={() => center && triggerFlyTo(center.lat, center.lng, 16)}
                     >
                       <span className="spatial-mgmt__item-name">{g.name}</span>
-                      <span className="spatial-mgmt__item-type">{g.type}</span>
+                      <span className="spatial-mgmt__item-type">{g.type}{parentRoute ? ` · ${parentRoute.name}` : ''}</span>
                     </div>
                   )
                 })}
@@ -253,6 +296,7 @@ export default function SpatialManagementPage() {
                 <div className="spatial-mgmt__list-title" style={{marginTop: '1rem'}}>Checkpoints ({checkpoints.length})</div>
                 {checkpoints.map(c => {
                   const position = geoJsonToLeafletPositions(c.geometry)
+                  const parentRoute = routes.find((r) => r.id === c.routeId)
                   return (
                     <div
                       key={c.id}
@@ -260,8 +304,8 @@ export default function SpatialManagementPage() {
                       style={{ cursor: 'pointer' }}
                       onClick={() => triggerFlyTo(position.lat, position.lng, 16)}
                     >
-                      <span className="spatial-mgmt__item-name">{c.name}</span>
-                      <span className="spatial-mgmt__item-type">Point</span>
+                      <span className="spatial-mgmt__item-name">{c.order ? `#${c.order} ${c.name}` : c.name}</span>
+                      <span className="spatial-mgmt__item-type">{parentRoute ? parentRoute.name : 'Sin ruta'}</span>
                     </div>
                   )
                 })}
