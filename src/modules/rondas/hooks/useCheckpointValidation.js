@@ -26,9 +26,10 @@ export function useCheckpointValidation(options = {}) {
     checkpoints = [],
     checkpointOrder = [],
     geofencePolygon = null,
+    initialCompletedIds = [],
   } = options
 
-  const [completedIds, setCompletedIds] = useState([])
+  const [completedIds, setCompletedIds] = useState(initialCompletedIds)
   const [lastValidation, setLastValidation] = useState(null)
 
   /**

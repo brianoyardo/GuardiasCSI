@@ -54,6 +54,7 @@ export default function RondaExecutionPage() {
   const [assignment, setAssignment] = useState(null)
   const [route, setRoute] = useState(null)
   const [checkpoints, setCheckpoints] = useState([])
+  const [initialCompletedIds, setInitialCompletedIds] = useState([])
 
   useEffect(() => {
     if (!paramId) return
@@ -89,6 +90,13 @@ export default function RondaExecutionPage() {
           const execData = { id: execDoc.id, ...execDoc.data() }
           console.log('[RondaExecution] 🔒 Found live execution via direct query:', execDoc.id, execData.status)
           setExecutionId(execDoc.id)
+
+          // Hydrate completed checkpoints from Firestore
+          const completed = execData.completedCheckpoints || []
+          if (completed.length > 0) {
+            setInitialCompletedIds(completed)
+            console.log('[RondaExecution] 📋 Restored', completed.length, 'completed checkpoints:', completed)
+          }
 
           if (execData.status === RONDA_STATES.VALIDATING_VOICE) {
             setPhase('voice')
@@ -159,6 +167,7 @@ export default function RondaExecutionPage() {
     checkpoints,
     scheduledEnd: assignment?.scheduledEnd || (Date.now() + 2 * 60 * 60 * 1000),
     executionId: phase === 'execution' ? executionId : null,
+    initialCompletedIds,
   })
 
   // ─── Pre-Op Modal Confirm ───

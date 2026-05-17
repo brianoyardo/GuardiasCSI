@@ -245,21 +245,16 @@ export async function transitionExecution(executionId, currentState, nextState, 
 
 /**
  * Complete a ronda execution
- * Determines if it's on-time or late
- * 
+ * Always transitions to COMPLETED (no LATE penalty)
+ *
  * @param {string} executionId
  * @param {string} currentState
  * @param {{ lat: number, lng: number }} position
- * @param {number} scheduledEnd
  */
-export async function completeExecution(executionId, currentState, position, scheduledEnd) {
-  const isLateCompletion = Date.now() > scheduledEnd
-  const finalState = isLateCompletion ? RONDA_STATES.LATE : RONDA_STATES.COMPLETED
-
-  await transitionExecution(executionId, currentState, finalState, {
+export async function completeExecution(executionId, currentState, position) {
+  await transitionExecution(executionId, currentState, RONDA_STATES.COMPLETED, {
     position,
     completedAt: Date.now(),
-    isLate: isLateCompletion,
   })
 }
 

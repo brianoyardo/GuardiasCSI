@@ -22,48 +22,79 @@ const DEV_FALLBACK_POSITION = {
 
 /**
  * Compress image file using canvas to reduce upload size
+ * Skips compression for files under 1MB
  * @param {File} file - Original image file
  * @param {number} maxWidth - Max width in pixels
  * @param {number} quality - JPEG quality (0-1)
- * @returns {Promise<File>} Compressed JPEG file
+ * @returns {Promise<File>} Compressed JPEG file or original
  */
 async function compressImage(file, maxWidth = 1200, quality = 0.7) {
+  const ONE_MB = 1024 * 1024
+  if (file.size < ONE_MB) {
+    console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB — skipping (under 1MB)`)
+    return file
+  }
+
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let { width, height } = img
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width)
-          width = maxWidth
-        }
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Canvas toBlob failed'))
-              return
+    const timeout = setTimeout(() => reject(new Error('compressImage timeout (15s)')), 15000)
+
+    try {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const img = new Image()
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas')
+              let { width, height } = img
+              if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width)
+                width = maxWidth
+              }
+              canvas.width = width
+              canvas.height = height
+              const ctx = canvas.getContext('2d')
+              ctx.drawImage(img, 0, 0, width, height)
+              canvas.toBlob(
+                (blob) => {
+                  clearTimeout(timeout)
+                  if (!blob) {
+                    reject(new Error('Canvas toBlob returned null'))
+                    return
+                  }
+                  const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                    type: 'image/jpeg',
+                  })
+                  console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
+                  resolve(compressed)
+                },
+                'image/jpeg',
+                quality
+              )
+            } catch (err) {
+              clearTimeout(timeout)
+              reject(err)
             }
-            const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
-              type: 'image/jpeg',
-            })
-            console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
-            resolve(compressed)
-          },
-          'image/jpeg',
-          quality
-        )
+          }
+          img.onerror = () => {
+            clearTimeout(timeout)
+            reject(new Error('Image failed to load'))
+          }
+          img.src = e.target.result
+        } catch (err) {
+          clearTimeout(timeout)
+          reject(err)
+        }
       }
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = e.target.result
+      reader.onerror = () => {
+        clearTimeout(timeout)
+        reject(new Error('FileReader failed'))
+      }
+      reader.readAsDataURL(file)
+    } catch (err) {
+      clearTimeout(timeout)
+      reject(err)
     }
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsDataURL(file)
   })
 }
 
@@ -128,13 +159,21 @@ export function useIncidentReporting() {
         }
       }
 
-      // 2. Upload images to Appwrite (if any) — compress first
+      // 2. Upload images to Appwrite (if any) — compress first, fallback to original
       const evidenceIds = []
       if (data.images && data.images.length > 0) {
         for (const file of data.images) {
           try {
-            const compressed = file.type.startsWith('image/') ? await compressImage(file) : file
-            const result = await uploadEvidence(compressed)
+            let uploadFile = file
+            if (file.type.startsWith('image/')) {
+              try {
+                uploadFile = await compressImage(file)
+              } catch (compressErr) {
+                console.warn(`${LOG_PREFIX} ⚠️ Compression failed for ${file.name}, using original:`, compressErr.message)
+                uploadFile = file
+              }
+            }
+            const result = await uploadEvidence(uploadFile)
             if (result && result.fileId) evidenceIds.push(result.fileId)
           } catch (uploadErr) {
             console.error(`${LOG_PREFIX} ⚠️ Failed to upload evidence:`, uploadErr)

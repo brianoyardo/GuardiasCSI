@@ -39,6 +39,7 @@ export function useRondaExecution(options) {
     scheduledEnd,
     executionId: preExistingExecutionId = null,
     geofencePolygon = null,
+    initialCompletedIds = [],
   } = options
 
   const [executionId, setExecutionId] = useState(preExistingExecutionId)
@@ -63,6 +64,7 @@ export function useRondaExecution(options) {
     checkpoints,
     checkpointOrder,
     geofencePolygon,
+    initialCompletedIds,
   })
 
   // ─── Start ronda ───
@@ -142,16 +144,15 @@ export function useRondaExecution(options) {
       geo.stopTracking()
       const trailData = tracking.stopRecording()
 
-      await completeExecution(executionId, status, geo.position, scheduledEnd)
+      await completeExecution(executionId, status, geo.position)
 
-      const finalState = Date.now() > scheduledEnd ? RONDA_STATES.LATE : RONDA_STATES.COMPLETED
-      setStatus(finalState)
+      setStatus(RONDA_STATES.COMPLETED)
 
-      console.log(`${LOG_PREFIX} ✅ Ronda finished: ${finalState}`)
+      console.log(`${LOG_PREFIX} ✅ Ronda finished: COMPLETED`)
     } catch (err) {
       setError(err.message)
     }
-  }, [executionId, status, geo, tracking, scheduledEnd])
+  }, [executionId, status, geo, tracking])
 
   // ─── Register checkpoint ───
   const registerCheckpointHit = useCallback(
