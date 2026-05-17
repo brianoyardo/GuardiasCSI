@@ -116,6 +116,7 @@ export default function BaseMap({
   gpsAccuracy = null,
   tileProvider = 'carto_dark',
   onMapReady,
+  currentExecutionId = null,
   children,
 }) {
   const [isFullscreen, setIsFullscreen] = useState(fullscreen)
@@ -193,9 +194,11 @@ export default function BaseMap({
         <MapFlyToListener />
 
         {/* ─── Live Guard Markers (Zero-Render Thrashing) ─── */}
-        {showGuards && activeExecutionIds.map((id) => (
-          <LiveGuardMarker key={id} executionId={id} />
-        ))}
+        {showGuards && activeExecutionIds
+          .filter((id) => id !== currentExecutionId)
+          .map((id) => (
+            <LiveGuardMarker key={id} executionId={id} />
+          ))}
 
         {/* ─── Active Incident Markers ─── */}
         {showIncidents && activeIncidents.map((inc) => (

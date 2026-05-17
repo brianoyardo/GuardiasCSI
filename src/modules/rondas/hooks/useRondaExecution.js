@@ -6,6 +6,7 @@ import { useRondaTimer } from './useRondaTimer'
 import { useCheckpointValidation } from './useCheckpointValidation'
 import { useGeolocation, useMapTracking } from '@/modules/maps/hooks'
 import { updateLivePosition, appendTrackPoint } from '@/modules/maps/services/trackingService'
+import { POSITION_SYNC_INTERVAL } from '@/config/constants'
 
 /**
  * SentinelOps — useRondaExecution Hook
@@ -16,7 +17,6 @@ import { updateLivePosition, appendTrackPoint } from '@/modules/maps/services/tr
  */
 
 const LOG_PREFIX = '[useRondaExecution]'
-const POSITION_SYNC_INTERVAL = 10000 // 10 seconds
 
 /**
  * @param {object} options
@@ -135,26 +135,63 @@ export function useRondaExecution(options) {
     }
   }, [geo, tracking])
 
+  // ─── Finish/complete ronda ───
+  const finishRonda = useCallback(async () => {
+    if (!executionId) return
+    try {
+      geo.stopTracking()
+      const trailData = tracking.stopRecording()
+
+      await completeExecution(executionId, status, geo.position, scheduledEnd)
+
+      const finalState = Date.now() > scheduledEnd ? RONDA_STATES.LATE : RONDA_STATES.COMPLETED
+      setStatus(finalState)
+
+      console.log(`${LOG_PREFIX} ✅ Ronda finished: ${finalState}`)
+    } catch (err) {
+      setError(err.message)
+    }
+  }, [executionId, status, geo, tracking, scheduledEnd])
+
   // ─── Register checkpoint ───
   const registerCheckpointHit = useCallback(
     async (checkpointId) => {
       if (!executionId || !geo.position) {
-        setError('GPS no disponible')
-        return { success: false }
+        const errMsg = !executionId ? 'No hay executionId activo' : 'GPS no disponible'
+        console.error(`${LOG_PREFIX} ❌ registerCheckpointHit blocked:`, errMsg, { executionId, hasPosition: !!geo.position })
+        setError(errMsg)
+        return { success: false, reason: errMsg }
       }
 
-      // Validate
+      const cp = checkpoints.find((c) => c.id === checkpointId)
+      if (!cp) {
+        const errMsg = `Checkpoint ID "${checkpointId}" no existe en la lista`
+        console.error(`${LOG_PREFIX} ❌ Invalid checkpoint ID:`, checkpointId, 'Available IDs:', checkpoints.map((c) => c.id))
+        setError(errMsg)
+        return { success: false, reason: errMsg }
+      }
+
+      const validatedId = cp.checkpointId || cp.id
+
       const result = validation.validate(checkpointId, geo.position, geo.accuracy)
 
       if (!result.canComplete) {
+        console.warn(`${LOG_PREFIX} ⚠️ Validation failed for ${checkpointId}:`, result.reason)
         setError(result.reason)
         return { success: false, validation: result }
       }
 
       try {
+        console.log(`${LOG_PREFIX} 📝 Registering checkpoint:`, {
+          executionId,
+          checkpointId: validatedId,
+          position: geo.position,
+          distance: result.results?.proximity?.distance,
+        })
+
         await registerCheckpoint(
           executionId,
-          checkpointId,
+          validatedId,
           geo.position,
           result.results.proximity.distance
         )
@@ -162,21 +199,31 @@ export function useRondaExecution(options) {
         validation.markCompleted(checkpointId)
         setError(null)
 
-        console.log(`${LOG_PREFIX} ✓ Checkpoint ${checkpointId} validated`)
+        console.log(`${LOG_PREFIX} ✓ Checkpoint ${checkpointId} validated and saved to Firestore`)
 
-        // Check if all checkpoints done
         if (validation.completedCount + 1 === checkpoints.length) {
           await finishRonda()
         }
 
         return { success: true, validation: result }
       } catch (err) {
-        console.error(`${LOG_PREFIX} Error registering checkpoint:`, err)
-        setError('Error registrando checkpoint')
-        return { success: false, error: err }
+        console.error(`${LOG_PREFIX} ❌ Firestore write FAILED for checkpoint ${checkpointId}:`, err)
+        console.error(`${LOG_PREFIX} Error details:`, {
+          code: err?.code,
+          message: err?.message,
+          name: err?.name,
+          stack: err?.stack,
+        })
+        const userMsg = err?.code === 'permission-denied'
+          ? 'Error de permisos. Contacte al administrador.'
+          : err?.code === 'not-found'
+          ? 'La ejecución no existe en la base de datos.'
+          : `Error registrando checkpoint: ${err?.message || 'Error desconocido'}`
+        setError(userMsg)
+        return { success: false, error: err, reason: userMsg }
       }
     },
-    [executionId, geo.position, geo.accuracy, validation, checkpoints.length]
+    [executionId, geo.position, geo.accuracy, validation, checkpoints, finishRonda]
   )
 
   // ─── Pause ronda ───
@@ -206,24 +253,6 @@ export function useRondaExecution(options) {
       setError(err.message)
     }
   }, [executionId, status, geo])
-
-  // ─── Finish/complete ronda ───
-  const finishRonda = useCallback(async () => {
-    if (!executionId) return
-    try {
-      geo.stopTracking()
-      const trailData = tracking.stopRecording()
-
-      await completeExecution(executionId, status, geo.position, scheduledEnd)
-
-      const finalState = Date.now() > scheduledEnd ? RONDA_STATES.LATE : RONDA_STATES.COMPLETED
-      setStatus(finalState)
-
-      console.log(`${LOG_PREFIX} ✅ Ronda finished: ${finalState}`)
-    } catch (err) {
-      setError(err.message)
-    }
-  }, [executionId, status, geo, tracking, scheduledEnd])
 
   // ─── Cancel ronda ───
   const cancel = useCallback(async (reason = '') => {

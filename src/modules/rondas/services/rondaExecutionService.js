@@ -118,6 +118,8 @@ export async function startExecution(data) {
  */
 export async function registerCheckpoint(executionId, checkpointId, position, distance, notes = '') {
   try {
+    console.log(`[ExecutionService] 📝 Writing checkpoint:`, { executionId, checkpointId, distance })
+
     const execRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, executionId)
 
     const checkpointLog = {
@@ -140,18 +142,24 @@ export async function registerCheckpoint(executionId, checkpointId, position, di
       updatedAt: serverTimestamp(),
     })
 
-    // Also write to separate checkpointLogs collection for analytics
     const logRef = doc(collection(db, COLLECTIONS.CHECKPOINT_LOGS))
     await setDoc(logRef, {
       executionId,
       ...checkpointLog,
-      guardId: null, // Will be filled by the caller
+      guardId: null,
       createdAt: serverTimestamp(),
     })
 
     console.log(`${LOG_PREFIX} ✓ Checkpoint registered: ${checkpointId} (${distance.toFixed(0)}m)`)
   } catch (error) {
-    console.error(`${LOG_PREFIX} Error registering checkpoint:`, error)
+    console.error(`${LOG_PREFIX} ❌ FAILED to register checkpoint in Firestore:`, error)
+    console.error(`${LOG_PREFIX} Error details:`, {
+      code: error?.code,
+      message: error?.message,
+      name: error?.name,
+      executionId,
+      checkpointId,
+    })
     throw error
   }
 }

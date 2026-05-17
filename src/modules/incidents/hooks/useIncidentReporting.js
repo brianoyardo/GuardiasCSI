@@ -21,6 +21,53 @@ const DEV_FALLBACK_POSITION = {
 }
 
 /**
+ * Compress image file using canvas to reduce upload size
+ * @param {File} file - Original image file
+ * @param {number} maxWidth - Max width in pixels
+ * @param {number} quality - JPEG quality (0-1)
+ * @returns {Promise<File>} Compressed JPEG file
+ */
+async function compressImage(file, maxWidth = 1200, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let { width, height } = img
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width)
+          width = maxWidth
+        }
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas toBlob failed'))
+              return
+            }
+            const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+              type: 'image/jpeg',
+            })
+            console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
+            resolve(compressed)
+          },
+          'image/jpeg',
+          quality
+        )
+      }
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = e.target.result
+    }
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsDataURL(file)
+  })
+}
+
+/**
  * Force a fresh GPS read with timeout and error handling
  * @returns {Promise<{lat: number, lng: number, accuracy: number}>}
  */
@@ -81,12 +128,17 @@ export function useIncidentReporting() {
         }
       }
 
-      // 2. Upload images to Appwrite (if any)
+      // 2. Upload images to Appwrite (if any) — compress first
       const evidenceIds = []
       if (data.images && data.images.length > 0) {
         for (const file of data.images) {
-          const result = await uploadEvidence(file)
-          if (result && result.fileId) evidenceIds.push(result.fileId)
+          try {
+            const compressed = file.type.startsWith('image/') ? await compressImage(file) : file
+            const result = await uploadEvidence(compressed)
+            if (result && result.fileId) evidenceIds.push(result.fileId)
+          } catch (uploadErr) {
+            console.error(`${LOG_PREFIX} ⚠️ Failed to upload evidence:`, uploadErr)
+          }
         }
       }
 

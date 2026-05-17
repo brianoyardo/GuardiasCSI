@@ -7,6 +7,11 @@
   justify-content: center;
 }
 
+.incident-marker--static {
+  width: 28px;
+  height: 28px;
+}
+
 .incident-marker__core {
   position: absolute;
   width: 12px;
@@ -14,6 +19,28 @@
   border-radius: 50%;
   z-index: 2;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.incident-marker__core--critical {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.incident-marker__core--icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 2px solid;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.incident-marker__core--icon svg {
+  display: block;
 }
 
 .incident-marker__pulse {

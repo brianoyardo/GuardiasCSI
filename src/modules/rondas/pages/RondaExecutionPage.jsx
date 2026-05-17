@@ -301,6 +301,7 @@ export default function RondaExecutionPage() {
           darkMode
           showControls={false}
           showGpsStatus={false}
+          currentExecutionId={executionId}
         >
           <GuardMarker position={exec.position} accuracy={exec.accuracy} name="Tú" />
 
