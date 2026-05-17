@@ -39,58 +39,51 @@ async function compressImage(file, maxWidth = 1200, quality = 0.7) {
     const timeout = setTimeout(() => reject(new Error('compressImage timeout (15s)')), 15000)
 
     try {
-      const reader = new FileReader()
-      reader.onload = (e) => {
+      const objectUrl = URL.createObjectURL(file)
+      const img = new Image()
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl)
+
         try {
-          const img = new Image()
-          img.onload = () => {
-            try {
-              const canvas = document.createElement('canvas')
-              let { width, height } = img
-              if (width > maxWidth) {
-                height = Math.round((height * maxWidth) / width)
-                width = maxWidth
-              }
-              canvas.width = width
-              canvas.height = height
-              const ctx = canvas.getContext('2d')
-              ctx.drawImage(img, 0, 0, width, height)
-              canvas.toBlob(
-                (blob) => {
-                  clearTimeout(timeout)
-                  if (!blob) {
-                    reject(new Error('Canvas toBlob returned null'))
-                    return
-                  }
-                  const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
-                    type: 'image/jpeg',
-                  })
-                  console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
-                  resolve(compressed)
-                },
-                'image/jpeg',
-                quality
-              )
-            } catch (err) {
+          const canvas = document.createElement('canvas')
+          let { width, height } = img
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+          }
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, width, height)
+          canvas.toBlob(
+            (blob) => {
               clearTimeout(timeout)
-              reject(err)
-            }
-          }
-          img.onerror = () => {
-            clearTimeout(timeout)
-            reject(new Error('Image failed to load'))
-          }
-          img.src = e.target.result
+              if (!blob) {
+                reject(new Error('Canvas toBlob returned null'))
+                return
+              }
+              const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                type: 'image/jpeg',
+              })
+              console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
+              resolve(compressed)
+            },
+            'image/jpeg',
+            quality
+          )
         } catch (err) {
           clearTimeout(timeout)
           reject(err)
         }
       }
-      reader.onerror = () => {
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
         clearTimeout(timeout)
-        reject(new Error('FileReader failed'))
+        reject(new Error('Failed to load image'))
       }
-      reader.readAsDataURL(file)
+      img.src = objectUrl
     } catch (err) {
       clearTimeout(timeout)
       reject(err)

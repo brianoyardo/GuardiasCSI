@@ -81,15 +81,16 @@ export default function RondaExecutionPage() {
         // ─── STATE RESTORATION: Direct Firestore query FIRST (anti-ghost) ───
         const execQ = query(
           collection(db, COLLECTIONS.RONDA_EXECUTIONS),
-          where('assignmentId', '==', paramId),
-          where('status', 'in', ['in_progress', 'paused', 'validating_voice'])
+          where('assignmentId', '==', paramId)
         )
         const execSnap = await getDocs(execQ)
-        if (!execSnap.empty) {
-          const execDoc = execSnap.docs[0]
-          const execData = { id: execDoc.id, ...execDoc.data() }
-          console.log('[RondaExecution] 🔒 Found live execution via direct query:', execDoc.id, execData.status)
-          setExecutionId(execDoc.id)
+        const targetStatuses = [RONDA_STATES.IN_PROGRESS, RONDA_STATES.PAUSED, RONDA_STATES.VALIDATING_VOICE]
+        const activeDoc = execSnap.docs.find(d => targetStatuses.includes(d.data().status))
+
+        if (activeDoc) {
+          const execData = { id: activeDoc.id, ...activeDoc.data() }
+          console.log('[RondaExecution] 🔒 Found live execution via direct query:', activeDoc.id, execData.status)
+          setExecutionId(activeDoc.id)
 
           // Hydrate completed checkpoints from Firestore
           const completed = execData.completedCheckpoints || []

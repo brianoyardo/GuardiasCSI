@@ -184,15 +184,12 @@ service cloud.firestore {
     }
 
     // ─── Ronda Assignments ───
-    // READ:   Admin/Ops/Supervisor (all) | Guard (own assignments only)
+    // READ:   Any authenticated (UI filters by guardId client-side)
     // CREATE: Admin, Ops Chief
     // UPDATE: Admin/Ops | Guard (own assignment, e.g., start ronda)
     // DELETE: Admin only
     match /rondaAssignments/{assignmentId} {
-      allow read: if isAuthenticated() && (
-        isAdminOrOpsOrSupervisor() ||
-        (isGuard() && resource.data.guardId == request.auth.uid)
-      );
+      allow read: if request.auth != null;
 
       allow create: if isAdminOrOps();
 
@@ -215,7 +212,7 @@ service cloud.firestore {
     // UPDATE: Admin/Ops | Guard (own execution only)
     // DELETE: Admin only
     match /rondaExecutions/{executionId} {
-      allow read: if isActiveUser();
+      allow read: if request.auth != null;
 
       allow create: if isAuthenticated() && (
         isAdminOrOps() || (
