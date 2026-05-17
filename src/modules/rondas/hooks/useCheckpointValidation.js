@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   validateCheckpointProximity,
   validateCheckpointOrder,
@@ -31,6 +31,12 @@ export function useCheckpointValidation(options = {}) {
 
   const [completedIds, setCompletedIds] = useState(initialCompletedIds)
   const [lastValidation, setLastValidation] = useState(null)
+
+  useEffect(() => {
+    if (initialCompletedIds && initialCompletedIds.length > 0) {
+      setCompletedIds(initialCompletedIds)
+    }
+  }, [initialCompletedIds])
 
   /**
    * Validate a checkpoint against all rules

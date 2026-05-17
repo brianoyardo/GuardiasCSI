@@ -125,7 +125,7 @@ export default function IncidentReportPage() {
         {/* Camera / Evidence */}
         <input 
           type="file" 
-          accept="image/*" 
+          accept="image/jpeg, image/png, image/webp" 
           capture="environment" 
           multiple
           ref={fileInputRef}
