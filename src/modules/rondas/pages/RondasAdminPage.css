@@ -9,6 +9,8 @@
   flex-direction: column;
   gap: var(--space-4);
   height: calc(100vh - 70px);
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .rondas-admin__header {
@@ -166,6 +168,7 @@
 .rondas-admin__table-wrapper {
   flex: 1;
   overflow: auto;
+  overflow-x: auto;
 }
 
 .rondas-admin__table {
@@ -237,10 +240,13 @@
   .rondas-admin {
     padding: var(--space-3);
     height: auto;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   .rondas-admin__layout {
     grid-template-columns: 1fr;
+    overflow-x: auto;
   }
 
   .rondas-admin__form-card {
@@ -249,5 +255,10 @@
 
   .rondas-admin__row {
     grid-template-columns: 1fr;
+  }
+
+  .rondas-admin__table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }

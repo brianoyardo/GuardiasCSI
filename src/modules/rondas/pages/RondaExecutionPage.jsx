@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { useRondaExecution } from '@/modules/rondas/hooks/useRondaExecution'
-import { startExecution } from '@/modules/rondas/services/rondaExecutionService'
+import { startExecution, getExecution } from '@/modules/rondas/services/rondaExecutionService'
 import { getAssignment } from '@/modules/rondas/services/rondaAssignmentService'
 import { getRoute, getCheckpointsByRoute } from '@/modules/spatial/services/spatialService'
 import { STATE_LABELS, STATE_COLORS, RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
@@ -72,6 +72,34 @@ export default function RondaExecutionPage() {
           ])
           if (r) setRoute(r)
           setCheckpoints(cps.filter(Boolean).map(checkpointToFlat).filter(Boolean))
+        }
+
+        // ─── STATE RESTORATION: Check for existing execution ───
+        if (assign.executionId) {
+          const exec = await getExecution(assign.executionId)
+          if (exec) {
+            setExecutionId(exec.id)
+
+            if (exec.status === RONDA_STATES.VALIDATING_VOICE) {
+              setPhase('voice')
+            } else if (
+              exec.status === RONDA_STATES.IN_PROGRESS ||
+              exec.status === RONDA_STATES.PAUSED
+            ) {
+              setPhase('execution')
+            } else if (
+              exec.status === RONDA_STATES.COMPLETED ||
+              exec.status === RONDA_STATES.LATE ||
+              exec.status === RONDA_STATES.FAILED ||
+              exec.status === RONDA_STATES.CANCELLED
+            ) {
+              setPhase('execution')
+            } else {
+              setPhase('preop')
+            }
+
+            console.log('[RondaExecution] State restored:', exec.status, '→ phase:', phase)
+          }
         }
       } catch (err) {
         console.error('Error loading execution data:', err)
@@ -163,6 +191,16 @@ export default function RondaExecutionPage() {
       hasCentered.current = true
     }
   }, [phase, exec.position, triggerFlyTo])
+
+  // ─── Restore GPS tracking after state recovery ───
+  const activatedRef = useRef(false)
+  useEffect(() => {
+    if (phase === 'execution' && executionId && !activatedRef.current) {
+      activatedRef.current = true
+      exec.startWithExecutionId(executionId)
+      console.log('[RondaExecution] GPS tracking activated after restore')
+    }
+  }, [phase, executionId])
 
   // ─── Checkpoint Handler ───
   const handleCheckpoint = async () => {

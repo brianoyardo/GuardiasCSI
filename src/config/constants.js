@@ -15,8 +15,8 @@ export const DEFAULT_MAP_ZOOM = 16
 /* ─── Geolocation ─── */
 export const GPS_OPTIONS = {
   enableHighAccuracy: true,
-  timeout: 10000,
-  maximumAge: 0,
+  timeout: 15000,
+  maximumAge: 10000,
 }
 export const MAX_CHECKPOINT_DISTANCE_METERS = 20
 
