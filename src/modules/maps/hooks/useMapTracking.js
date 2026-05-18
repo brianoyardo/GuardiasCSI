@@ -47,7 +47,10 @@ export function useMapTracking(options = {}) {
 
   useEffect(() => {
     if (initialTrail && initialTrail.length > 0) {
-      setTrail(initialTrail)
+      setTrail(prev => {
+        if (prev.length >= initialTrail.length) return prev
+        return initialTrail.map(pt => ({ lat: pt.lat, lng: pt.lng }))
+      })
       const lastPt = initialTrail[initialTrail.length - 1]
       lastPointRef.current = lastPt
       totalDistRef.current = 0

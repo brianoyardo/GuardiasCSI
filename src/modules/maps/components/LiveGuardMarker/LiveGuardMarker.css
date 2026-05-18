@@ -32,12 +32,12 @@
   border: 2px solid;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  animation: liveGuardPulse 2s ease-out infinite;
+  animation: liveGuardPulse 2s ease-in-out infinite !important;
   z-index: 1;
 }
 
 .live-guard-marker__pulse--voice {
-  animation: liveGuardPulseVoice 1.2s ease-out infinite;
+  animation: liveGuardPulseVoice 2s ease-in-out infinite !important;
 }
 
 .live-guard-marker__pulse--static {
