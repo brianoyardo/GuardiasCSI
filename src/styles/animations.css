@@ -140,7 +140,11 @@
 }
 
 .animate-pulse {
-  animation: pulse 3s ease-in-out infinite !important;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 1.5s ease-out infinite;
 }
 
 .animate-pulse-ring {
@@ -176,3 +180,15 @@
 .stagger-children > *:nth-child(6) { animation-delay: 300ms; }
 .stagger-children > *:nth-child(7) { animation-delay: 360ms; }
 .stagger-children > *:nth-child(8) { animation-delay: 420ms; }
+
+/* ─── Mobile: disable animations to save battery ─── */
+@media (max-width: 768px) {
+  .animate-pulse,
+  .animate-pulse-ring,
+  .animate-spin,
+  .animate-shimmer,
+  .animate-glow {
+    animation: none !important;
+    transition: none !important;
+  }
+}

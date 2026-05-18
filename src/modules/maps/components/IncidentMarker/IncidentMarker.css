@@ -49,7 +49,7 @@
   height: 32px;
   border-radius: 50%;
   opacity: 0.6;
-  animation: incident-pulse 4s ease-in-out infinite !important;
+  animation: incident-pulse 2s ease-out infinite;
 }
 
 @keyframes incident-pulse {
@@ -153,4 +153,12 @@
   text-transform: uppercase;
   color: #64748b;
   letter-spacing: 0.5px;
+}
+
+/* ─── Mobile: disable animations to save battery ─── */
+@media (max-width: 768px) {
+  .incident-marker__pulse {
+    animation: none !important;
+    transition: none !important;
+  }
 }

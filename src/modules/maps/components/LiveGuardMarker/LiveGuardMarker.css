@@ -32,12 +32,12 @@
   border: 2px solid;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  animation: liveGuardPulse 3s ease-in-out infinite !important;
+  animation: liveGuardPulse 2s ease-out infinite;
   z-index: 1;
 }
 
 .live-guard-marker__pulse--voice {
-  animation: liveGuardPulseVoice 3s ease-in-out infinite !important;
+  animation: liveGuardPulseVoice 1.2s ease-out infinite;
 }
 
 .live-guard-marker__pulse--static {
@@ -153,4 +153,14 @@
   margin-top: 4px;
   padding-top: 4px;
   border-top: 1px solid #333;
+}
+
+/* ─── Mobile: disable animations to save battery ─── */
+@media (max-width: 768px) {
+  .live-guard-marker__pulse,
+  .live-guard-marker__pulse--voice,
+  .live-guard-popup__status-dot--validating_voice {
+    animation: none !important;
+    transition: none !important;
+  }
 }

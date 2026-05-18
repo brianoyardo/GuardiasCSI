@@ -131,7 +131,7 @@ export function useMapTracking(options = {}) {
     startTimeRef.current = Date.now()
     totalDistRef.current = 0
     lastPointRef.current = null
-    setTrail([])
+    setTrail(prev => prev.length > 0 ? prev : [])
     setIsRecording(true)
     setMetrics({
       totalDistance: 0,
