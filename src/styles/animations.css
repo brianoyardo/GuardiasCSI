@@ -140,11 +140,11 @@
 }
 
 .animate-pulse {
-  animation: pulse 2s ease-in-out infinite !important;
+  animation: pulse 3s ease-in-out infinite !important;
 }
 
 .animate-pulse-ring {
-  animation: pulseRing 2s ease-out infinite !important;
+  animation: pulseRing 3s ease-out infinite !important;
 }
 
 .animate-shimmer {
