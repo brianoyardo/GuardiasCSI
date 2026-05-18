@@ -1,20 +1,8 @@
 import { useState, useCallback } from 'react'
 import { PATROL_TYPES, SHIFT_TYPES } from '@/config/constants'
+import CustomSelect from '@/components/ui/CustomSelect/CustomSelect'
 import './PreOpModal.css'
 
-/**
- * SentinelOps — Pre-Operational Modal (Catar Seguridad Integral)
- * 
- * Displayed before voice validation. Collects mandatory operational data:
- *   - Patrol type (A Pie, Motorizado, Dron, Otro)
- *   - Vehicle ID (conditional — shown when Motorizado)
- *   - Shift type (Diurno, Nocturno, etc.)
- * 
- * @param {object} props
- * @param {string} props.rondaName - Name of the ronda being started
- * @param {Function} props.onConfirm - Called with { patrolType, vehicleId, shift }
- * @param {Function} props.onCancel - Called when user cancels
- */
 export default function PreOpModal({ rondaName, onConfirm, onCancel }) {
   const [patrolType, setPatrolType] = useState(PATROL_TYPES.A_PIE)
   const [vehicleId, setVehicleId] = useState('')
@@ -63,18 +51,14 @@ export default function PreOpModal({ rondaName, onConfirm, onCancel }) {
           {/* Patrol Type */}
           <div className="preop-modal__field">
             <label className="preop-modal__label">Tipo de Patrullaje *</label>
-            <select
-              className="preop-modal__select"
+            <CustomSelect
               value={patrolType}
-              onChange={(e) => {
-                setPatrolType(e.target.value)
+              onChange={(val) => {
+                setPatrolType(val)
                 setError(null)
               }}
-            >
-              {patrolOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+              options={patrolOptions}
+            />
           </div>
 
           {/* Vehicle ID (conditional) */}
@@ -98,15 +82,11 @@ export default function PreOpModal({ rondaName, onConfirm, onCancel }) {
           {/* Shift */}
           <div className="preop-modal__field">
             <label className="preop-modal__label">Turno *</label>
-            <select
-              className="preop-modal__select"
+            <CustomSelect
               value={shift}
-              onChange={(e) => setShift(e.target.value)}
-            >
-              {shiftOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+              onChange={setShift}
+              options={shiftOptions}
+            />
           </div>
 
           {/* Error */}

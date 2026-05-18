@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { STATE_LABELS, STATE_COLORS, canBeStarted, isActiveState } from '@/modules/rondas/stateMachine/rondaStateMachine'
+import { getTrueTime } from '@/utils/timeSync'
 import './RondaCard.css'
 
-const TEN_MINUTES = 10 * 60 * 1000
+const FIVE_MINUTES = 5 * 60 * 1000
 
 export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
   const navigate = useNavigate()
@@ -21,9 +22,10 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
     return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })
   }
 
-  // Tolerance logic
-  const isMissed = canBeStarted(status) && scheduledStart && Date.now() > (scheduledStart + TEN_MINUTES)
-  const isLate = canBeStarted(status) && scheduledStart && Date.now() > scheduledStart && !isMissed
+  const now = getTrueTime()
+  const isTooEarly = canBeStarted(status) && scheduledStart && now < (scheduledStart - FIVE_MINUTES)
+  const isMissed = canBeStarted(status) && scheduledStart && now > (scheduledStart + FIVE_MINUTES)
+  const isLate = canBeStarted(status) && scheduledStart && now > scheduledStart && !isMissed
 
   const handleAction = () => {
     navigate(`/guard/ronda/${assignment.id}`, { state: { startedLate: isLate } })
@@ -44,10 +46,16 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
       </div>
 
       <div className="ronda-card__meta">
-        <span className="ronda-card__meta-item">
-          🕐 Inicio: {formatTime(scheduledStart)}
-        </span>
-        {isLate && (
+        {status === 'completed' && assignment.actualStart ? (
+          <span className="ronda-card__meta-item">
+            ✅ Realizado: {formatTime(assignment.actualStart)} - {formatTime(assignment.actualEnd)}
+          </span>
+        ) : (
+          <span className="ronda-card__meta-item">
+            🕐 Inicio: {formatTime(scheduledStart)}
+          </span>
+        )}
+        {isLate && status !== 'completed' && (
           <span className="ronda-card__priority ronda-card__priority--urgent">
             ⚠️ Fuera de horario
           </span>
@@ -74,7 +82,11 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
       )}
 
       {canBeStarted(status) && (
-        isMissed ? (
+        isTooEarly ? (
+          <button className="ronda-card__action ronda-card__action--locked" disabled>
+            ⏳ Disponible a las {formatTime(scheduledStart - FIVE_MINUTES)}
+          </button>
+        ) : isMissed ? (
           <button className="ronda-card__action ronda-card__action--locked" disabled title="Ronda vencida">
             🚫 Ronda Vencida (No Cumplida)
           </button>

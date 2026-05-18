@@ -16,8 +16,8 @@
 .preop-modal__overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 15, 35, 0.75);
+  backdrop-filter: blur(12px);
 }
 
 .preop-modal__content {

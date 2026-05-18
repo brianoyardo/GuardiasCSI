@@ -89,9 +89,10 @@ export async function startExecution(data) {
 
     await setDoc(execRef, execution)
 
-    // Update assignment with execution reference
+    // Update assignment with execution reference AND actual start time
     await updateAssignmentStatus(data.assignmentId, initialState, {
       executionId: execRef.id,
+      actualStart: serverTimestamp(),
     })
 
     // Activity log
@@ -255,6 +256,19 @@ export async function transitionExecution(executionId, currentState, nextState, 
  * @param {{ lat: number, lng: number }} position
  */
 export async function completeExecution(executionId, currentState, position) {
+  // Get assignmentId first to update actualEnd
+  const execRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, executionId)
+  const execSnap = await getDoc(execRef)
+  if (execSnap.exists()) {
+    const { assignmentId } = execSnap.data()
+    if (assignmentId) {
+      const assignRef = doc(db, COLLECTIONS.RONDA_ASSIGNMENTS, assignmentId)
+      await updateDoc(assignRef, {
+        actualEnd: serverTimestamp(),
+      })
+    }
+  }
+
   await transitionExecution(executionId, currentState, RONDA_STATES.COMPLETED, {
     position,
     completedAt: Date.now(),

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { subscribeToGuardAssignments } from '@/modules/rondas/services/rondaAssignmentService'
 import { RONDA_STATES, isActiveState, isTerminalState } from '@/modules/rondas/stateMachine/rondaStateMachine'
+import { syncTrueTime, getTrueTime } from '@/utils/timeSync'
 import RondaCard from '@/modules/rondas/components/RondaCard/RondaCard'
 import './MisRondasPage.css'
 
@@ -10,6 +11,10 @@ export default function MisRondasPage() {
   const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('ALL')
+
+  useEffect(() => {
+    syncTrueTime()
+  }, [])
 
   useEffect(() => {
     if (!user?.uid) return
@@ -23,8 +28,8 @@ export default function MisRondasPage() {
     return () => unsubscribe()
   }, [user?.uid])
 
-  // 24h window filter
-  const now = Date.now()
+  // 24h window filter using true time
+  const now = getTrueTime()
   const oneDay = 24 * 60 * 60 * 1000
   const windowedAssignments = assignments.filter(a => {
     const start = a.scheduledStart
