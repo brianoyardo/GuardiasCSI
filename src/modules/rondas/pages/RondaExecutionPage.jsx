@@ -64,7 +64,8 @@ export default function RondaExecutionPage() {
       try {
         const assign = await getAssignment(paramId)
         if (!assign) {
-          setFeedback({ type: 'error', message: 'Asignación no encontrada' })
+          console.error('[RondaExecution] ❌ ASIGNACIÓN NO ENCONTRADA. FUE BORRADA.')
+          setFeedback({ type: 'error', message: 'Esta asignación ya no existe en la base de datos.' })
           setLoading(false)
           return
         }
@@ -90,6 +91,9 @@ export default function RondaExecutionPage() {
           where('assignmentId', '==', paramId)
         )
         const execSnap = await getDocs(execQ)
+        console.log('[RondaExecution] 🔍 Buscando ejecuciones para Assignment ID:', paramId)
+        console.log('[RondaExecution] 📊 Documentos encontrados:', execSnap.docs.length)
+        execSnap.docs.forEach(d => console.log(' -> Exec ID:', d.id, 'Status:', d.data().status))
         const activeDocs = execSnap.docs.filter(d => activeStatuses.includes(d.data().status))
 
         if (activeDocs.length > 0) {

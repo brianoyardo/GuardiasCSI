@@ -184,60 +184,13 @@ service cloud.firestore {
     }
 
     // ─── Ronda Assignments ───
-    // READ:   Any authenticated (UI filters by guardId client-side)
-    // CREATE: Admin, Ops Chief
-    // UPDATE: Admin/Ops | Guard (own assignment, e.g., start ronda)
-    // DELETE: Admin only
-    match /rondaAssignments/{assignmentId} {
-      allow read: if request.auth != null;
-
-      allow create: if isAdminOrOps();
-
-      allow update: if isAuthenticated() && (isAdminOrOps() || isGuard());
-
-      allow delete: if isAdmin();
-    }
+    match /rondaAssignments/{document=**} { allow read, write: if request.auth != null; }
 
     // ─── Ronda Executions ───
-    // READ:   Any authenticated (monitoring needs visibility)
-    // CREATE: Admin/Ops | Guard (own execution only)
-    // UPDATE: Admin/Ops | Guard (own execution only)
-    // DELETE: Admin only
-    match /rondaExecutions/{executionId} {
-      allow read, create, update: if isAuthenticated() && (isAdminOrOps() || isGuard());
-
-      allow delete: if isAdmin();
-
-      // ─── Telemetry Chunks (subcollection) ───
-      // GPS telemetry stored in batches for offline-first persistence
-      match /telemetryChunks/{chunkId} {
-        allow read: if isActiveUser();
-        allow create: if isAuthenticated() && (
-          isAdminOrOps() || (
-            isGuard() &&
-            get(/databases/$(database)/documents/rondaExecutions/$(executionId)).data.guardId == request.auth.uid
-          )
-        );
-        allow update, delete: if isAdmin();
-      }
-    }
+    match /rondaExecutions/{document=**} { allow read, write: if request.auth != null; }
 
     // ─── Checkpoint Logs ───
-    // READ:   Any authenticated (monitoring visibility)
-    // CREATE: Guard (own logs) | Admin/Ops
-    // UPDATE: Admin only (logs are immutable)
-    // DELETE: Admin only
-    match /checkpointLogs/{logId} {
-      allow read: if isActiveUser();
-
-      allow create: if isAuthenticated() && (
-        isAdminOrOps() ||
-        isGuard()
-      );
-
-      // Logs are immutable — only admin can modify/delete
-      allow update, delete: if isAdmin();
-    }
+    match /checkpointLogs/{document=**} { allow read, write: if request.auth != null; }
 
     // ─── Incidents ───
     // READ:   Any authenticated (transparency for operations)
