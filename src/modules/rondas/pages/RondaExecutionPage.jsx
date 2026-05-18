@@ -5,7 +5,7 @@ import { db } from '@/config/firebase'
 import { COLLECTIONS } from '@/config/constants'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { useRondaExecution } from '@/modules/rondas/hooks/useRondaExecution'
-import { startExecution, getExecution, findActiveExecutionByAssignment } from '@/modules/rondas/services/rondaExecutionService'
+import { startExecution, getExecution } from '@/modules/rondas/services/rondaExecutionService'
 import { getAssignment } from '@/modules/rondas/services/rondaAssignmentService'
 import { getRoute, getCheckpointsByRoute } from '@/modules/spatial/services/spatialService'
 import { STATE_LABELS, STATE_COLORS, RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
@@ -79,93 +79,41 @@ export default function RondaExecutionPage() {
           setCheckpoints(cps.filter(Boolean).map(checkpointToFlat).filter(Boolean))
         }
 
-        // ─── FAST PATH Bypass: Active assignment with executionId → skip all queries ───
-        if (assign.status === RONDA_STATES.IN_PROGRESS || assign.status === RONDA_STATES.PAUSED) {
-          if (assign.executionId) {
-            console.log('[RondaExecution] ⚡ Bypass activo: Recuperando ejecución directamente')
-            const exec = await getExecution(assign.executionId)
-            if (exec) {
-              setExecutionId(exec.id)
-              setInitialCompletedIds(exec.completedCheckpoints || [])
-              setInitialTrail(exec.gpsTrack || [])
-              setPhase('execution')
-              setLoading(false)
-              return
-            }
-          }
-        }
+        // ─── BLINDAJE DE RESTAURACIÓN DE SESIÓN ───
+        let foundExecutionId = assign.executionId
+        let execData = null
+        const activeStatuses = [RONDA_STATES.IN_PROGRESS, RONDA_STATES.PAUSED, RONDA_STATES.VALIDATING_VOICE]
 
-        // ─── STATE RESTORATION: Direct Firestore query FIRST (anti-ghost) ───
+        // 1. Siempre buscar la verdad absoluta en Firestore (ignorar caché/estado de assign)
         const execQ = query(
           collection(db, COLLECTIONS.RONDA_EXECUTIONS),
           where('assignmentId', '==', paramId)
         )
         const execSnap = await getDocs(execQ)
-        const targetStatuses = [RONDA_STATES.IN_PROGRESS, RONDA_STATES.PAUSED, RONDA_STATES.VALIDATING_VOICE]
-        const activeDoc = execSnap.docs.find(d => targetStatuses.includes(d.data().status))
+        const activeDocs = execSnap.docs.filter(d => activeStatuses.includes(d.data().status))
 
-        if (activeDoc) {
-          const execData = { id: activeDoc.id, ...activeDoc.data() }
-          console.log('[RondaExecution] 🔒 Found live execution via direct query:', activeDoc.id, execData.status)
-          setExecutionId(activeDoc.id)
-
-          // Hydrate completed checkpoints from Firestore
-          const completed = execData.completedCheckpoints || []
-          if (completed.length > 0) {
-            setInitialCompletedIds(completed)
-            console.log('[RondaExecution] 📋 Restored', completed.length, 'completed checkpoints:', completed)
-          }
-
-          // Hydrate GPS trail from Firestore
-          const savedTrail = execData.gpsTrack || []
-          if (savedTrail.length > 0) {
-            setInitialTrail(savedTrail)
-            console.log('[RondaExecution] 🗺️ Restored', savedTrail.length, 'trail points')
-          }
-
-          if (execData.status === RONDA_STATES.VALIDATING_VOICE) {
-            setPhase('voice')
-          } else {
-            setPhase('execution')
-          }
-        } else if (assign.executionId) {
-          const exec = await getExecution(assign.executionId)
-          if (exec) {
-            setExecutionId(exec.id)
-
-            if (exec.status === RONDA_STATES.VALIDATING_VOICE) {
-              setPhase('voice')
-            } else if (
-              exec.status === RONDA_STATES.IN_PROGRESS ||
-              exec.status === RONDA_STATES.PAUSED
-            ) {
-              setPhase('execution')
-            } else if (
-              exec.status === RONDA_STATES.COMPLETED ||
-              exec.status === RONDA_STATES.LATE ||
-              exec.status === RONDA_STATES.FAILED ||
-              exec.status === RONDA_STATES.CANCELLED
-            ) {
-              setPhase('execution')
-            } else {
-              setPhase('preop')
-            }
-
-            console.log('[RondaExecution] State restored:', exec.status, '→ phase:', phase)
-          }
-        } else if (
-          assign.status === RONDA_STATES.IN_PROGRESS ||
-          assign.status === RONDA_STATES.PAUSED
-        ) {
-          // ─── RESCUE QUERY: assignment is active but executionId is missing (orphaned session) ───
-          console.log('[RondaExecution] ⚠️ Active assignment without executionId — running rescue query')
-          const rescued = await findActiveExecutionByAssignment(paramId)
-          if (rescued) {
-            setExecutionId(rescued.id)
-            setPhase('execution')
-            console.log('[RondaExecution] ✅ Rescued execution:', rescued.id)
-          }
+        if (activeDocs.length > 0) {
+          // Encontramos una ejecución viva
+          const activeDoc = activeDocs[0]
+          foundExecutionId = activeDoc.id
+          execData = activeDoc.data()
+          console.log('[RondaExecution] ⚡ Ejecución activa recuperada por Query:', foundExecutionId)
+        } else if (foundExecutionId) {
+          // Fallback: Si la query falló pero tenemos ID, buscar directo
+          const exec = await getExecution(foundExecutionId)
+          if (exec) execData = exec
         }
+
+        // 2. Si tenemos datos de ejecución activa, saltar al mapa INMEDIATAMENTE
+        if (execData && activeStatuses.includes(execData.status)) {
+          setExecutionId(foundExecutionId)
+          setInitialCompletedIds(execData.completedCheckpoints || [])
+          setInitialTrail(execData.gpsTrack || [])
+          setPhase(execData.status === RONDA_STATES.VALIDATING_VOICE ? 'voice' : 'execution')
+          setLoading(false)
+          return // NO MOSTRAR EL PRE-OP MODAL
+        }
+        // ─── FIN DEL BLINDAJE ───
       } catch (err) {
         console.error('Error loading execution data:', err)
         setFeedback({ type: 'error', message: 'Error cargando datos de la ronda' })
