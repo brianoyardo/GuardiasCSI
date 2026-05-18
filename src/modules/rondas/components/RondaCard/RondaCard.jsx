@@ -11,7 +11,7 @@ import './RondaCard.css'
  * @param {number} [props.completedCheckpoints]
  * @param {number} [props.totalCheckpoints]
  */
-export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0 }) {
+export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
   const navigate = useNavigate()
   const { status, scheduledStart, scheduledEnd, priority, rondaId, executionId } = assignment
 
@@ -76,9 +76,15 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
       )}
 
       {canBeStarted(status) && (
-        <button className="ronda-card__action ronda-card__action--start" onClick={handleAction}>
-          ▶ Iniciar Ronda
-        </button>
+        hasActiveRonda ? (
+          <button className="ronda-card__action ronda-card__action--locked" disabled title="Ya tienes una ronda en curso">
+            🔒 Ya tienes una ronda en curso
+          </button>
+        ) : (
+          <button className="ronda-card__action ronda-card__action--start" onClick={handleAction}>
+            ▶ Iniciar Ronda
+          </button>
+        )
       )}
 
       {(status === 'paused' || status === 'in_progress') && (

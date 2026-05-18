@@ -33,6 +33,9 @@ export default function MisRondasPage() {
   const pending = assignments.filter((a) => a.status === RONDA_STATES.PENDING)
   const completed = assignments.filter((a) => isTerminalState(a.status))
 
+  // Simultaneous ronda guard: block new starts if one is already active
+  const hasActiveRonda = active.length > 0
+
   const today = new Date().toLocaleDateString('es-BO', {
     weekday: 'long',
     year: 'numeric',
@@ -70,7 +73,7 @@ export default function MisRondasPage() {
         <div className="mis-rondas__section">
           <div className="mis-rondas__section-title">▶ Disponibles</div>
           {available.map((a) => (
-            <RondaCard key={a.id} assignment={a} />
+            <RondaCard key={a.id} assignment={a} hasActiveRonda={hasActiveRonda} />
           ))}
         </div>
       )}
