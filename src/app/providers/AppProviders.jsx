@@ -1,4 +1,4 @@
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 import { ThemeProvider } from 'styled-components'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/modules/auth/context/AuthContext'
@@ -21,7 +21,7 @@ const queryClient = new QueryClient({
  */
 export default function AppProviders({ children }) {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <GlobalStyles />
@@ -30,6 +30,6 @@ export default function AppProviders({ children }) {
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
-    </BrowserRouter>
+    </HashRouter>
   )
 }

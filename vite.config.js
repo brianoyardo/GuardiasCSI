@@ -17,5 +17,5 @@ export default defineConfig({
     port: 3000,
     open: true,
   },
-  base: "https://brianoyardo.github.io/GuardiasCSI"
+  base: '/GuardiasCSI/',
 })
