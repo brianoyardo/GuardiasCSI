@@ -193,15 +193,7 @@ service cloud.firestore {
 
       allow create: if isAdminOrOps();
 
-      allow update: if isAuthenticated() && (
-        isAdminOrOps() || (
-          isGuard() &&
-          resource.data.guardId == request.auth.uid &&
-          // Guard can only change status, not reassign
-          !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['guardId', 'rondaId', 'assignedBy'])
-        )
-      );
+      allow update: if isAuthenticated() && (isAdminOrOps() || isGuard());
 
       allow delete: if isAdmin();
     }
@@ -212,24 +204,7 @@ service cloud.firestore {
     // UPDATE: Admin/Ops | Guard (own execution only)
     // DELETE: Admin only
     match /rondaExecutions/{executionId} {
-      allow read: if request.auth != null;
-
-      allow create: if isAuthenticated() && (
-        isAdminOrOps() || (
-          isGuard() &&
-          request.resource.data.guardId == request.auth.uid
-        )
-      );
-
-      allow update: if isAuthenticated() && (
-        isAdminOrOps() || (
-          isGuard() &&
-          resource.data.guardId == request.auth.uid &&
-          // Guard cannot change guardId or rondaId
-          !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['guardId', 'rondaId', 'routeId'])
-        )
-      );
+      allow read, create, update: if isAuthenticated() && (isAdminOrOps() || isGuard());
 
       allow delete: if isAdmin();
 

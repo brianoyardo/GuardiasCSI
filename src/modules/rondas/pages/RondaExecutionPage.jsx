@@ -79,6 +79,22 @@ export default function RondaExecutionPage() {
           setCheckpoints(cps.filter(Boolean).map(checkpointToFlat).filter(Boolean))
         }
 
+        // ─── FAST PATH Bypass: Active assignment with executionId → skip all queries ───
+        if (assign.status === RONDA_STATES.IN_PROGRESS || assign.status === RONDA_STATES.PAUSED) {
+          if (assign.executionId) {
+            console.log('[RondaExecution] ⚡ Bypass activo: Recuperando ejecución directamente')
+            const exec = await getExecution(assign.executionId)
+            if (exec) {
+              setExecutionId(exec.id)
+              setInitialCompletedIds(exec.completedCheckpoints || [])
+              setInitialTrail(exec.gpsTrack || [])
+              setPhase('execution')
+              setLoading(false)
+              return
+            }
+          }
+        }
+
         // ─── STATE RESTORATION: Direct Firestore query FIRST (anti-ghost) ───
         const execQ = query(
           collection(db, COLLECTIONS.RONDA_EXECUTIONS),
