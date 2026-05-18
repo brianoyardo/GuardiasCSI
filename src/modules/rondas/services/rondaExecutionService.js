@@ -41,6 +41,7 @@ const LOG_PREFIX = '[ExecutionService]'
  * @param {string} [data.shift] - Tipo de turno (SHIFT_TYPES)
  * @param {string} [data.reportState] - Estado del reporte (REPORT_STATES)
  * @param {string} [data.voicePassphrase] - Frase biométrica esperada
+ * @param {boolean} [data.startedLate] - Flag de auditoría: inició fuera de horario
  * @returns {Promise<string>} Execution ID
  */
 export async function startExecution(data) {
@@ -82,6 +83,8 @@ export async function startExecution(data) {
       voiceMatchScore: null,
       audioEvidenceUrl: null,
       voicePassphrase: data.voicePassphrase || null,
+      // ─── Auditoría de Tolerancia ───
+      startedLate: data.startedLate || false,
     }
 
     await setDoc(execRef, execution)

@@ -196,3 +196,14 @@
 .ronda-exec__gps-dot--ok { background: var(--color-accent-500); box-shadow: 0 0 4px var(--color-accent-500); }
 .ronda-exec__gps-dot--warn { background: var(--color-warning-400); }
 .ronda-exec__gps-dot--bad { background: var(--color-danger-400); }
+
+/* ─── Mobile: disable animations to save battery ─── */
+@media (max-width: 768px) {
+  .ronda-exec__state-dot,
+  .ronda-exec__timer--overdue,
+  .user-pulse,
+  .guard-marker {
+    animation: none !important;
+    transition: none !important;
+  }
+}

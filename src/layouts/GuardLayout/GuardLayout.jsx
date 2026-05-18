@@ -1,16 +1,12 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { logout } from '@/modules/auth/services/authService'
+import { createPanicIncident } from '@/modules/incidents/services/incidentService'
 import { t } from '@/config/labels'
 import './GuardLayout.css'
 
-/**
- * GuardLayout — Mobile-first layout for field guards
- * Features: top header + content + bottom tab navigation
- * NO sidebar, NO admin panels
- */
 export default function GuardLayout() {
-  const { profile } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -19,6 +15,37 @@ export default function GuardLayout() {
       navigate('/login', { replace: true })
     } catch (err) {
       console.error('Logout error:', err)
+    }
+  }
+
+  const triggerPanic = async () => {
+    if (!confirm('🚨 ¿Confirmar alerta de pánico? Se enviará tu ubicación exacta.')) return
+
+    if (!navigator.geolocation) {
+      alert('GPS no disponible en este dispositivo.')
+      return
+    }
+
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        })
+      })
+
+      const { latitude, longitude } = pos.coords
+
+      await createPanicIncident({
+        guardId: user.uid,
+        location: { lat: latitude, lng: longitude },
+      })
+
+      alert('🚨 Alerta enviada. Mantén la calma. Ayuda en camino.')
+    } catch (err) {
+      console.error('Panic button error:', err)
+      alert('Error enviando alerta. Verifica tu conexión o GPS.')
     }
   }
 
@@ -65,6 +92,11 @@ export default function GuardLayout() {
           <span className="guard-layout__nav-label">Reportar</span>
         </NavLink>
       </nav>
+
+      {/* Panic FAB */}
+      <button className="guard-layout__panic-fab" onClick={triggerPanic} aria-label="Botón de pánico">
+        🚨 PÁNICO
+      </button>
     </div>
   )
 }

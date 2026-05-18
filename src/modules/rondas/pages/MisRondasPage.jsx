@@ -5,15 +5,11 @@ import { RONDA_STATES, isActiveState, isTerminalState } from '@/modules/rondas/s
 import RondaCard from '@/modules/rondas/components/RondaCard/RondaCard'
 import './MisRondasPage.css'
 
-/**
- * MisRondasPage — Guard's patrol dashboard
- * Mobile-first, shows assigned rondas grouped by status
- * Direct access: no complex navigation, no admin panels
- */
 export default function MisRondasPage() {
   const { user } = useAuth()
   const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('ALL')
 
   useEffect(() => {
     if (!user?.uid) return
@@ -27,13 +23,28 @@ export default function MisRondasPage() {
     return () => unsubscribe()
   }, [user?.uid])
 
-  // Group assignments by category
-  const active = assignments.filter((a) => isActiveState(a.status))
-  const available = assignments.filter((a) => a.status === RONDA_STATES.AVAILABLE)
-  const pending = assignments.filter((a) => a.status === RONDA_STATES.PENDING)
-  const completed = assignments.filter((a) => isTerminalState(a.status))
+  // 24h window filter
+  const now = Date.now()
+  const oneDay = 24 * 60 * 60 * 1000
+  const windowedAssignments = assignments.filter(a => {
+    const start = a.scheduledStart
+    if (!start) return false
+    return start >= (now - oneDay) && start <= (now + oneDay)
+  })
 
-  // Simultaneous ronda guard: block new starts if one is already active
+  // Apply status filter
+  const filtered = windowedAssignments.filter(a => {
+    if (filter === 'ALL') return true
+    if (filter === 'PENDING') return a.status === RONDA_STATES.PENDING || a.status === RONDA_STATES.AVAILABLE
+    if (filter === 'COMPLETED') return isTerminalState(a.status)
+    return true
+  })
+
+  // Group for display
+  const active = filtered.filter((a) => isActiveState(a.status))
+  const pending = filtered.filter((a) => a.status === RONDA_STATES.PENDING || a.status === RONDA_STATES.AVAILABLE)
+  const completed = filtered.filter((a) => isTerminalState(a.status))
+
   const hasActiveRonda = active.length > 0
 
   const today = new Date().toLocaleDateString('es-BO', {
@@ -58,7 +69,29 @@ export default function MisRondasPage() {
         <span className="mis-rondas__date">{today}</span>
       </div>
 
-      {/* Active rondas (top priority) */}
+      {/* Filter tabs */}
+      <div className="mis-rondas__filters">
+        <button
+          className={`mis-rondas__filter-btn ${filter === 'ALL' ? 'mis-rondas__filter-btn--active' : ''}`}
+          onClick={() => setFilter('ALL')}
+        >
+          Todas
+        </button>
+        <button
+          className={`mis-rondas__filter-btn ${filter === 'PENDING' ? 'mis-rondas__filter-btn--active' : ''}`}
+          onClick={() => setFilter('PENDING')}
+        >
+          Pendientes
+        </button>
+        <button
+          className={`mis-rondas__filter-btn ${filter === 'COMPLETED' ? 'mis-rondas__filter-btn--active' : ''}`}
+          onClick={() => setFilter('COMPLETED')}
+        >
+          Completadas
+        </button>
+      </div>
+
+      {/* Active rondas */}
       {active.length > 0 && (
         <div className="mis-rondas__section">
           <div className="mis-rondas__section-title">🔴 En Progreso</div>
@@ -68,27 +101,17 @@ export default function MisRondasPage() {
         </div>
       )}
 
-      {/* Available to start */}
-      {available.length > 0 && (
+      {/* Available/Pending */}
+      {pending.length > 0 && (
         <div className="mis-rondas__section">
           <div className="mis-rondas__section-title">▶ Disponibles</div>
-          {available.map((a) => (
+          {pending.map((a) => (
             <RondaCard key={a.id} assignment={a} hasActiveRonda={hasActiveRonda} />
           ))}
         </div>
       )}
 
-      {/* Pending (not yet available) */}
-      {pending.length > 0 && (
-        <div className="mis-rondas__section">
-          <div className="mis-rondas__section-title">⏳ Programadas</div>
-          {pending.map((a) => (
-            <RondaCard key={a.id} assignment={a} />
-          ))}
-        </div>
-      )}
-
-      {/* Completed today */}
+      {/* Completed */}
       {completed.length > 0 && (
         <div className="mis-rondas__section">
           <div className="mis-rondas__section-title">✓ Completadas</div>
@@ -99,10 +122,10 @@ export default function MisRondasPage() {
       )}
 
       {/* Empty state */}
-      {assignments.length === 0 && (
+      {filtered.length === 0 && (
         <div className="mis-rondas__empty">
           <div className="mis-rondas__empty-icon">📋</div>
-          <p>No tienes rondas asignadas hoy</p>
+          <p>No hay rondas en este filtro</p>
         </div>
       )}
     </div>

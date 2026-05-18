@@ -58,6 +58,47 @@ export async function createIncident(data) {
 }
 
 /**
+ * Create a panic incident directly (no form, no evidence upload)
+ * Used by the global panic button in GuardLayout
+ * 
+ * @param {object} data
+ * @param {string} data.guardId - UID del guardia
+ * @param {{ lat: number, lng: number }} data.location - GPS coords
+ * @param {string} [data.assignmentId] - Ronda activa (si aplica)
+ * @param {string} [data.rondaId] - ID de la ronda
+ * @returns {Promise<string>} Incident ID
+ */
+export async function createPanicIncident(data) {
+  try {
+    const ref = doc(collection(db, COLLECTIONS.INCIDENTS))
+    await setDoc(ref, {
+      title: '🚨 ¡BOTÓN DE PÁNICO ACTIVADO!',
+      description: 'El guardia requiere asistencia inmediata. Activación de protocolo de emergencia.',
+      type: 'emergency',
+      severity: 'critical',
+      status: 'open',
+      reportedBy: data.guardId,
+      assignedTo: null,
+      location: data.location || null,
+      evidenceIds: [],
+      resolution: null,
+      resolvedBy: null,
+      resolvedAt: null,
+      tags: ['panic', 'emergency', 'auto-reported'],
+      rondaId: data.rondaId || null,
+      executionId: data.executionId || null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    console.log(`${LOG_PREFIX} 🚨 PANIC INCIDENT created: ${ref.id}`)
+    return ref.id
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error creating panic incident:`, error)
+    throw error
+  }
+}
+
+/**
  * Update incident status
  * @param {string} incidentId
  * @param {string} status - open | investigating | escalated | resolved | closed

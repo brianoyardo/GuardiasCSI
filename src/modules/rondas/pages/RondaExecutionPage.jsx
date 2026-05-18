@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { COLLECTIONS } from '@/config/constants'
@@ -44,10 +44,13 @@ function checkpointToFlat(cp) {
 
 export default function RondaExecutionPage() {
   const { executionId: paramId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const [feedback, setFeedback] = useState(null)
   const triggerFlyTo = useMapControlStore((s) => s.triggerFlyTo)
   const hasCentered = useRef(false)
+  const startedLate = location.state?.startedLate || false
 
   // ─── Real Data Loading ───
   const [loading, setLoading] = useState(true)
@@ -175,6 +178,7 @@ export default function RondaExecutionPage() {
         vehicleId: data.vehicleId,
         shift: data.shift,
         voicePassphrase: VOICE_PASSPHRASES[0],
+        startedLate,
       })
 
       setExecutionId(execId)
@@ -220,6 +224,17 @@ export default function RondaExecutionPage() {
       console.log('[RondaExecution] GPS tracking activated after restore')
     }
   }, [phase, executionId])
+
+  // ─── Redirect to Mis Rondas when completed ───
+  useEffect(() => {
+    if (exec.status === RONDA_STATES.COMPLETED) {
+      console.log('[RondaExecution] ✅ Ronda completed, redirecting to Mis Rondas')
+      const timer = setTimeout(() => {
+        navigate('/guard/mis-rondas', { replace: true })
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [exec.status, navigate])
 
   // ─── Checkpoint Handler ───
   const handleCheckpoint = async () => {

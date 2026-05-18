@@ -2,18 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { STATE_LABELS, STATE_COLORS, canBeStarted, isActiveState } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import './RondaCard.css'
 
-/**
- * RondaCard — Mobile-first ronda assignment card
- * Shows: status, schedule, progress, action button
- * 
- * @param {object} props
- * @param {object} props.assignment
- * @param {number} [props.completedCheckpoints]
- * @param {number} [props.totalCheckpoints]
- */
+const TEN_MINUTES = 10 * 60 * 1000
+
 export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
   const navigate = useNavigate()
-  const { status, scheduledStart, scheduledEnd, priority, rondaId, executionId } = assignment
+  const { status, scheduledStart, priority, rondaId } = assignment
 
   const stateLabel = STATE_LABELS[status] || status
   const stateColor = STATE_COLORS[status] || '#64748b'
@@ -28,8 +21,12 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
     return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })
   }
 
+  // Tolerance logic
+  const isMissed = canBeStarted(status) && scheduledStart && Date.now() > (scheduledStart + TEN_MINUTES)
+  const isLate = canBeStarted(status) && scheduledStart && Date.now() > scheduledStart && !isMissed
+
   const handleAction = () => {
-    navigate(`/guard/ronda/${assignment.id}`)
+    navigate(`/guard/ronda/${assignment.id}`, { state: { startedLate: isLate } })
   }
 
   return (
@@ -48,8 +45,13 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
 
       <div className="ronda-card__meta">
         <span className="ronda-card__meta-item">
-          🕐 {formatTime(scheduledStart)} - {formatTime(scheduledEnd)}
+          🕐 Inicio: {formatTime(scheduledStart)}
         </span>
+        {isLate && (
+          <span className="ronda-card__priority ronda-card__priority--urgent">
+            ⚠️ Fuera de horario
+          </span>
+        )}
         {totalCheckpoints > 0 && (
           <span className="ronda-card__meta-item">
             📍 {completedCheckpoints}/{totalCheckpoints} checkpoints
@@ -72,7 +74,11 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
       )}
 
       {canBeStarted(status) && (
-        hasActiveRonda ? (
+        isMissed ? (
+          <button className="ronda-card__action ronda-card__action--locked" disabled title="Ronda vencida">
+            🚫 Ronda Vencida (No Cumplida)
+          </button>
+        ) : hasActiveRonda ? (
           <button className="ronda-card__action ronda-card__action--locked" disabled title="Ya tienes una ronda en curso">
             🔒 Ya tienes una ronda en curso
           </button>
