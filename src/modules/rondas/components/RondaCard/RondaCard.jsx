@@ -29,11 +29,7 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
   }
 
   const handleAction = () => {
-    if (canBeStarted(status)) {
-      navigate(`/guard/ronda/${assignment.id}`)
-    } else if (isActiveState(status) && executionId) {
-      navigate(`/guard/ronda/${executionId}`)
-    }
+    navigate(`/guard/ronda/${assignment.id}`)
   }
 
   return (
