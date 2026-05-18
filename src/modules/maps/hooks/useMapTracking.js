@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { haversineDistance, calculateBearing } from '@/modules/maps/utils/geoUtils'
 
 /**
@@ -28,8 +28,9 @@ const DEFAULT_OPTIONS = {
  */
 export function useMapTracking(options = {}) {
   const config = { ...DEFAULT_OPTIONS, ...options }
+  const initialTrail = options.initialTrail || []
 
-  const [trail, setTrail] = useState([])
+  const [trail, setTrail] = useState(initialTrail)
   const [metrics, setMetrics] = useState({
     totalDistance: 0,
     currentSpeed: 0,
@@ -43,6 +44,22 @@ export function useMapTracking(options = {}) {
   const startTimeRef = useRef(null)
   const lastPointRef = useRef(null)
   const totalDistRef = useRef(0)
+
+  useEffect(() => {
+    if (initialTrail && initialTrail.length > 0) {
+      setTrail(initialTrail)
+      const lastPt = initialTrail[initialTrail.length - 1]
+      lastPointRef.current = lastPt
+      totalDistRef.current = 0
+      for (let i = 1; i < initialTrail.length; i++) {
+        totalDistRef.current += haversineDistance(
+          initialTrail[i - 1].lat, initialTrail[i - 1].lng,
+          initialTrail[i].lat, initialTrail[i].lng
+        )
+      }
+      console.log(`${LOG_PREFIX} 🗺️ Trail hydrated: ${initialTrail.length} points, ${totalDistRef.current.toFixed(0)}m`)
+    }
+  }, [initialTrail])
 
   /**
    * Add a new position to the trail

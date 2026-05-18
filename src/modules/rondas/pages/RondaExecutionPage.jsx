@@ -55,6 +55,7 @@ export default function RondaExecutionPage() {
   const [route, setRoute] = useState(null)
   const [checkpoints, setCheckpoints] = useState([])
   const [initialCompletedIds, setInitialCompletedIds] = useState([])
+  const [initialTrail, setInitialTrail] = useState([])
 
   useEffect(() => {
     if (!paramId) return
@@ -97,6 +98,13 @@ export default function RondaExecutionPage() {
           if (completed.length > 0) {
             setInitialCompletedIds(completed)
             console.log('[RondaExecution] 📋 Restored', completed.length, 'completed checkpoints:', completed)
+          }
+
+          // Hydrate GPS trail from Firestore
+          const savedTrail = execData.gpsTrack || []
+          if (savedTrail.length > 0) {
+            setInitialTrail(savedTrail)
+            console.log('[RondaExecution] 🗺️ Restored', savedTrail.length, 'trail points')
           }
 
           if (execData.status === RONDA_STATES.VALIDATING_VOICE) {
@@ -169,6 +177,7 @@ export default function RondaExecutionPage() {
     scheduledEnd: assignment?.scheduledEnd || (Date.now() + 2 * 60 * 60 * 1000),
     executionId: phase === 'execution' ? executionId : null,
     initialCompletedIds,
+    initialTrail,
   })
 
   // ─── Pre-Op Modal Confirm ───

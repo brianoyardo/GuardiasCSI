@@ -40,6 +40,7 @@ export function useRondaExecution(options) {
     executionId: preExistingExecutionId = null,
     geofencePolygon = null,
     initialCompletedIds = [],
+    initialTrail = [],
   } = options
 
   const [executionId, setExecutionId] = useState(preExistingExecutionId)
@@ -54,7 +55,7 @@ export function useRondaExecution(options) {
 
   // ─── Composed hooks ───
   const geo = useGeolocation({ enableWatch: false })
-  const tracking = useMapTracking({ maxTrailLength: 1000 })
+  const tracking = useMapTracking({ maxTrailLength: 1000, initialTrail })
   const timer = useRondaTimer({
     scheduledEnd,
     isRunning: isActiveState(status),

@@ -152,20 +152,13 @@ export function useIncidentReporting() {
         }
       }
 
-      // 2. Upload images to Appwrite (if any) — compress first, fallback to original
+      // 2. Upload images to Appwrite (if any) — send OS file directly (no Canvas compression)
       const evidenceIds = []
       if (data.images && data.images.length > 0) {
         for (const file of data.images) {
           try {
-            let uploadFile = file
-            if (file.type.startsWith('image/')) {
-              try {
-                uploadFile = await compressImage(file)
-              } catch (compressErr) {
-                console.warn(`${LOG_PREFIX} ⚠️ Compression failed for ${file.name}, using original:`, compressErr.message)
-                uploadFile = file
-              }
-            }
+            const uploadFile = file
+            alert('Enviando archivo: ' + uploadFile.name + ' | Tamaño: ' + (uploadFile.size / 1024).toFixed(2) + 'KB | Tipo: ' + uploadFile.type)
             const result = await uploadEvidence(uploadFile)
             if (result && result.fileId) evidenceIds.push(result.fileId)
           } catch (uploadErr) {
