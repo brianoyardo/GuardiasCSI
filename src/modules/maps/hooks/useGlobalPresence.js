@@ -32,7 +32,7 @@ export function useGlobalPresence({ guardId, guardName, guardCode, executionStat
         { merge: true }
       )
     } catch (err) {
-      console.error('[useGlobalPresence] Error updating presence:', err)
+      // Silenced during dev until Firestore rules are deployed
     }
   }, [guardName, guardCode])
 

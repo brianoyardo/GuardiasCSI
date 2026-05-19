@@ -18,7 +18,7 @@ import RondasAdminPage from '@/modules/rondas/pages/RondasAdminPage'
 
 /* Monitoring Pages */
 import AdminDashboardPage from '@/modules/monitoring/pages/AdminDashboardPage'
-import CommandCenterPage from '@/modules/monitoring/pages/CommandCenterPage'
+import LiveMonitoringPage from '@/modules/monitoring/pages/LiveMonitoringPage'
 
 /* Operational Pages */
 import { IncidentManagementPage, IncidentReportPage } from '@/modules/incidents'
@@ -81,7 +81,7 @@ export default function AppRouter() {
       }>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
-        <Route path="monitoring" element={<CommandCenterPage />} />
+        <Route path="monitoring" element={<LiveMonitoringPage />} />
         <Route path="rondas" element={<RondasAdminPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="spatial" element={<SpatialManagementPage />} />
@@ -102,7 +102,7 @@ export default function AppRouter() {
         </ProtectedRoute>
       }>
         <Route index element={<Navigate to="monitoring" replace />} />
-        <Route path="monitoring" element={<CommandCenterPage />} />
+        <Route path="monitoring" element={<LiveMonitoringPage />} />
         <Route path="rondas" element={<RondasAdminPage />} />
         <Route path="guards" element={<PlaceholderPage title="Guardias" />} />
         <Route path="incidents" element={<IncidentManagementPage />} />
@@ -117,7 +117,7 @@ export default function AppRouter() {
         </ProtectedRoute>
       }>
         <Route index element={<Navigate to="monitoring" replace />} />
-        <Route path="monitoring" element={<CommandCenterPage />} />
+        <Route path="monitoring" element={<LiveMonitoringPage />} />
         <Route path="rondas" element={<RondasAdminPage />} />
         <Route path="incidents" element={<IncidentManagementPage />} />
       </Route>

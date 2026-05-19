@@ -12,10 +12,10 @@ const EXECUTIONS_COLLECTION = 'rondaExecutions'
 const ACTIVE_THRESHOLD_MS = 2 * 60 * 1000
 
 const STATUS_CONFIG = {
-  online: { label: 'En línea', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
-  validating_voice: { label: 'Validando voz', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)' },
-  in_progress: { label: 'En ronda', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)' },
-  offline: { label: 'Desconectado', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)' },
+  online: { label: 'En línea', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', icon: '🔵' },
+  validating_voice: { label: 'Validando voz', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)', icon: '🟣' },
+  in_progress: { label: 'En ronda', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', icon: '🟢' },
+  offline: { label: 'Desconectado', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)', icon: '⚫' },
 }
 
 const ALLOWED_LAYERS = ['guards', 'checkpoints', 'routes', 'geofences', 'incidents']
@@ -41,7 +41,7 @@ export default function LiveMonitoringPage() {
   const [guards, setGuards] = useState([])
   const [executions, setExecutions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [showStats, setShowStats] = useState(false)
   const triggerFlyTo = useMapControlStore((s) => s.triggerFlyTo)
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function LiveMonitoringPage() {
 
   return (
     <div className="live-monitoring" id="live-monitoring-page">
-      {/* Map */}
+      {/* Map — Full Screen */}
       <div className="live-monitoring__map">
         <BaseMap
           darkMode
@@ -120,7 +120,7 @@ export default function LiveMonitoringPage() {
 
             return (
               <div key={guard.id}>
-                <Marker
+                <GuardMarker
                   position={[guard.location.lat, guard.location.lng]}
                   icon={createGuardIcon(guard.status)}
                   guardName={guard.guardName || guard.guardCode || guard.id.slice(0, 6)}
@@ -135,52 +135,56 @@ export default function LiveMonitoringPage() {
         </BaseMap>
       </div>
 
-      {/* Sidebar Toggle */}
+      {/* Stats Toggle Button */}
       <button
-        className={`live-monitoring__sidebar-toggle ${sidebarOpen ? 'live-monitoring__sidebar-toggle--open' : ''}`}
-        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="live-monitoring__stats-toggle"
+        onClick={() => setShowStats(!showStats)}
       >
-        {sidebarOpen ? '◀' : '▶'}
+        📊 {guards.length}
       </button>
 
-      {/* Sidebar */}
-      {sidebarOpen && (
-        <div className="live-monitoring__sidebar">
-          <div className="live-monitoring__sidebar-header">
-            <h2 className="live-monitoring__sidebar-title">Centro de Monitoreo</h2>
-            <div className="live-monitoring__stats">
-              <span className="live-monitoring__stat live-monitoring__stat--progress">
-                <span className="live-monitoring__stat-dot" style={{ background: STATUS_CONFIG.in_progress.color }} />
-                {totalActive}
-              </span>
-              <span className="live-monitoring__stat live-monitoring__stat--voice">
-                <span className="live-monitoring__stat-dot" style={{ background: STATUS_CONFIG.validating_voice.color }} />
-                {totalValidating}
-              </span>
-              <span className="live-monitoring__stat live-monitoring__stat--online">
-                <span className="live-monitoring__stat-dot" style={{ background: STATUS_CONFIG.online.color }} />
-                {totalOnline}
-              </span>
+      {/* Stats Modal */}
+      {showStats && (
+        <div className="live-monitoring__stats-modal" onClick={() => setShowStats(false)}>
+          <div className="live-monitoring__stats-content" onClick={e => e.stopPropagation()}>
+            <h3>Estado Global</h3>
+            <div className="live-monitoring__stats-grid">
+              <div className="live-monitoring__stat-card" style={{ borderColor: STATUS_CONFIG.in_progress.color }}>
+                <span className="live-monitoring__stat-icon">{STATUS_CONFIG.in_progress.icon}</span>
+                <span className="live-monitoring__stat-value">{totalActive}</span>
+                <span className="live-monitoring__stat-label">En Ronda</span>
+              </div>
+              <div className="live-monitoring__stat-card" style={{ borderColor: STATUS_CONFIG.validating_voice.color }}>
+                <span className="live-monitoring__stat-icon">{STATUS_CONFIG.validating_voice.icon}</span>
+                <span className="live-monitoring__stat-value">{totalValidating}</span>
+                <span className="live-monitoring__stat-label">Validando</span>
+              </div>
+              <div className="live-monitoring__stat-card" style={{ borderColor: STATUS_CONFIG.online.color }}>
+                <span className="live-monitoring__stat-icon">{STATUS_CONFIG.online.icon}</span>
+                <span className="live-monitoring__stat-value">{totalOnline}</span>
+                <span className="live-monitoring__stat-label">En Línea</span>
+              </div>
             </div>
-          </div>
-
-          <div className="live-monitoring__sidebar-content">
-            {loading ? (
-              <div className="live-monitoring__loading">Conectando al stream...</div>
-            ) : guards.length === 0 ? (
-              <div className="live-monitoring__empty">No hay guardias activos</div>
-            ) : (
-              guards.map(guard => (
-                <GuardCard
-                  key={guard.id}
-                  guard={guard}
-                  onClick={() => guard.location && handleFlyTo(guard.location.lat, guard.location.lng)}
-                />
-              ))
-            )}
           </div>
         </div>
       )}
+
+      {/* Bottom Floating Panel */}
+      <div className="live-monitoring__bottom-panel">
+        {loading ? (
+          <div className="live-monitoring__bottom-loading">Conectando al stream...</div>
+        ) : guards.length === 0 ? (
+          <div className="live-monitoring__bottom-empty">No hay guardias activos</div>
+        ) : (
+          guards.map(guard => (
+            <GuardCard
+              key={guard.id}
+              guard={guard}
+              onClick={() => guard.location && handleFlyTo(guard.location.lat, guard.location.lng)}
+            />
+          ))
+        )}
+      </div>
     </div>
   )
 }
@@ -211,7 +215,7 @@ function GuardCard({ guard, onClick }) {
   )
 }
 
-function Marker({ position, icon, guardName, onClick }) {
+function GuardMarker({ position, icon, guardName, onClick }) {
   return (
     <LeafletMarker position={position} icon={icon} eventHandlers={{ click: onClick }}>
       <Popup>
