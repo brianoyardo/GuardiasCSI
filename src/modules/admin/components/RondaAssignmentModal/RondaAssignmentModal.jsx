@@ -15,6 +15,8 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
   const [error, setError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurringEndDate, setRecurringEndDate] = useState('')
   const modalRef = useRef(null)
 
   const guardOptions = guards.map(g => ({
@@ -57,6 +59,19 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
     if (selectedTime < (now - oneMinute)) {
       return 'No puedes programar una ronda en el pasado'
     }
+    if (isRecurring && !recurringEndDate) {
+      return 'Selecciona una fecha de fin para la repetición'
+    }
+    if (isRecurring && recurringEndDate) {
+      const endDate = new Date(recurringEndDate).setHours(
+        new Date(value).getHours(),
+        new Date(value).getMinutes(),
+        0, 0
+      )
+      if (endDate <= selectedTime) {
+        return 'La fecha de fin debe ser posterior a la fecha de inicio'
+      }
+    }
     return null
   }
 
@@ -78,19 +93,51 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
     setIsSubmitting(true)
 
     try {
-      const startTs = new Date(form.scheduledStart).getTime()
-      const endTs = startTs + (90 * 60 * 1000)
+      if (isRecurring) {
+        const startTs = new Date(form.scheduledStart).getTime()
+        const endTs = new Date(recurringEndDate).setHours(
+          new Date(form.scheduledStart).getHours(),
+          new Date(form.scheduledStart).getMinutes(),
+          0, 0
+        )
+        const oneDay = 24 * 60 * 60 * 1000
+        const assignmentsToCreate = []
 
-      await onSubmit({
-        guardId: form.guardId,
-        routeId: form.routeId,
-        rondaId: form.routeId,
-        scheduledStart: startTs,
-        scheduledEnd: endTs,
-        priority: form.priority,
-        notes: form.notes,
-        strictTimeSync: form.strictTimeSync,
-      })
+        for (let currentTs = startTs; currentTs <= endTs; currentTs += oneDay) {
+          assignmentsToCreate.push({
+            guardId: form.guardId,
+            routeId: form.routeId,
+            rondaId: form.routeId,
+            scheduledStart: currentTs,
+            scheduledEnd: currentTs + (90 * 60 * 1000),
+            priority: form.priority,
+            notes: form.notes,
+            strictTimeSync: form.strictTimeSync,
+          })
+        }
+
+        if (assignmentsToCreate.length > 30) {
+          setError('No puedes programar más de 30 días a la vez.')
+          setIsSubmitting(false)
+          return
+        }
+
+        await onSubmit(assignmentsToCreate, true)
+      } else {
+        const startTs = new Date(form.scheduledStart).getTime()
+        const endTs = startTs + (90 * 60 * 1000)
+
+        await onSubmit({
+          guardId: form.guardId,
+          routeId: form.routeId,
+          rondaId: form.routeId,
+          scheduledStart: startTs,
+          scheduledEnd: endTs,
+          priority: form.priority,
+          notes: form.notes,
+          strictTimeSync: form.strictTimeSync,
+        }, false)
+      }
     } catch (err) {
       setError('Error al crear asignación')
     } finally {
@@ -196,6 +243,56 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
               </span>
             </label>
           </div>
+
+          {/* Separator: Advanced Options */}
+          <div className="assignment-modal__separator">
+            <span>Opciones Avanzadas</span>
+          </div>
+
+          {/* Recurring Toggle */}
+          <div className="assignment-modal__field assignment-modal__field--toggle">
+            <label className="assignment-modal__toggle">
+              <input
+                type="checkbox"
+                checked={isRecurring}
+                onChange={(e) => {
+                  setIsRecurring(e.target.checked)
+                  setIsDirty(true)
+                  if (!e.target.checked) setRecurringEndDate('')
+                }}
+              />
+              <span className="assignment-modal__toggle-slider" />
+              <span className="assignment-modal__toggle-label">
+                🔁 Repetir Ronda Diariamente
+              </span>
+            </label>
+          </div>
+
+          {/* Recurring End Date */}
+          {isRecurring && (
+            <div className="assignment-modal__field">
+              <label className="assignment-modal__label">Fecha de Fin de Repetición *</label>
+              <div className="assignment-modal__datetime-wrapper">
+                <FaCalendarAlt className="assignment-modal__datetime-icon" />
+                <input
+                  type="date"
+                  className="assignment-modal__datetime-input"
+                  value={recurringEndDate}
+                  onChange={(e) => {
+                    setRecurringEndDate(e.target.value)
+                    setIsDirty(true)
+                    const err = validateDate(form.scheduledStart)
+                    setError(err)
+                  }}
+                  min={form.scheduledStart ? form.scheduledStart.split('T')[0] : ''}
+                  required={isRecurring}
+                />
+              </div>
+              <span className="assignment-modal__hint">
+                Se creará una ronda diaria a la misma hora hasta la fecha seleccionada.
+              </span>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="assignment-modal__actions">

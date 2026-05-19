@@ -194,6 +194,15 @@
   color: var(--color-dark-text-muted);
 }
 
+/* Missed row */
+.rondas-admin__row--missed {
+  opacity: 0.6;
+}
+
+.rondas-admin__row--missed td {
+  background: rgba(239, 68, 68, 0.03);
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .rondas-admin {

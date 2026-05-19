@@ -8,6 +8,8 @@ import { ROLES } from '@/config/roles'
 import RondaAssignmentModal from '@/modules/admin/components/RondaAssignmentModal/RondaAssignmentModal'
 import './RondasAdminPage.css'
 
+const MISSED_TOLERANCE_MS = 10 * 60 * 1000
+
 export default function RondasAdminPage() {
   const { user } = useAuth()
   const [guards, setGuards] = useState([])
@@ -43,11 +45,17 @@ export default function RondasAdminPage() {
     return () => unsubscribe()
   }, [])
 
-  const handleCreateAssignment = async (data) => {
-    await createAssignment({
-      ...data,
-      assignedBy: user.uid,
-    })
+  const handleCreateAssignment = async (data, isBatch = false) => {
+    if (isBatch && Array.isArray(data)) {
+      await Promise.all(
+        data.map(a => createAssignment({ ...a, assignedBy: user.uid }))
+      )
+    } else {
+      await createAssignment({
+        ...data,
+        assignedBy: user.uid,
+      })
+    }
     setShowModal(false)
   }
 
@@ -72,11 +80,20 @@ export default function RondasAdminPage() {
     return r ? r.name : routeId?.slice(-8) || '—'
   }
 
+  const isVisuallyMissed = (a) => {
+    if (!a.scheduledStart) return false
+    const pendingStates = ['available', 'pending']
+    if (!pendingStates.includes(a.status)) return false
+    const startTs = typeof a.scheduledStart === 'number' ? a.scheduledStart : a.scheduledStart.toMillis?.() || 0
+    return Date.now() > (startTs + MISSED_TOLERANCE_MS)
+  }
+
   const filteredAssignments = assignments.filter(a => {
     if (filter === 'ALL') return true
     if (filter === 'ACTIVE') return ['in_progress', 'paused', 'validating_voice'].includes(a.status)
-    if (filter === 'PENDING') return ['available', 'pending'].includes(a.status)
-    if (filter === 'COMPLETED') return ['completed', 'late', 'failed', 'cancelled'].includes(a.status)
+    if (filter === 'PENDING') return ['available', 'pending'].includes(a.status) && !isVisuallyMissed(a)
+    if (filter === 'COMPLETED') return ['completed', 'late'].includes(a.status)
+    if (filter === 'MISSED') return ['missed', 'failed', 'cancelled'].includes(a.status) || isVisuallyMissed(a)
     return true
   })
 
@@ -100,6 +117,7 @@ export default function RondasAdminPage() {
           { key: 'ACTIVE', label: '🔴 En Curso' },
           { key: 'PENDING', label: '⏳ Pendientes' },
           { key: 'COMPLETED', label: '✓ Completadas' },
+          { key: 'MISSED', label: '🚫 No Cumplidas' },
         ].map(f => (
           <button
             key={f.key}
@@ -131,9 +149,11 @@ export default function RondasAdminPage() {
             </thead>
             <tbody>
               {filteredAssignments.map(a => {
-                const stateColor = STATE_COLORS[a.status] || '#64748b'
+                const missed = isVisuallyMissed(a)
+                const displayStatus = missed ? 'No Cumplida' : (STATE_LABELS[a.status] || a.status)
+                const stateColor = missed ? '#ef4444' : (STATE_COLORS[a.status] || '#64748b')
                 return (
-                  <tr key={a.id}>
+                  <tr key={a.id} className={missed ? 'rondas-admin__row--missed' : ''}>
                     <td className="rondas-admin__cell-guard">{getGuardName(a.guardId)}</td>
                     <td>{getRouteName(a.routeId)}</td>
                     <td>{formatTimestamp(a.scheduledStart)}</td>
@@ -147,7 +167,7 @@ export default function RondasAdminPage() {
                         className="rondas-admin__status-badge"
                         style={{ background: `${stateColor}22`, color: stateColor, borderColor: `${stateColor}44` }}
                       >
-                        {STATE_LABELS[a.status] || a.status}
+                        {displayStatus}
                       </span>
                     </td>
                     <td>
