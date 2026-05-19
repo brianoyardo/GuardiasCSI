@@ -1,0 +1,93 @@
+.confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirm-modal {
+  background: var(--color-dark-surface);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.confirm-modal__title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark-text);
+  margin: 0 0 var(--space-3);
+}
+
+.confirm-modal__message {
+  font-size: var(--text-sm);
+  color: var(--color-dark-text-muted);
+  margin: 0 0 var(--space-5);
+  line-height: 1.5;
+}
+
+.confirm-modal__actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.confirm-modal__btn {
+  padding: var(--space-2) var(--space-5);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.confirm-modal__btn--cancel {
+  background: var(--color-dark-bg);
+  color: var(--color-dark-text-muted);
+  border: 1px solid var(--color-dark-border);
+}
+
+.confirm-modal__btn--cancel:hover {
+  background: var(--color-dark-border);
+  color: var(--color-dark-text);
+}
+
+.confirm-modal__btn--confirm {
+  background: var(--color-primary-600);
+  color: white;
+}
+
+.confirm-modal__btn--confirm:hover {
+  background: var(--color-primary-500);
+  transform: translateY(-1px);
+}
+
+.confirm-modal__btn--danger {
+  background: #dc2626;
+  color: white;
+}
+
+.confirm-modal__btn--danger:hover {
+  background: #ef4444;
+  transform: translateY(-1px);
+}

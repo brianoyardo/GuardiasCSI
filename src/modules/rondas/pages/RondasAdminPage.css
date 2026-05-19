@@ -8,9 +8,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  height: calc(100vh - 70px);
+  height: 100vh;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .rondas-admin__header {
@@ -291,7 +291,9 @@
 /* Table */
 .rondas-admin__table-wrapper {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: auto;
+  min-height: 400px;
   background: var(--color-dark-surface);
   border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-xl);
@@ -334,6 +336,17 @@
 
 .rondas-admin__cell-guard {
   font-weight: var(--font-semibold);
+}
+
+.rondas-admin__guard-name {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.rondas-admin__guard-id {
+  font-size: 0.75rem;
+  color: var(--color-dark-text-muted);
+  line-height: 1.3;
 }
 
 /* Priority Badge */
@@ -424,26 +437,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-.rondas-admin__page-size {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
-  background: var(--color-dark-surface);
-  color: var(--color-dark-text);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.rondas-admin__page-size:focus {
-  outline: none;
-  border-color: var(--color-primary-500);
-}
-
-.rondas-admin__page-size-label {
-  font-size: var(--text-xs);
-  color: var(--color-dark-text-muted);
+  min-width: 140px;
 }
 
 .rondas-admin__page-center {

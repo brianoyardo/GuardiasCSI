@@ -7,6 +7,7 @@ import { RONDA_STATES, STATE_LABELS, STATE_COLORS } from '@/modules/rondas/state
 import { ROLES } from '@/config/roles'
 import RondaAssignmentModal from '@/modules/admin/components/RondaAssignmentModal/RondaAssignmentModal'
 import ActivityDatePicker from '@/components/ui/ActivityDatePicker/ActivityDatePicker'
+import CustomSelect from '@/components/ui/CustomSelect/CustomSelect'
 import './RondasAdminPage.css'
 
 const MISSED_TOLERANCE_MS = 10 * 60 * 1000
@@ -22,8 +23,8 @@ export default function RondasAdminPage() {
   const [filter, setFilter] = useState('ALL')
 
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [draftFilters, setDraftFilters] = useState({ search: '', from: '', to: '' })
-  const [appliedFilters, setAppliedFilters] = useState({ search: '', from: '', to: '' })
+  const [draftFilters, setDraftFilters] = useState({ search: '', from: '', to: '', routeId: '' })
+  const [appliedFilters, setAppliedFilters] = useState({ search: '', from: '', to: '', routeId: '' })
   const [groupByGuard, setGroupByGuard] = useState(false)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
@@ -83,9 +84,10 @@ export default function RondasAdminPage() {
     })
   }
 
-  const getGuardName = (guardId) => {
+  const getGuardInfo = (guardId) => {
     const g = guards.find(u => u.uid === guardId || u.id === guardId)
-    return g ? (g.fullName || g.email) : guardId?.slice(-6) || '—'
+    if (!g) return { name: 'Desconocido', id: guardId?.slice(-6) || '—' }
+    return { name: g.fullName || g.email, id: g.guardId || g.uid?.slice(-6) }
   }
 
   const getRouteName = (routeId) => {
@@ -101,12 +103,36 @@ export default function RondasAdminPage() {
     return Date.now() > (startTs + MISSED_TOLERANCE_MS)
   }
 
+  const toLocalDateKey = (ts) => {
+    const d = new Date(ts)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   const activeDays = useMemo(() => {
     return new Set(assignments.map(a => {
       const ts = typeof a.scheduledStart === 'number' ? a.scheduledStart : a.scheduledStart?.toMillis?.() || 0
-      return new Date(ts).toISOString().split('T')[0]
+      return toLocalDateKey(ts)
     }))
   }, [assignments])
+
+  const routeFilterOptions = useMemo(() => {
+    return [
+      { value: '', label: 'Todas las rutas' },
+      ...routes.map(r => ({ value: r.id, label: r.name })),
+    ]
+  }, [routes])
+
+  const pageSizeOptions = useMemo(() => {
+    return [
+      { value: 10, label: '10 rondas' },
+      { value: 25, label: '25 rondas' },
+      { value: 50, label: '50 rondas' },
+      { value: 100, label: '100 rondas' },
+    ]
+  }, [])
 
   const filteredAssignments = useMemo(() => {
     let result = assignments.filter(a => {
@@ -118,7 +144,11 @@ export default function RondasAdminPage() {
       return true
     })
 
-    const { search, from, to } = appliedFilters
+    const { search, from, to, routeId } = appliedFilters
+
+    if (routeId) {
+      result = result.filter(a => a.routeId === routeId)
+    }
 
     if (search) {
       const q = search.toLowerCase()
@@ -176,7 +206,7 @@ export default function RondasAdminPage() {
   const exportToCSV = () => {
     const headers = ['Guardia', 'Ruta', 'Inicio Programado', 'Fin Real', 'Prioridad', 'Estado', 'Reloj Global']
     const rows = filteredAssignments.map(a => [
-      `"${getGuardName(a.guardId)}"`,
+      `"${getGuardInfo(a.guardId).name}"`,
       `"${getRouteName(a.routeId)}"`,
       `"${formatTimestamp(a.scheduledStart)}"`,
       `"${formatTimestamp(a.actualEnd)}"`,
@@ -202,8 +232,8 @@ export default function RondasAdminPage() {
   }
 
   const clearFilters = () => {
-    setDraftFilters({ search: '', from: '', to: '' })
-    setAppliedFilters({ search: '', from: '', to: '' })
+    setDraftFilters({ search: '', from: '', to: '', routeId: '' })
+    setAppliedFilters({ search: '', from: '', to: '', routeId: '' })
     setCurrentPage(1)
   }
 
@@ -211,9 +241,13 @@ export default function RondasAdminPage() {
     const missed = isVisuallyMissed(a)
     const displayStatus = missed ? 'No Cumplida' : (STATE_LABELS[a.status] || a.status)
     const stateColor = missed ? '#ef4444' : (STATE_COLORS[a.status] || '#64748b')
+    const guardInfo = getGuardInfo(a.guardId)
     return (
       <tr key={a.id} className={missed ? 'rondas-admin__row--missed' : ''}>
-        <td className="rondas-admin__cell-guard">{getGuardName(a.guardId)}</td>
+        <td className="rondas-admin__cell-guard">
+          <div className="rondas-admin__guard-name">{guardInfo.name}</div>
+          <div className="rondas-admin__guard-id">ID: {guardInfo.id}</div>
+        </td>
         <td>{getRouteName(a.routeId)}</td>
         <td>{formatTimestamp(a.scheduledStart)}</td>
         <td>
@@ -325,6 +359,16 @@ export default function RondasAdminPage() {
               />
             </div>
 
+            {/* Route Filter */}
+            <div className="rondas-admin__advanced-field">
+              <CustomSelect
+                value={draftFilters.routeId}
+                onChange={(val) => setDraftFilters(prev => ({ ...prev, routeId: val }))}
+                options={routeFilterOptions}
+                placeholder="Filtrar por ruta..."
+              />
+            </div>
+
             {/* Actions */}
             <div className="rondas-admin__advanced-actions">
               <button className="rondas-admin__btn-search" onClick={applyFilters}>
@@ -375,7 +419,7 @@ export default function RondasAdminPage() {
                       <tr key={`group-${guardId}`} className="rondas-admin__group-header">
                         <td colSpan={6}>
                           <span className="rondas-admin__group-name">
-                            👤 {getGuardName(guardId)}
+                            👤 {getGuardInfo(guardId).name}
                             <span className="rondas-admin__group-count">({guardAssignments.length})</span>
                           </span>
                         </td>
@@ -393,17 +437,11 @@ export default function RondasAdminPage() {
           {/* Pagination */}
           <div className="rondas-admin__pagination">
             <div className="rondas-admin__pagination-left">
-              <select
-                className="rondas-admin__page-size"
+              <CustomSelect
                 value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span className="rondas-admin__page-size-label">rondas</span>
+                onChange={(val) => setItemsPerPage(Number(val))}
+                options={pageSizeOptions}
+              />
             </div>
 
             <div className="rondas-admin__page-center">

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { FaCalendarAlt } from 'react-icons/fa'
 import CustomSelect from '@/components/ui/CustomSelect/CustomSelect'
+import ConfirmModal from '@/components/ui/ConfirmModal/ConfirmModal'
 import './RondaAssignmentModal.css'
 
 export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose }) {
@@ -17,6 +18,7 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
   const [isDirty, setIsDirty] = useState(false)
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringEndDate, setRecurringEndDate] = useState('')
+  const [showConfirmClose, setShowConfirmClose] = useState(false)
   const modalRef = useRef(null)
 
   const guardOptions = guards.map(g => ({
@@ -36,34 +38,48 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
     { value: 'urgent', label: '🔴 Urgente' },
   ]
 
-  const handleClose = useCallback(() => {
-    if (isDirty && !window.confirm('Tienes cambios sin guardar. ¿Seguro que quieres cerrar?')) return
-    onClose()
+  const tzoffset = (new Date()).getTimezoneOffset() * 60000
+  const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16)
+  const localISODate = localISOTime.split('T')[0]
+
+  const requestClose = useCallback(() => {
+    if (isDirty) {
+      setShowConfirmClose(true)
+    } else {
+      onClose()
+    }
   }, [isDirty, onClose])
+
+  const confirmClose = useCallback(() => {
+    setShowConfirmClose(false)
+    onClose()
+  }, [onClose])
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (modalRef.current && !modalRef.current.contains(e.target)) {
-        handleClose()
+        requestClose()
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [handleClose])
+  }, [requestClose])
 
-  const validateDate = (value) => {
+  const validateStartDate = (value) => {
     if (!value) return 'Fecha y hora requerida'
     const selectedTime = new Date(value).getTime()
-    const now = Date.now()
-    const oneMinute = 60 * 1000
-    if (selectedTime < (now - oneMinute)) {
-      return 'No puedes programar una ronda en el pasado'
+    if (selectedTime <= Date.now()) {
+      return 'La hora programada debe ser mayor a la hora actual'
     }
+    return null
+  }
+
+  const validateRecurringEnd = () => {
     if (isRecurring && !recurringEndDate) {
       return 'Selecciona una fecha de fin para la repetición'
     }
-    if (isRecurring && recurringEndDate) {
-      const startDay = new Date(value).toISOString().split('T')[0]
+    if (isRecurring && recurringEndDate && form.scheduledStart) {
+      const startDay = form.scheduledStart.split('T')[0]
       if (recurringEndDate < startDay) {
         return 'La fecha de fin debe ser igual o posterior a la fecha de inicio'
       }
@@ -75,9 +91,15 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
     e.preventDefault()
     setError(null)
 
-    const dateError = validateDate(form.scheduledStart)
-    if (dateError) {
-      setError(dateError)
+    const startError = validateStartDate(form.scheduledStart)
+    if (startError) {
+      setError(startError)
+      return
+    }
+
+    const endError = validateRecurringEnd()
+    if (endError) {
+      setError(endError)
       return
     }
 
@@ -91,8 +113,8 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
     try {
       if (isRecurring) {
         const startTs = new Date(form.scheduledStart).getTime()
-        const endDateObj = new Date(recurringEndDate)
-        endDateObj.setHours(23, 59, 59, 999)
+        const [year, month, day] = recurringEndDate.split('-')
+        const endDateObj = new Date(year, month - 1, day, 23, 59, 59, 999)
         const endTs = endDateObj.getTime()
         const oneDay = 24 * 60 * 60 * 1000
         const assignmentsToCreate = []
@@ -143,7 +165,7 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
     setForm(prev => ({ ...prev, [field]: value }))
     setIsDirty(true)
     if (field === 'scheduledStart') {
-      const err = validateDate(value)
+      const err = validateStartDate(value)
       setError(err)
     }
   }
@@ -154,7 +176,7 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
         {/* Header */}
         <div className="assignment-modal__header">
           <h2 className="assignment-modal__title">Asignar Nueva Ronda</h2>
-          <button className="assignment-modal__close" onClick={handleClose} aria-label="Cerrar">✕</button>
+          <button className="assignment-modal__close" onClick={requestClose} aria-label="Cerrar">✕</button>
         </div>
 
         {/* Error */}
@@ -196,6 +218,7 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
                 className="assignment-modal__datetime-input"
                 value={form.scheduledStart}
                 onChange={(e) => updateField('scheduledStart', e.target.value)}
+                min={localISOTime}
                 required
               />
             </div>
@@ -275,10 +298,8 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
                   onChange={(e) => {
                     setRecurringEndDate(e.target.value)
                     setIsDirty(true)
-                    const err = validateDate(form.scheduledStart)
-                    setError(err)
                   }}
-                  min={form.scheduledStart ? form.scheduledStart.split('T')[0] : ''}
+                  min={form.scheduledStart ? form.scheduledStart.split('T')[0] : localISODate}
                   required={isRecurring}
                 />
               </div>
@@ -290,7 +311,7 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
 
           {/* Actions */}
           <div className="assignment-modal__actions">
-            <button type="button" className="assignment-modal__btn assignment-modal__btn--cancel" onClick={handleClose}>
+            <button type="button" className="assignment-modal__btn assignment-modal__btn--cancel" onClick={requestClose}>
               Cancelar
             </button>
             <button type="submit" className="assignment-modal__btn assignment-modal__btn--submit" disabled={isSubmitting || !!error}>
@@ -299,6 +320,17 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
           </div>
         </form>
       </div>
+
+      {showConfirmClose && (
+        <ConfirmModal
+          title="Cambios sin guardar"
+          message="Tienes cambios sin guardar. ¿Seguro que quieres cerrar?"
+          onConfirm={confirmClose}
+          onCancel={() => setShowConfirmClose(false)}
+          confirmText="Cerrar"
+          cancelText="Seguir editando"
+        />
+      )}
     </div>
   )
 }

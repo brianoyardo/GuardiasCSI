@@ -12,6 +12,18 @@ function formatDateKey(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+function parseLocalDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function toLocalISOString(dateObj) {
+  const y = dateObj.getFullYear()
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const d = String(dateObj.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate()
 }
@@ -23,7 +35,7 @@ function getFirstDayOfMonth(year, month) {
 export default function ActivityDatePicker({ value, onChange, activeDates = new Set(), label }) {
   const [viewDate, setViewDate] = useState(() => {
     if (value) {
-      const d = new Date(value)
+      const d = parseLocalDate(value)
       return { year: d.getFullYear(), month: d.getMonth() }
     }
     const now = new Date()
@@ -45,7 +57,7 @@ export default function ActivityDatePicker({ value, onChange, activeDates = new 
 
   const displayValue = useMemo(() => {
     if (!value) return 'Seleccionar...'
-    const d = new Date(value)
+    const d = parseLocalDate(value)
     return `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`
   }, [value])
 
