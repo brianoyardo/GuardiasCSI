@@ -91,11 +91,9 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
     try {
       if (isRecurring) {
         const startTs = new Date(form.scheduledStart).getTime()
-        const endTs = new Date(recurringEndDate).setHours(
-          new Date(form.scheduledStart).getHours(),
-          new Date(form.scheduledStart).getMinutes(),
-          0, 0
-        )
+        const endDateObj = new Date(recurringEndDate)
+        endDateObj.setHours(23, 59, 59, 999)
+        const endTs = endDateObj.getTime()
         const oneDay = 24 * 60 * 60 * 1000
         const assignmentsToCreate = []
 
