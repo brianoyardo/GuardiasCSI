@@ -6,6 +6,7 @@ import { getAllUsers } from '@/modules/users/services/userService'
 import { RONDA_STATES, STATE_LABELS, STATE_COLORS } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { ROLES } from '@/config/roles'
 import RondaAssignmentModal from '@/modules/admin/components/RondaAssignmentModal/RondaAssignmentModal'
+import ActivityDatePicker from '@/components/ui/ActivityDatePicker/ActivityDatePicker'
 import './RondasAdminPage.css'
 
 const MISSED_TOLERANCE_MS = 10 * 60 * 1000
@@ -20,8 +21,9 @@ export default function RondasAdminPage() {
   const [showModal, setShowModal] = useState(false)
   const [filter, setFilter] = useState('ALL')
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [dateRange, setDateRange] = useState({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [draftFilters, setDraftFilters] = useState({ search: '', from: '', to: '' })
+  const [appliedFilters, setAppliedFilters] = useState({ search: '', from: '', to: '' })
   const [groupByGuard, setGroupByGuard] = useState(false)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
@@ -54,7 +56,7 @@ export default function RondasAdminPage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [filter, searchQuery, dateRange, groupByGuard, itemsPerPage])
+  }, [filter, appliedFilters, groupByGuard, itemsPerPage])
 
   const handleCreateAssignment = async (data, isBatch = false) => {
     if (isBatch && Array.isArray(data)) {
@@ -99,6 +101,13 @@ export default function RondasAdminPage() {
     return Date.now() > (startTs + MISSED_TOLERANCE_MS)
   }
 
+  const activeDays = useMemo(() => {
+    return new Set(assignments.map(a => {
+      const ts = typeof a.scheduledStart === 'number' ? a.scheduledStart : a.scheduledStart?.toMillis?.() || 0
+      return new Date(ts).toISOString().split('T')[0]
+    }))
+  }, [assignments])
+
   const filteredAssignments = useMemo(() => {
     let result = assignments.filter(a => {
       if (filter === 'ALL') return true
@@ -109,8 +118,10 @@ export default function RondasAdminPage() {
       return true
     })
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
+    const { search, from, to } = appliedFilters
+
+    if (search) {
+      const q = search.toLowerCase()
       result = result.filter(a => {
         const guardName = getGuardName(a.guardId).toLowerCase()
         const guardId = (a.guardId || '').toLowerCase()
@@ -118,16 +129,16 @@ export default function RondasAdminPage() {
       })
     }
 
-    if (dateRange.from) {
-      const fromTs = new Date(dateRange.from).getTime()
+    if (from) {
+      const fromTs = new Date(from).getTime()
       result = result.filter(a => {
         const startTs = typeof a.scheduledStart === 'number' ? a.scheduledStart : a.scheduledStart?.toMillis?.() || 0
         return startTs >= fromTs
       })
     }
 
-    if (dateRange.to) {
-      const toTs = new Date(dateRange.to).setHours(23, 59, 59, 999)
+    if (to) {
+      const toTs = new Date(to).setHours(23, 59, 59, 999)
       result = result.filter(a => {
         const startTs = typeof a.scheduledStart === 'number' ? a.scheduledStart : a.scheduledStart?.toMillis?.() || 0
         return startTs <= toTs
@@ -143,7 +154,7 @@ export default function RondasAdminPage() {
     })
 
     return result
-  }, [assignments, filter, searchQuery, dateRange, guards])
+  }, [assignments, filter, appliedFilters, guards])
 
   const totalPages = Math.ceil(filteredAssignments.length / itemsPerPage)
   const paginatedData = filteredAssignments.slice(
@@ -183,6 +194,17 @@ export default function RondasAdminPage() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+  }
+
+  const applyFilters = () => {
+    setAppliedFilters({ ...draftFilters })
+    setCurrentPage(1)
+  }
+
+  const clearFilters = () => {
+    setDraftFilters({ search: '', from: '', to: '' })
+    setAppliedFilters({ search: '', from: '', to: '' })
+    setCurrentPage(1)
   }
 
   const renderTableRow = (a) => {
@@ -248,82 +270,83 @@ export default function RondasAdminPage() {
             {f.label}
           </button>
         ))}
+
+        {/* Group by Guard Toggle */}
+        <label className="rondas-admin__toggle-group">
+          <input
+            type="checkbox"
+            checked={groupByGuard}
+            onChange={(e) => setGroupByGuard(e.target.checked)}
+          />
+          <span className="rondas-admin__toggle-slider" />
+          <span>Agrupar</span>
+        </label>
       </div>
 
-      {/* Advanced Filters Bar */}
-      <div className="rondas-admin__advanced-filters">
-        <div className="rondas-admin__filter-row">
-          {/* Search */}
-          <div className="rondas-admin__filter-group">
-            <label className="rondas-admin__filter-label">Buscar Guardia</label>
-            <input
-              type="text"
-              className="rondas-admin__search-input"
-              placeholder="Nombre o ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+      {/* Toggle Advanced Filters */}
+      <button
+        className="rondas-admin__toggle-advanced"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+      >
+        {showAdvanced ? '▲ Ocultar Filtros' : '▼ Filtros Avanzados'}
+      </button>
 
-          {/* Date Range */}
-          <div className="rondas-admin__filter-group">
-            <label className="rondas-admin__filter-label">Desde</label>
-            <input
-              type="date"
-              className="rondas-admin__date-input"
-              value={dateRange.from}
-              onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-            />
-          </div>
-          <div className="rondas-admin__filter-group">
-            <label className="rondas-admin__filter-label">Hasta</label>
-            <input
-              type="date"
-              className="rondas-admin__date-input"
-              value={dateRange.to}
-              onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-            />
-          </div>
+      {/* Advanced Filters Panel */}
+      {showAdvanced && (
+        <div className="rondas-admin__advanced-panel">
+          <div className="rondas-admin__advanced-row">
+            {/* Search */}
+            <div className="rondas-admin__advanced-field">
+              <input
+                type="text"
+                className="rondas-admin__search-input"
+                placeholder="Buscar por guardia o ID..."
+                value={draftFilters.search}
+                onChange={(e) => setDraftFilters(prev => ({ ...prev, search: e.target.value }))}
+                onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+              />
+            </div>
 
-          {/* Items per page */}
-          <div className="rondas-admin__filter-group">
-            <label className="rondas-admin__filter-label">Por página</label>
-            <select
-              className="rondas-admin__select"
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+            {/* Date Range */}
+            <div className="rondas-admin__advanced-field">
+              <ActivityDatePicker
+                value={draftFilters.from}
+                onChange={(val) => setDraftFilters(prev => ({ ...prev, from: val }))}
+                activeDates={activeDays}
+                label="Desde"
+              />
+            </div>
+            <div className="rondas-admin__advanced-field">
+              <ActivityDatePicker
+                value={draftFilters.to}
+                onChange={(val) => setDraftFilters(prev => ({ ...prev, to: val }))}
+                activeDates={activeDays}
+                label="Hasta"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="rondas-admin__advanced-actions">
+              <button className="rondas-admin__btn-search" onClick={applyFilters}>
+                🔍 Buscar
+              </button>
+              <button className="rondas-admin__btn-clear" onClick={clearFilters}>
+                ✕ Limpiar
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="rondas-admin__filter-row rondas-admin__filter-row--actions">
-          {/* Group by Guard Toggle */}
-          <label className="rondas-admin__toggle-group">
-            <input
-              type="checkbox"
-              checked={groupByGuard}
-              onChange={(e) => setGroupByGuard(e.target.checked)}
-            />
-            <span className="rondas-admin__toggle-slider" />
-            <span>Agrupar por Guardia</span>
-          </label>
-
-          {/* Export CSV */}
-          <button className="rondas-admin__btn-export" onClick={exportToCSV}>
-            📥 Exportar CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Results count */}
-      <div className="rondas-admin__results-count">
-        {filteredAssignments.length} resultado{filteredAssignments.length !== 1 ? 's' : ''}
-        {totalPages > 1 && ` · Página ${currentPage} de ${totalPages}`}
+      {/* Toolbar: Export + Results Count */}
+      <div className="rondas-admin__toolbar">
+        <span className="rondas-admin__results-count">
+          {filteredAssignments.length} resultado{filteredAssignments.length !== 1 ? 's' : ''}
+          {totalPages > 1 && ` · Página ${currentPage} de ${totalPages}`}
+        </span>
+        <button className="rondas-admin__btn-export" onClick={exportToCSV}>
+          📥 Exportar CSV
+        </button>
       </div>
 
       {/* Table */}
@@ -368,8 +391,22 @@ export default function RondasAdminPage() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="rondas-admin__pagination">
+          <div className="rondas-admin__pagination">
+            <div className="rondas-admin__pagination-left">
+              <select
+                className="rondas-admin__page-size"
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="rondas-admin__page-size-label">rondas</span>
+            </div>
+
+            <div className="rondas-admin__page-center">
               <button
                 className="rondas-admin__page-btn"
                 disabled={currentPage === 1}
@@ -396,7 +433,9 @@ export default function RondasAdminPage() {
                 Siguiente →
               </button>
             </div>
-          )}
+
+            <div className="rondas-admin__pagination-right" />
+          </div>
         </>
       )}
 
