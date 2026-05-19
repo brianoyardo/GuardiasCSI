@@ -8,12 +8,18 @@ import './RondaCard.css'
 export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
   const navigate = useNavigate()
   const { status, scheduledStart, priority, rondaId, strictTimeSync } = assignment
-  const [now, setNow] = useState(getTrueTime())
+  const [localNow, setLocalNow] = useState(Date.now())
+  const [globalNow, setGlobalNow] = useState(getTrueTime())
 
   useEffect(() => {
-    const interval = setInterval(() => setNow(getTrueTime()), 1000)
-    return () => clearInterval(interval)
+    const timer = setInterval(() => {
+      setLocalNow(Date.now())
+      setGlobalNow(getTrueTime())
+    }, 1000)
+    return () => clearInterval(timer)
   }, [])
+
+  const effectiveNow = strictTimeSync ? globalNow : localNow
 
   const stateLabel = STATE_LABELS[status] || status
   const stateColor = STATE_COLORS[status] || '#64748b'
@@ -30,9 +36,9 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
 
   const TEN_MINUTES = 10 * 60 * 1000
   const FIVE_MINUTES = 5 * 60 * 1000
-  const isTooEarly = canBeStarted(status) && scheduledStart && now < (scheduledStart - FIVE_MINUTES)
-  const isMissed = canBeStarted(status) && scheduledStart && now > (scheduledStart + TEN_MINUTES)
-  const isLate = canBeStarted(status) && scheduledStart && now > scheduledStart && !isMissed
+  const isTooEarly = canBeStarted(status) && scheduledStart && effectiveNow < (scheduledStart - FIVE_MINUTES)
+  const isMissed = canBeStarted(status) && scheduledStart && effectiveNow > (scheduledStart + TEN_MINUTES)
+  const isLate = canBeStarted(status) && scheduledStart && effectiveNow > scheduledStart && !isMissed
   const isSyncBlocked = strictTimeSync && !isTimeSynced
 
   useEffect(() => {

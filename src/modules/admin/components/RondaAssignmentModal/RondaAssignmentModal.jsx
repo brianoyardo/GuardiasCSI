@@ -4,7 +4,7 @@ import CustomSelect from '@/components/ui/CustomSelect/CustomSelect'
 import ConfirmModal from '@/components/ui/ConfirmModal/ConfirmModal'
 import './RondaAssignmentModal.css'
 
-export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose }) {
+export default function RondaAssignmentModal({ guards, routes, existingAssignments = [], onSubmit, onClose }) {
   const [form, setForm] = useState({
     guardId: '',
     routeId: '',
@@ -87,6 +87,15 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
     return null
   }
 
+  const checkCollision = (guardId, startTs) => {
+    const margin = 90 * 60 * 1000
+    return existingAssignments.some(a =>
+      a.guardId === guardId &&
+      !['cancelled', 'missed', 'failed', 'completed'].includes(a.status) &&
+      Math.abs(a.scheduledStart - startTs) < margin
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -120,6 +129,11 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
         const assignmentsToCreate = []
 
         for (let currentTs = startTs; currentTs <= endTs; currentTs += oneDay) {
+          if (checkCollision(form.guardId, currentTs)) {
+            setError('⚠️ El guardia ya tiene una ronda activa o programada en este horario (margen de 90 min).')
+            setIsSubmitting(false)
+            return
+          }
           assignmentsToCreate.push({
             guardId: form.guardId,
             routeId: form.routeId,
@@ -141,6 +155,13 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
         await onSubmit(assignmentsToCreate, true)
       } else {
         const startTs = new Date(form.scheduledStart).getTime()
+
+        if (checkCollision(form.guardId, startTs)) {
+          setError('⚠️ El guardia ya tiene una ronda activa o programada en este horario (margen de 90 min).')
+          setIsSubmitting(false)
+          return
+        }
+
         const endTs = startTs + (90 * 60 * 1000)
 
         await onSubmit({

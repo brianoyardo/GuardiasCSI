@@ -153,7 +153,7 @@ export default function RondasAdminPage() {
     if (search) {
       const q = search.toLowerCase()
       result = result.filter(a => {
-        const guardName = getGuardName(a.guardId).toLowerCase()
+        const guardName = getGuardInfo(a.guardId).name.toLowerCase()
         const guardId = (a.guardId || '').toLowerCase()
         return guardName.includes(q) || guardId.includes(q)
       })
@@ -485,6 +485,7 @@ export default function RondasAdminPage() {
         <RondaAssignmentModal
           guards={guards}
           routes={routes}
+          existingAssignments={assignments}
           onSubmit={handleCreateAssignment}
           onClose={() => setShowModal(false)}
         />
