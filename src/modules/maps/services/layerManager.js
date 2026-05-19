@@ -89,7 +89,7 @@ export function useLayerManager(initialOverrides = {}) {
   const toggleLayer = useCallback((layerId) => {
     setLayers((prev) => {
       const newState = { ...prev, [layerId]: !prev[layerId] }
-      console.log(`${LOG_PREFIX} Layer "${layerId}" → ${newState[layerId] ? 'ON' : 'OFF'}`)
+      // console.log(`${LOG_PREFIX} Layer "${layerId}" → ${newState[layerId] ? 'ON' : 'OFF'}`)
       return newState
     })
   }, [])

@@ -41,7 +41,7 @@ class TelemetryBufferService {
   setOnlineStatus(status) {
     if (this.isOnline !== status) {
       this.isOnline = status
-      console.log(`${LOG_PREFIX} Network status changed: ${status ? 'ONLINE' : 'OFFLINE'}`)
+      // console.log(`${LOG_PREFIX} Network status changed: ${status ? 'ONLINE' : 'OFFLINE'}`)
       if (status) {
         // Recover flush process
         this.recoverPendingFlushes()
@@ -63,7 +63,7 @@ class TelemetryBufferService {
     }
     
     for (const execId of execIds) {
-      console.log(`${LOG_PREFIX} Auto-rehydrating pending flush for execution ${execId}`)
+      // console.log(`${LOG_PREFIX} Auto-rehydrating pending flush for execution ${execId}`)
       this.flush(execId)
     }
   }
@@ -85,7 +85,7 @@ class TelemetryBufferService {
     
     // Antiflooding protection
     if (count >= this.MAX_BUFFER_POINTS) {
-      console.warn(`${LOG_PREFIX} IndexedDB limit reached (${this.MAX_BUFFER_POINTS}), dropping point to prevent infinite growth.`)
+      // console.warn(`${LOG_PREFIX} IndexedDB limit reached (${this.MAX_BUFFER_POINTS}), dropping point to prevent infinite growth.`)
       return
     }
 
@@ -147,7 +147,7 @@ class TelemetryBufferService {
       await Promise.all(idsToDelete.map(id => deleteStore.delete(id)))
       await deleteTx.done
       
-      console.log(`${LOG_PREFIX} Flushed ${chunk.length} points for execution ${executionId} in ${flushDurationMs}ms.`)
+      // console.log(`${LOG_PREFIX} Flushed ${chunk.length} points for execution ${executionId} in ${flushDurationMs}ms.`)
       eventBus.publish(OPERATIONAL_EVENTS.TELEMETRY_FLUSHED, { executionId, chunkId, count: chunk.length, flushDurationMs })
       
       this.isFlushing = false
@@ -164,7 +164,7 @@ class TelemetryBufferService {
       // Exponential backoff retry if online
       if (this.isOnline && retryCount < 5) {
         const delay = Math.pow(2, retryCount) * 1000
-        console.log(`${LOG_PREFIX} Retrying flush in ${delay}ms...`)
+        // console.log(`${LOG_PREFIX} Retrying flush in ${delay}ms...`)
         setTimeout(() => this.flush(executionId, retryCount + 1), delay)
       }
     }

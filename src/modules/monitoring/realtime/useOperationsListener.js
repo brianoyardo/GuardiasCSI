@@ -33,7 +33,7 @@ export function useOperationsListener() {
   const { setIncidents, addIncident } = useIncidentStore()
 
   const subscribe = useCallback(() => {
-    console.log(`${LOG_PREFIX} 🔴 Subscribing to operational streams...`)
+    // console.log(`${LOG_PREFIX} 🔴 Subscribing to operational streams...`)
 
     // ─── 1. Active Ronda Executions ───
     const execQuery = query(
@@ -60,7 +60,7 @@ export function useOperationsListener() {
         }
       })
 
-      console.log(`${LOG_PREFIX} Executions: ${executions.length} active`)
+      // console.log(`${LOG_PREFIX} Executions: ${executions.length} active`)
     }, (error) => {
       console.error(`${LOG_PREFIX} Execution listener error:`, error)
     })
@@ -94,7 +94,7 @@ export function useOperationsListener() {
       })
 
       updateStats({ openIncidents: incidents.length })
-      console.log(`${LOG_PREFIX} Incidents: ${incidents.length} open`)
+      // console.log(`${LOG_PREFIX} Incidents: ${incidents.length} open`)
     }, (error) => {
       console.error(`${LOG_PREFIX} Incident listener error:`, error)
     })
@@ -102,14 +102,14 @@ export function useOperationsListener() {
     unsubsRef.current.push(unsubIncidents)
 
     setConnected(true)
-    console.log(`${LOG_PREFIX} ✅ All streams connected`)
+    // console.log(`${LOG_PREFIX} ✅ All streams connected`)
   }, [setActiveExecutions, updateGuardPosition, addAlert, updateStats, setConnected, setIncidents, addIncident])
 
   const unsubscribeAll = useCallback(() => {
     unsubsRef.current.forEach((unsub) => unsub())
     unsubsRef.current = []
     setConnected(false)
-    console.log(`${LOG_PREFIX} ⏹ All streams disconnected`)
+    // console.log(`${LOG_PREFIX} ⏹ All streams disconnected`)
   }, [setConnected])
 
   useEffect(() => {

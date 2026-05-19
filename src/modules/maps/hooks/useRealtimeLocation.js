@@ -30,7 +30,7 @@ export function useRealtimeLocation(guardId, options = {}) {
   const subscribe = useCallback(() => {
     if (!guardId) return
 
-    console.log(`${LOG_PREFIX} 🔴 Subscribing to location: ${guardId}`)
+    // console.log(`${LOG_PREFIX} 🔴 Subscribing to location: ${guardId}`)
 
     // Subscribe to the guard's latest execution document
     // In a full implementation, this would listen to a dedicated
@@ -66,7 +66,7 @@ export function useRealtimeLocation(guardId, options = {}) {
     if (unsubRef.current) {
       unsubRef.current()
       unsubRef.current = null
-      console.log(`${LOG_PREFIX} ⏹ Unsubscribed from: ${guardId}`)
+      // console.log(`${LOG_PREFIX} ⏹ Unsubscribed from: ${guardId}`)
     }
   }, [guardId])
 

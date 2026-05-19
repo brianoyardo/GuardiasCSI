@@ -162,7 +162,8 @@ export function useGeolocation(options = {}) {
     positionHistoryRef.current = []
   }, [])
 
-  // Auto-start watch if enableWatch option is true
+  // GPS auto-start disabled — tracking must be initiated by user gesture
+  // (PreOp confirm → VoiceValidation → startWithExecutionId → geo.startTracking)
   useEffect(() => {
     if (enableWatch) {
       startTracking()

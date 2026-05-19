@@ -8,22 +8,26 @@ export default function PreOpModal({ rondaName, onConfirm, onCancel }) {
   const [vehicleId, setVehicleId] = useState('')
   const [shift, setShift] = useState(SHIFT_TYPES.DIURNO)
   const [error, setError] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isMotorized = patrolType === PATROL_TYPES.MOTORIZADO
 
   const handleConfirm = useCallback(() => {
+    if (isSubmitting) return
+
     if (isMotorized && !vehicleId.trim()) {
       setError('Ingrese el identificador del vehículo')
       return
     }
 
     setError(null)
+    setIsSubmitting(true)
     onConfirm({
       patrolType,
       vehicleId: isMotorized ? vehicleId.trim() : null,
       shift,
     })
-  }, [patrolType, vehicleId, shift, isMotorized, onConfirm])
+  }, [patrolType, vehicleId, shift, isMotorized, onConfirm, isSubmitting])
 
   const patrolOptions = Object.entries(PATROL_TYPES).map(([key, value]) => ({
     value,
@@ -100,14 +104,16 @@ export default function PreOpModal({ rondaName, onConfirm, onCancel }) {
           <button
             className="preop-modal__btn preop-modal__btn--cancel"
             onClick={onCancel}
+            disabled={isSubmitting}
           >
             Cancelar
           </button>
           <button
-            className="preop-modal__btn preop-modal__btn--confirm"
+            className={`preop-modal__btn preop-modal__btn--confirm ${isSubmitting ? 'preop-modal__btn--submitting' : ''}`}
             onClick={handleConfirm}
+            disabled={isSubmitting}
           >
-            Continuar →
+            {isSubmitting ? 'Iniciando...' : 'Continuar →'}
           </button>
         </div>
       </div>

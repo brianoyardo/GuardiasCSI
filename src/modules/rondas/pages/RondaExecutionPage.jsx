@@ -131,6 +131,7 @@ export default function RondaExecutionPage() {
   const [phase, setPhase] = useState('preop')
   const [executionId, setExecutionId] = useState(null)
   const [preOpData, setPreOpData] = useState(null)
+  const [preOpKey, setPreOpKey] = useState(0)
 
   // ─── Execution Hook (only active in 'execution' phase) ───
   const exec = useRondaExecution({
@@ -179,6 +180,7 @@ export default function RondaExecutionPage() {
       setPhase('voice')
     } catch (err) {
       setFeedback({ type: 'error', message: err.message })
+      setPreOpKey(k => k + 1)
       setTimeout(() => setFeedback(null), 3000)
     }
   }
@@ -263,6 +265,7 @@ export default function RondaExecutionPage() {
   if (phase === 'preop') {
     return (
       <PreOpModal
+        key={preOpKey}
         rondaName={route?.name || assignment?.rondaName || 'Ronda Operativa'}
         onConfirm={handlePreOpConfirm}
         onCancel={handlePreOpCancel}

@@ -69,7 +69,7 @@ export async function createRonda(rondaData) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} ✅ Ronda created: ${rondaRef.id}`)
+    // console.log(`${LOG_PREFIX} ✅ Ronda created: ${rondaRef.id}`)
     return rondaRef.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error creating ronda:`, error)
@@ -88,7 +88,7 @@ export async function updateRonda(rondaId, fields) {
       ...fields,
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} Updated: ${rondaId}`)
+    // console.log(`${LOG_PREFIX} Updated: ${rondaId}`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Error updating ronda:`, error)
     throw error

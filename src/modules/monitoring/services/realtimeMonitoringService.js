@@ -65,7 +65,7 @@ function normalizeExecution(docData) {
  * @returns {Function} unsubscribe function to clean up the listener
  */
 export function subscribeToActiveExecutions() {
-  console.log(`${LOG_PREFIX} 🔴 Subscribing to active executions...`)
+  // console.log(`${LOG_PREFIX} 🔴 Subscribing to active executions...`)
 
   const execQuery = query(
     collection(db, COLLECTIONS.RONDA_EXECUTIONS),
@@ -92,7 +92,7 @@ export function subscribeToActiveExecutions() {
         }
       })
 
-      console.log(`${LOG_PREFIX} 📊 Snapshot: ${snapshot.size} active executions`)
+      // console.log(`${LOG_PREFIX} 📊 Snapshot: ${snapshot.size} active executions`)
     },
     (error) => {
       console.error(`${LOG_PREFIX} ❌ Subscription error:`, error)
@@ -106,7 +106,7 @@ export function subscribeToActiveExecutions() {
     }
   )
 
-  console.log(`${LOG_PREFIX} ✅ Subscription active`)
+  // console.log(`${LOG_PREFIX} ✅ Subscription active`)
   return unsubscribe
 }
 
@@ -118,7 +118,7 @@ export function subscribeToActiveExecutions() {
  * @returns {Function} unsubscribe function
  */
 export function subscribeToExecution(executionId) {
-  console.log(`${LOG_PREFIX} 🔴 Subscribing to execution: ${executionId}`)
+  // console.log(`${LOG_PREFIX} 🔴 Subscribing to execution: ${executionId}`)
 
   const execRef = collection(db, COLLECTIONS.RONDA_EXECUTIONS)
   const execQuery = query(execRef, where('__name__', '==', executionId))

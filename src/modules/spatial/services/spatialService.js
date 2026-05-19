@@ -19,7 +19,7 @@ const LOG_PREFIX = '[SpatialService]'
  */
 async function saveSpatialEntity(collectionName, entityId, data, userId) {
   if (!collectionName) {
-    console.warn(`${LOG_PREFIX} Missing collectionName during save operation`);
+    // console.warn(`${LOG_PREFIX} Missing collectionName during save operation`);
     throw new Error('collectionName is required');
   }
 
@@ -44,7 +44,7 @@ async function saveSpatialEntity(collectionName, entityId, data, userId) {
     }
 
     await setDoc(ref, payload, { merge: true })
-    console.log(`${LOG_PREFIX} ✅ Saved ${collectionName}: ${ref.id} (v${payload.geometryVersion})`)
+    // console.log(`${LOG_PREFIX} ✅ Saved ${collectionName}: ${ref.id} (v${payload.geometryVersion})`)
     return ref.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error saving ${collectionName}:`, error)
@@ -75,7 +75,7 @@ function deserializeGeometry(geometry) {
  */
 async function getSpatialEntities(collectionName, activeOnly = false) {
   if (!collectionName) {
-    console.warn(`${LOG_PREFIX} getSpatialEntities called with undefined/empty collectionName. Returning []`);
+    // console.warn(`${LOG_PREFIX} getSpatialEntities called with undefined/empty collectionName. Returning []`);
     return [];
   }
 
@@ -194,5 +194,5 @@ export async function getGeofences(activeOnly = false) {
  */
 export async function deleteSpatialEntity(collectionName, id) {
   await deleteDoc(doc(db, collectionName, id))
-  console.log(`${LOG_PREFIX} 🗑 Deleted ${collectionName}: ${id}`)
+  // console.log(`${LOG_PREFIX} 🗑 Deleted ${collectionName}: ${id}`)
 }

@@ -52,7 +52,7 @@ export function useGeofence(geofences = [], currentPosition = null) {
 
         // Entry event
         if (isInside && !wasInside) {
-          console.log(`${LOG_PREFIX} 🟢 ENTRY: "${fence.name}" (${fence.id})`)
+          // console.log(`${LOG_PREFIX} 🟢 ENTRY: "${fence.name}" (${fence.id})`)
           newViolations.push({
             type: 'entry',
             geofenceId: fence.id,
@@ -64,7 +64,7 @@ export function useGeofence(geofences = [], currentPosition = null) {
 
         // Exit event
         if (!isInside && wasInside) {
-          console.log(`${LOG_PREFIX} 🔴 EXIT: "${fence.name}" (${fence.id})`)
+          // console.log(`${LOG_PREFIX} 🔴 EXIT: "${fence.name}" (${fence.id})`)
           newViolations.push({
             type: 'exit',
             geofenceId: fence.id,

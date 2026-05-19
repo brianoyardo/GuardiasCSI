@@ -18,7 +18,7 @@ class OperationalOrchestrator {
   start() {
     if (this.isListening) return
     
-    console.log(`${LOG_PREFIX} Starting Operational Orchestrator...`)
+    // console.log(`${LOG_PREFIX} Starting Operational Orchestrator...`)
     
     // Subscribe to GPS updates
     const gpsSub = eventBus.subscribe(OPERATIONAL_EVENTS.GPS_POSITION_UPDATED, (payload) => {
@@ -26,19 +26,19 @@ class OperationalOrchestrator {
     })
     
     const anomalySub = eventBus.subscribe(OPERATIONAL_EVENTS.GPS_ANOMALY, (payload) => {
-      console.warn(`${LOG_PREFIX} Detected GPS Anomaly for Guard ${payload.guardId}: ${payload.reason}`)
+      // console.warn(`${LOG_PREFIX} Detected GPS Anomaly for Guard ${payload.guardId}: ${payload.reason}`)
     })
 
     const inactiveSub = eventBus.subscribe(OPERATIONAL_EVENTS.GUARD_INACTIVE, (payload) => {
-      console.warn(`${LOG_PREFIX} Guard ${payload.guardId} is INACTIVE. Distance moved: ${payload.distanceMovedMeters.toFixed(1)}m in ${payload.inactiveMinutes.toFixed(1)}min`)
+      // console.warn(`${LOG_PREFIX} Guard ${payload.guardId} is INACTIVE. Distance moved: ${payload.distanceMovedMeters.toFixed(1)}m in ${payload.inactiveMinutes.toFixed(1)}min`)
     })
 
     const simStartSub = eventBus.subscribe(OPERATIONAL_EVENTS.SIMULATION_STARTED, (payload) => {
-      console.log(`${LOG_PREFIX} Simulation started for ${payload.guardId} (Execution: ${payload.executionId})`)
+      // console.log(`${LOG_PREFIX} Simulation started for ${payload.guardId} (Execution: ${payload.executionId})`)
     })
 
     const simEndSub = eventBus.subscribe(OPERATIONAL_EVENTS.SIMULATION_ENDED, (payload) => {
-      console.log(`${LOG_PREFIX} Simulation ended for ${payload.guardId}. Clearing buffer...`)
+      // console.log(`${LOG_PREFIX} Simulation ended for ${payload.guardId}. Clearing buffer...`)
       telemetryBufferService.flush(payload.executionId) // Force final flush
       setTimeout(() => {
         telemetryBufferService.clear(payload.executionId)
@@ -62,12 +62,12 @@ class OperationalOrchestrator {
     
     const latencyMs = performance.now() - startTime
     if (latencyMs > 10) {
-      console.warn(`${LOG_PREFIX} [EventBus] High latency processing GPS point: ${latencyMs.toFixed(2)}ms`)
+      // console.warn(`${LOG_PREFIX} [EventBus] High latency processing GPS point: ${latencyMs.toFixed(2)}ms`)
     }
   }
 
   stop() {
-    console.log(`${LOG_PREFIX} Stopping Operational Orchestrator...`)
+    // console.log(`${LOG_PREFIX} Stopping Operational Orchestrator...`)
     this.subscriptions.forEach(unsubscribe => unsubscribe())
     this.subscriptions = []
     this.isListening = false

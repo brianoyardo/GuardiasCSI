@@ -35,7 +35,7 @@ export const useRealtimeStore = create((set, get) => ({
    */
   setExecutions: (executionsDict) => {
     set({ activeExecutions: executionsDict })
-    console.log(`${LOG_PREFIX} 📋 Executions initialized: ${Object.keys(executionsDict).length} active`)
+    // console.log(`${LOG_PREFIX} 📋 Executions initialized: ${Object.keys(executionsDict).length} active`)
   },
 
   /**
@@ -69,7 +69,7 @@ export const useRealtimeStore = create((set, get) => ({
       const { [executionId]: _, ...rest } = state.activeExecutions
       return { activeExecutions: rest }
     })
-    console.log(`${LOG_PREFIX} 🗑 Execution removed: ${executionId}`)
+    // console.log(`${LOG_PREFIX} 🗑 Execution removed: ${executionId}`)
   },
 
   /**
@@ -105,7 +105,7 @@ export const useRealtimeStore = create((set, get) => ({
       return { activeExecutions: next }
     })
 
-    console.log(`${LOG_PREFIX} 🔄 Synced: ${docs.length} active executions`)
+    // console.log(`${LOG_PREFIX} 🔄 Synced: ${docs.length} active executions`)
   },
 
   /**

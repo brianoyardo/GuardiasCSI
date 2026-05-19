@@ -39,7 +39,7 @@ class AutomationGateway {
       eventBus.subscribe('*', this.handleEvent.bind(this))
 
       this.isInitialized = true
-      console.log(`${LOG_PREFIX} Initialized. Webhook: ${this.webhookUrl ? 'Configured' : 'Disabled'}`)
+      // console.log(`${LOG_PREFIX} Initialized. Webhook: ${this.webhookUrl ? 'Configured' : 'Disabled'}`)
     } catch (error) {
       console.error(`${LOG_PREFIX} Failed to initialize:`, error)
     }
@@ -61,7 +61,7 @@ class AutomationGateway {
         updatedAt: serverTimestamp()
       }, { merge: true })
       
-      console.log(`${LOG_PREFIX} Configuration saved.`)
+      // console.log(`${LOG_PREFIX} Configuration saved.`)
     } catch (err) {
       console.error(`${LOG_PREFIX} Failed to save configuration:`, err)
       throw err
@@ -97,7 +97,7 @@ class AutomationGateway {
 
     // Fire and forget webhook
     try {
-      console.log(`${LOG_PREFIX} 🚀 Dispatching event to Webhook: ${_type}`)
+      // console.log(`${LOG_PREFIX} 🚀 Dispatching event to Webhook: ${_type}`)
       
       // We don't await this to avoid blocking the event loop
       fetch(this.webhookUrl, {
@@ -105,7 +105,7 @@ class AutomationGateway {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       }).catch(err => {
-        console.warn(`${LOG_PREFIX} ⚠ Webhook dispatch failed:`, err)
+        // console.warn(`${LOG_PREFIX} ⚠ Webhook dispatch failed:`, err)
       })
     } catch (err) {
       console.error(`${LOG_PREFIX} ❌ Dispatch error:`, err)

@@ -102,7 +102,7 @@ export async function batchUploadTrail(executionId, positions) {
       updatedAt: serverTimestamp(),
     })
 
-    console.log(`${LOG_PREFIX} Batch uploaded ${positions.length} track points`)
+    // console.log(`${LOG_PREFIX} Batch uploaded ${positions.length} track points`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Batch upload failed:`, error)
     throw error
@@ -123,7 +123,7 @@ export async function clearLivePosition(guardId) {
       updatedAt: serverTimestamp(),
     }, { merge: true })
 
-    console.log(`${LOG_PREFIX} Live position cleared for: ${guardId}`)
+    // console.log(`${LOG_PREFIX} Live position cleared for: ${guardId}`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Failed to clear live position:`, error)
   }

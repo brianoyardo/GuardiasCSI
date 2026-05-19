@@ -21,11 +21,11 @@ const LOG_PREFIX = '[AuthService]'
  * @returns {Promise<import('firebase/auth').UserCredential>}
  */
 export async function loginWithEmail(email, password) {
-  console.log(`${LOG_PREFIX} 🔐 Attempting login for: ${email}`)
+  // console.log(`${LOG_PREFIX} 🔐 Attempting login for: ${email}`)
 
   try {
     const credential = await signInWithEmailAndPassword(auth, email, password)
-    console.log(`${LOG_PREFIX} ✅ Firebase Auth login successful: ${credential.user.uid}`)
+    // console.log(`${LOG_PREFIX} ✅ Firebase Auth login successful: ${credential.user.uid}`)
 
     // Activity log (non-blocking)
     logActivity(credential.user.uid, 'login', 'auth', {
@@ -63,7 +63,7 @@ export async function logout() {
   const uid = auth.currentUser?.uid
   const email = auth.currentUser?.email
 
-  console.log(`${LOG_PREFIX} 🚪 Logging out: ${email || 'unknown'}`)
+  // console.log(`${LOG_PREFIX} 🚪 Logging out: ${email || 'unknown'}`)
 
   if (uid) {
     logActivity(uid, 'logout', 'auth', {
@@ -72,7 +72,7 @@ export async function logout() {
   }
 
   await signOut(auth)
-  console.log(`${LOG_PREFIX} ✅ Logout successful`)
+  // console.log(`${LOG_PREFIX} ✅ Logout successful`)
 }
 
 /**
@@ -82,7 +82,7 @@ export async function logout() {
 export async function updateDisplayName(displayName) {
   if (!auth.currentUser) throw new Error('No authenticated user')
   await updateProfile(auth.currentUser, { displayName })
-  console.log(`${LOG_PREFIX} Display name updated to: ${displayName}`)
+  // console.log(`${LOG_PREFIX} Display name updated to: ${displayName}`)
 }
 
 /**
@@ -105,9 +105,9 @@ export async function logActivity(userId, action, module, details = {}) {
       timestamp: serverTimestamp(),
       createdAt: new Date().toISOString(), // Immediate timestamp for debugging
     })
-    console.log(`${LOG_PREFIX} 📝 Activity logged: ${action} (${module})`)
+    // console.log(`${LOG_PREFIX} 📝 Activity logged: ${action} (${module})`)
   } catch (error) {
     // Non-blocking — don't break auth flow for log failures
-    console.warn(`${LOG_PREFIX} ⚠ Activity log failed (non-blocking):`, error.message)
+    // console.warn(`${LOG_PREFIX} ⚠ Activity log failed (non-blocking):`, error.message)
   }
 }

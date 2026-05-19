@@ -37,7 +37,7 @@ export async function sendNotification(userId, data) {
       read: false,
       createdAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} → Notification sent to ${userId}: ${data.title}`)
+    // console.log(`${LOG_PREFIX} → Notification sent to ${userId}: ${data.title}`)
     return ref.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error sending notification:`, error)
@@ -86,5 +86,5 @@ export async function markNotificationRead(notificationId) {
 export async function broadcastNotification(userIds, data) {
   const promises = userIds.map((uid) => sendNotification(uid, data))
   await Promise.allSettled(promises)
-  console.log(`${LOG_PREFIX} Broadcast sent to ${userIds.length} users`)
+  // console.log(`${LOG_PREFIX} Broadcast sent to ${userIds.length} users`)
 }

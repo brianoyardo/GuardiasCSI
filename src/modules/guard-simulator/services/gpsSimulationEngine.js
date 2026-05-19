@@ -36,14 +36,14 @@ class GPSSimulator {
 
     const routeLine = turf.lineString(this.routeGeometry.coordinates)
     this.totalDistanceKm = turf.length(routeLine, { units: 'kilometers' })
-    console.log(`${LOG_PREFIX} Guard ${this.guardId} initialized. Route length: ${this.totalDistanceKm.toFixed(2)} km`)
+    // console.log(`${LOG_PREFIX} Guard ${this.guardId} initialized. Route length: ${this.totalDistanceKm.toFixed(2)} km`)
   }
 
   start() {
     if (this.intervalId) return
     if (this.isFinished) return
 
-    console.log(`${LOG_PREFIX} Guard ${this.guardId} started patrol.`)
+    // console.log(`${LOG_PREFIX} Guard ${this.guardId} started patrol.`)
     eventBus.publish(OPERATIONAL_EVENTS.SIMULATION_STARTED, { guardId: this.guardId, executionId: this.executionId })
 
     this.intervalId = setInterval(() => {
@@ -58,33 +58,33 @@ class GPSSimulator {
     }
     this.isFinished = true
     eventBus.publish(OPERATIONAL_EVENTS.SIMULATION_ENDED, { guardId: this.guardId, executionId: this.executionId })
-    console.log(`${LOG_PREFIX} Guard ${this.guardId} stopped patrol.`)
+    // console.log(`${LOG_PREFIX} Guard ${this.guardId} stopped patrol.`)
   }
 
   pause() {
     this.isPaused = true
-    console.log(`${LOG_PREFIX} Guard ${this.guardId} paused.`)
+    // console.log(`${LOG_PREFIX} Guard ${this.guardId} paused.`)
   }
 
   resume() {
     this.isPaused = false
-    console.log(`${LOG_PREFIX} Guard ${this.guardId} resumed.`)
+    // console.log(`${LOG_PREFIX} Guard ${this.guardId} resumed.`)
   }
 
   dropSignal(isLost = true) {
     this.isSignalLost = isLost
     if (isLost) {
-      console.log(`${LOG_PREFIX} Guard ${this.guardId} lost GPS signal.`)
+      // console.log(`${LOG_PREFIX} Guard ${this.guardId} lost GPS signal.`)
       eventBus.publish(OPERATIONAL_EVENTS.GPS_SIGNAL_LOST, { guardId: this.guardId, executionId: this.executionId })
     } else {
-      console.log(`${LOG_PREFIX} Guard ${this.guardId} regained GPS signal.`)
+      // console.log(`${LOG_PREFIX} Guard ${this.guardId} regained GPS signal.`)
       eventBus.publish(OPERATIONAL_EVENTS.GPS_SIGNAL_RESTORED, { guardId: this.guardId, executionId: this.executionId })
     }
   }
 
   triggerDrift(isDrifting = true) {
     this.isDrifting = isDrifting
-    console.log(`${LOG_PREFIX} Guard ${this.guardId} drift mode: ${isDrifting}`)
+    // console.log(`${LOG_PREFIX} Guard ${this.guardId} drift mode: ${isDrifting}`)
   }
 
   triggerGeofenceExit(distanceMeters = 50) {
@@ -102,7 +102,7 @@ class GPSSimulator {
       speed: 0
     }
     
-    console.log(`${LOG_PREFIX} Guard ${this.guardId} injected geofence exit anomaly.`)
+    // console.log(`${LOG_PREFIX} Guard ${this.guardId} injected geofence exit anomaly.`)
     eventBus.publish(OPERATIONAL_EVENTS.GPS_POSITION_UPDATED, {
       guardId: this.guardId,
       executionId: this.executionId,
@@ -196,7 +196,7 @@ class SimulatorRegistry {
 
   create(guardId, config) {
     if (this.simulators.has(guardId)) {
-      console.warn(`${LOG_PREFIX} Simulator for guard ${guardId} already exists. Overwriting.`)
+      // console.warn(`${LOG_PREFIX} Simulator for guard ${guardId} already exists. Overwriting.`)
       this.simulators.get(guardId).destroy()
     }
     const simulator = new GPSSimulator(guardId, config)

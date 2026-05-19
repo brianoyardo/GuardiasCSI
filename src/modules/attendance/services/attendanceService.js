@@ -31,7 +31,7 @@ export async function checkIn(guardId, position, method = 'manual') {
       date: new Date().toISOString().split('T')[0],
       createdAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} ✅ Check-in: ${guardId}`)
+    // console.log(`${LOG_PREFIX} ✅ Check-in: ${guardId}`)
     return ref.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Check-in error:`, error)
@@ -54,7 +54,7 @@ export async function checkOut(guardId, position, method = 'manual') {
       date: new Date().toISOString().split('T')[0],
       createdAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} ✅ Check-out: ${guardId}`)
+    // console.log(`${LOG_PREFIX} ✅ Check-out: ${guardId}`)
     return ref.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Check-out error:`, error)
