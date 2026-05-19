@@ -63,13 +63,9 @@ export default function RondaAssignmentModal({ guards, routes, onSubmit, onClose
       return 'Selecciona una fecha de fin para la repetición'
     }
     if (isRecurring && recurringEndDate) {
-      const endDate = new Date(recurringEndDate).setHours(
-        new Date(value).getHours(),
-        new Date(value).getMinutes(),
-        0, 0
-      )
-      if (endDate <= selectedTime) {
-        return 'La fecha de fin debe ser posterior a la fecha de inicio'
+      const startDay = new Date(value).toISOString().split('T')[0]
+      if (recurringEndDate < startDay) {
+        return 'La fecha de fin debe ser igual o posterior a la fecha de inicio'
       }
     }
     return null

@@ -31,10 +31,11 @@ export default function MisRondasPage() {
   // 24h window filter using true time
   const now = getTrueTime()
   const oneDay = 24 * 60 * 60 * 1000
+  const twelveHours = 12 * 60 * 60 * 1000
   const windowedAssignments = assignments.filter(a => {
     const start = a.scheduledStart
     if (!start) return false
-    return start >= (now - oneDay) && start <= (now + oneDay)
+    return start >= (now - oneDay) && start <= (now + twelveHours)
   })
 
   // Apply status filter

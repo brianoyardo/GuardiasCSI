@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { STATE_LABELS, STATE_COLORS, canBeStarted, isActiveState } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { getTrueTime, isTimeSynced } from '@/utils/timeSync'
+import { updateAssignmentStatus } from '@/modules/rondas/services/rondaAssignmentService'
 import './RondaCard.css'
 
 export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
@@ -33,6 +34,12 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
   const isMissed = canBeStarted(status) && scheduledStart && now > (scheduledStart + TEN_MINUTES)
   const isLate = canBeStarted(status) && scheduledStart && now > scheduledStart && !isMissed
   const isSyncBlocked = strictTimeSync && !isTimeSynced
+
+  useEffect(() => {
+    if (isMissed && (status === 'available' || status === 'pending')) {
+      updateAssignmentStatus(assignment.id, 'missed')
+    }
+  }, [isMissed, status, assignment.id])
 
   const handleAction = () => {
     navigate(`/guard/ronda/${assignment.id}`, { state: { startedLate: isLate } })

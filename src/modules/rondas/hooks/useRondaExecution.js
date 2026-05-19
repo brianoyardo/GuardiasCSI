@@ -145,6 +145,14 @@ export function useRondaExecution(options) {
     }
   }, [executionId, status, geo, tracking])
 
+  const completedCountRef = useRef(0)
+
+  useEffect(() => {
+    if (validation.completedCount === checkpoints.length && checkpoints.length > 0 && validation.completedCount > 0) {
+      finishRonda()
+    }
+  }, [validation.completedCount, checkpoints.length])
+
   // ─── Register checkpoint ───
   const registerCheckpointHit = useCallback(
     async (checkpointId) => {
@@ -180,10 +188,6 @@ export function useRondaExecution(options) {
 
         validation.markCompleted(checkpointId)
         setError(null)
-
-        if (validation.completedCount + 1 === checkpoints.length) {
-          await finishRonda()
-        }
 
         return { success: true, validation: result }
       } catch (err) {

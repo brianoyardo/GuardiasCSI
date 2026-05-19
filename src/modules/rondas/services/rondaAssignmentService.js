@@ -162,6 +162,7 @@ export async function createAssignment(data) {
       status: RONDA_STATES.AVAILABLE,
       executionId: null,
       notes: data.notes || '',
+      strictTimeSync: data.strictTimeSync !== undefined ? data.strictTimeSync : true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
