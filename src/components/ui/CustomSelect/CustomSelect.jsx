@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import './CustomSelect.css'
 
-export default function CustomSelect({ value, onChange, options, placeholder = 'Seleccionar...' }) {
+export default function CustomSelect({ value, onChange, options, placeholder = 'Seleccionar...', direction = 'down' }) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef(null)
 
@@ -25,7 +25,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
   return (
     <div className="custom-select" ref={containerRef}>
       <div
-        className={`custom-select__trigger ${isOpen ? 'custom-select__trigger--open' : ''}`}
+        className={`custom-select__trigger ${isOpen ? (direction === 'up' ? 'custom-select__trigger--open-up' : 'custom-select__trigger--open') : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         role="button"
         tabIndex={0}
@@ -38,7 +38,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
       </div>
 
       {isOpen && (
-        <ul className="custom-select__dropdown">
+        <ul className={`custom-select__dropdown ${direction === 'up' ? 'custom-select__dropdown--up' : ''}`}>
           {options.map((opt) => (
             <li
               key={opt.value}

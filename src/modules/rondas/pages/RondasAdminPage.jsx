@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { createAssignment, subscribeToAllAssignments } from '@/modules/rondas/services/rondaAssignmentService'
 import { getRoutes } from '@/modules/spatial/services/spatialService'
@@ -160,18 +160,20 @@ export default function RondasAdminPage() {
     }
 
     if (from) {
-      const fromTs = new Date(from).getTime()
+      const [y, m, d] = from.split('-')
+      const startOfDayTs = new Date(y, m - 1, d, 0, 0, 0, 0).getTime()
       result = result.filter(a => {
         const startTs = typeof a.scheduledStart === 'number' ? a.scheduledStart : a.scheduledStart?.toMillis?.() || 0
-        return startTs >= fromTs
+        return startTs >= startOfDayTs
       })
     }
 
     if (to) {
-      const toTs = new Date(to).setHours(23, 59, 59, 999)
+      const [y, m, d] = to.split('-')
+      const endOfDayTs = new Date(y, m - 1, d, 23, 59, 59, 999).getTime()
       result = result.filter(a => {
         const startTs = typeof a.scheduledStart === 'number' ? a.scheduledStart : a.scheduledStart?.toMillis?.() || 0
-        return startTs <= toTs
+        return startTs <= endOfDayTs
       })
     }
 
@@ -415,8 +417,8 @@ export default function RondasAdminPage() {
               <tbody>
                 {groupByGuard ? (
                   Object.entries(groupedData).map(([guardId, guardAssignments]) => (
-                    <>
-                      <tr key={`group-${guardId}`} className="rondas-admin__group-header">
+                    <Fragment key={`group-fragment-${guardId}`}>
+                      <tr className="rondas-admin__group-header">
                         <td colSpan={6}>
                           <span className="rondas-admin__group-name">
                             👤 {getGuardInfo(guardId).name}
@@ -425,7 +427,7 @@ export default function RondasAdminPage() {
                         </td>
                       </tr>
                       {guardAssignments.map(a => renderTableRow(a))}
-                    </>
+                    </Fragment>
                   ))
                 ) : (
                   paginatedData.map(a => renderTableRow(a))
@@ -441,6 +443,7 @@ export default function RondasAdminPage() {
                 value={itemsPerPage}
                 onChange={(val) => setItemsPerPage(Number(val))}
                 options={pageSizeOptions}
+                direction="up"
               />
             </div>
 
