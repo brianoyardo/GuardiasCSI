@@ -4,6 +4,12 @@
    Bottom navigation with professional cutout
    ============================================ */
 
+/* Variables para precisión del diseño */
+:root {
+  --nav-height: 65px;
+  --panic-btn-size: 62px;
+}
+
 .guard-layout {
   display: flex;
   flex-direction: column;
@@ -66,88 +72,89 @@
 .guard-layout__content {
   flex: 1;
   padding: var(--space-4);
-  padding-bottom: calc(var(--bottom-nav-height, 65px) + var(--space-4));
+  padding-bottom: calc(var(--nav-height) + var(--space-4));
   overflow-y: auto;
 }
 
-/* ─── Barra Inferior con Mordida Perfecta ─── */
+/* ─── Contenedor Principal (Layout) ─── */
 .guard-layout__bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: var(--bottom-nav-height, 65px);
+  height: var(--nav-height);
   background: transparent;
-  background-image: radial-gradient(circle at 50% 0px, transparent 38px, var(--color-dark-surface) 39px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   border-top: none;
-  filter: drop-shadow(0 -4px 10px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(0 -4px 8px rgba(0, 0, 0, 0.3));
 }
 
-/* Separamos los enlaces para dejar el hueco central */
-.guard-layout__nav-item:nth-child(1) {
-  margin-right: 4.5rem;
+/* ─── La Mordida (Muesca Cóncava) ─── */
+.guard-layout__bottom-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-dark-surface, #1e1e2e);
+  -webkit-mask-image: radial-gradient(circle at 50% 0px, transparent calc(var(--panic-btn-size) / 2 + 6px), black calc(var(--panic-btn-size) / 2 + 7px));
+  mask-image: radial-gradient(circle at 50% 0px, transparent calc(var(--panic-btn-size) / 2 + 6px), black calc(var(--panic-btn-size) / 2 + 7px));
+  z-index: -1;
 }
 
-.guard-layout__nav-item:nth-child(3) {
-  margin-left: 4.5rem;
-}
-
+/* ─── NavItems: Separación para el hueco central ─── */
 .guard-layout__nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: var(--space-2);
-  color: var(--color-dark-text-muted);
-  font-size: var(--text-xs);
+  justify-content: center;
   text-decoration: none;
-  transition: color var(--transition-fast);
-  border: none;
-  background: none;
-  cursor: pointer;
-  min-width: 64px;
+  color: var(--color-dark-text-muted, #888);
+  font-size: var(--text-xs);
+  transition: color 0.2s ease;
+  width: 80px;
+}
+
+/* Márgenes asimétricos exactos para encajar con el cutout */
+.guard-layout__nav-item:first-of-type {
+  margin-right: 4.5rem;
+}
+
+.guard-layout__nav-item:last-of-type {
+  margin-left: 4.5rem;
 }
 
 .guard-layout__nav-item--active {
-  color: var(--color-primary-400);
-}
-
-.guard-layout__nav-item:hover {
-  color: var(--color-dark-text);
+  color: var(--color-primary-400, #a78bfa);
 }
 
 .guard-layout__nav-icon {
-  font-size: var(--text-xl);
+  font-size: 1.4rem;
+  margin-bottom: 2px;
 }
 
 .guard-layout__nav-label {
   font-weight: var(--font-medium);
 }
 
-/* ─── Contenedor y Botón de Pánico Elevado ─── */
+/* ─── Botón de Pánico Elevado y Flotante ─── */
 .panic-button-container {
   position: absolute;
-  top: -26px;
+  top: calc((var(--panic-btn-size) / 2 + 4px) * -1);
   left: 50%;
   transform: translateX(-50%);
   z-index: 1010;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .panic-button-circle {
-  width: 60px;
-  height: 60px;
+  width: var(--panic-btn-size);
+  height: var(--panic-btn-size);
   border-radius: 50%;
   background: linear-gradient(135deg, #dc2626, #991b1b);
   border: none;
   color: white;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -165,8 +172,16 @@
   transform: scale(0.95);
 }
 
+/* Ajustes Mobile */
 @media (max-width: 768px) {
-  .guard-layout__bottom-nav {
-    padding: 0 var(--space-4);
+  :root {
+    --nav-height: 60px;
+    --panic-btn-size: 56px;
+  }
+  .guard-layout__nav-item:first-of-type {
+    margin-right: 3.8rem;
+  }
+  .guard-layout__nav-item:last-of-type {
+    margin-left: 3.8rem;
   }
 }
