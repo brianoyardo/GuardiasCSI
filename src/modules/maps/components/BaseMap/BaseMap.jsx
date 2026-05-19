@@ -117,6 +117,7 @@ export default function BaseMap({
   tileProvider = 'carto_dark',
   onMapReady,
   currentExecutionId = null,
+  allowedLayers = null,
   children,
 }) {
   const [isFullscreen, setIsFullscreen] = useState(fullscreen)
@@ -149,7 +150,11 @@ export default function BaseMap({
 
   // Layer visibility from Zustand store (shared across all components)
   const layerStore = useMapLayerStore()
-  const layerList = useMemo(() => getLayerList(layerStore), [layerStore])
+  const allLayerList = useMemo(() => getLayerList(layerStore), [layerStore])
+  const layerList = useMemo(() => {
+    if (!allowedLayers) return allLayerList
+    return allLayerList.filter(l => allowedLayers.includes(l.id))
+  }, [allLayerList, allowedLayers])
 
   const mapCenter = useMemo(
     () => center ? [center.lat, center.lng] : [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng],

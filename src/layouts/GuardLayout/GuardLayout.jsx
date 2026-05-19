@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { logout } from '@/modules/auth/services/authService'
 import { createPanicIncident } from '@/modules/incidents/services/incidentService'
+import { useGlobalPresence } from '@/modules/maps/hooks/useGlobalPresence'
+import { subscribeToGuardAssignments } from '@/modules/rondas/services/rondaAssignmentService'
+import { subscribeToActiveExecutions } from '@/modules/monitoring/services/realtimeMonitoringService'
+import { RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import PanicModal from '@/components/ui/PanicModal/PanicModal'
 import './GuardLayout.css'
 
@@ -11,9 +15,52 @@ export default function GuardLayout() {
   const navigate = useNavigate()
   const [showPanicModal, setShowPanicModal] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [executionStatus, setExecutionStatus] = useState(null)
+
+  useEffect(() => {
+    if (!user?.uid) return
+
+    const unsubAssign = subscribeToGuardAssignments(user.uid, (assignments) => {
+      const activeIds = assignments
+        .filter(a => ['in_progress', 'paused', 'validating_voice'].includes(a.status))
+        .map(a => a.executionId || a.id)
+
+      if (activeIds.length === 0) {
+        setExecutionStatus(null)
+        return
+      }
+
+      const unsubExec = subscribeToActiveExecutions((executions) => {
+        const myExec = executions.find(e => activeIds.includes(e.id) || e.assignmentId === activeIds[0])
+        if (myExec) {
+          setExecutionStatus(myExec.status)
+        } else {
+          setExecutionStatus(null)
+        }
+      })
+
+      return () => unsubExec()
+    })
+
+    return () => unsubAssign()
+  }, [user?.uid])
+
+  const presenceStatus = executionStatus === RONDA_STATES.IN_PROGRESS
+    ? 'in_progress'
+    : executionStatus === RONDA_STATES.VALIDATING_VOICE
+      ? 'validating_voice'
+      : 'online'
+
+  const { clearPresence } = useGlobalPresence({
+    guardId: user?.uid || null,
+    guardName: user?.displayName || '',
+    guardCode: user?.guardId || '',
+    executionStatus: presenceStatus,
+  })
 
   const handleLogout = async () => {
     try {
+      await clearPresence()
       await logout()
       navigate('/login', { replace: true })
     } catch (err) {
