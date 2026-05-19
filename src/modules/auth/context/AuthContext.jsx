@@ -21,10 +21,10 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false)
 
   useEffect(() => {
-    console.log(`${LOG_PREFIX} 🚀 Initializing auth state listener...`)
+    // console.log(`${LOG_PREFIX} 🚀 Initializing auth state listener...`)
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log(`${LOG_PREFIX} Auth state changed:`, firebaseUser ? firebaseUser.email : 'null')
+      // console.log(`${LOG_PREFIX} Auth state changed:`, firebaseUser ? firebaseUser.email : 'null')
 
       try {
         if (firebaseUser) {
@@ -37,7 +37,7 @@ export function AuthProvider({ children }) {
 
           // Validate user status
           if (userProfile.status === USER_STATUS.SUSPENDED) {
-            console.warn(`${LOG_PREFIX} ⚠ User is suspended: ${firebaseUser.email}`)
+            // console.warn(`${LOG_PREFIX} ⚠ User is suspended: ${firebaseUser.email}`)
             setError('Tu cuenta ha sido suspendida. Contacta al administrador.')
             setProfile(null)
             // Sign out suspended users
@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
           }
 
           if (userProfile.status === USER_STATUS.INACTIVE) {
-            console.warn(`${LOG_PREFIX} ⚠ User is inactive: ${firebaseUser.email}`)
+            // console.warn(`${LOG_PREFIX} ⚠ User is inactive: ${firebaseUser.email}`)
             setError('Tu cuenta está inactiva. Contacta al administrador.')
             setProfile(null)
             await auth.signOut()
@@ -56,14 +56,14 @@ export function AuthProvider({ children }) {
           }
 
           setProfile(userProfile)
-          console.log(`${LOG_PREFIX} ✅ Auth + Profile loaded:`, {
-            uid: userProfile.id || userProfile.uid,
-            email: userProfile.email,
-            role: userProfile.role,
-            status: userProfile.status,
-          })
+          // console.log(`${LOG_PREFIX} ✅ Auth + Profile loaded:`, {
+          //   uid: userProfile.id || userProfile.uid,
+          //   email: userProfile.email,
+          //   role: userProfile.role,
+          //   status: userProfile.status,
+          // })
         } else {
-          console.log(`${LOG_PREFIX} User signed out`)
+          // console.log(`${LOG_PREFIX} User signed out`)
           setUser(null)
           setProfile(null)
           setError(null)
@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
     })
 
     return () => {
-      console.log(`${LOG_PREFIX} Cleaning up auth listener`)
+      // console.log(`${LOG_PREFIX} Cleaning up auth listener`)
       unsubscribe()
     }
   }, [])
@@ -109,7 +109,7 @@ export function AuthProvider({ children }) {
       const updated = await ensureUserProfile(user)
       setProfile(updated)
     } catch (err) {
-      console.error(`${LOG_PREFIX} Error refreshing profile:`, err)
+      // console.error(`${LOG_PREFIX} Error refreshing profile:`, err)
     } finally {
       setProfileLoading(false)
     }

@@ -67,7 +67,7 @@ export function useGeolocation(options = {}) {
         { ...newPos, accuracy: acc, timestamp: geoPosition.timestamp },
       ]
 
-      console.log(`${LOG_PREFIX} Position: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${acc?.toFixed(0)}m)`)
+      // console.log(`${LOG_PREFIX} Position: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${acc?.toFixed(0)}m)`)
 
       if (onPositionUpdate) {
         onPositionUpdate(newPos, geoPosition)
@@ -105,7 +105,7 @@ export function useGeolocation(options = {}) {
 
     setIsLoading(true)
     setError(null)
-    console.log(`${LOG_PREFIX} Requesting current position...`)
+    // console.log(`${LOG_PREFIX} Requesting current position...`)
 
     navigator.geolocation.getCurrentPosition(handlePosition, handleError, gpsOptions)
   }, [handlePosition, handleError, gpsOptions])
@@ -120,14 +120,14 @@ export function useGeolocation(options = {}) {
     }
 
     if (watchIdRef.current !== null) {
-      console.warn(`${LOG_PREFIX} Already tracking, ignoring start request`)
+      // console.warn(`${LOG_PREFIX} Already tracking, ignoring start request`)
       return
     }
 
     setIsLoading(true)
     setError(null)
     setIsTracking(true)
-    console.log(`${LOG_PREFIX} 🛰 Starting GPS tracking...`)
+    // console.log(`${LOG_PREFIX} 🛰 Starting GPS tracking...`)
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       handlePosition,
@@ -144,7 +144,7 @@ export function useGeolocation(options = {}) {
       navigator.geolocation.clearWatch(watchIdRef.current)
       watchIdRef.current = null
       setIsTracking(false)
-      console.log(`${LOG_PREFIX} 🛑 GPS tracking stopped`)
+      // console.log(`${LOG_PREFIX} 🛑 GPS tracking stopped`)
     }
   }, [])
 

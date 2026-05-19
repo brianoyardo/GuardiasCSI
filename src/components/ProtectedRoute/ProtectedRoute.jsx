@@ -28,25 +28,25 @@ export default function ProtectedRoute({ children, allowedRoles, requiredPermiss
 
   // ─── Loading states ───
   if (loading || profileLoading) {
-    console.log(`${LOG_PREFIX} Loading auth/profile...`)
+    // console.log(`${LOG_PREFIX} Loading auth/profile...`)
     return <LoadingScreen message="Verificando credenciales..." />
   }
 
   // ─── Not authenticated ───
   if (!isAuthenticated) {
-    console.log(`${LOG_PREFIX} ❌ Not authenticated, redirecting to /login`)
+    // console.log(`${LOG_PREFIX} ❌ Not authenticated, redirecting to /login`)
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   // ─── Auth error (suspended, etc.) ───
   if (error) {
-    console.log(`${LOG_PREFIX} ❌ Auth error: ${error}`)
+    // console.log(`${LOG_PREFIX} ❌ Auth error: ${error}`)
     return <Navigate to="/login" state={{ error }} replace />
   }
 
   // ─── Profile incomplete or missing ───
   if (!isProfileComplete) {
-    console.warn(`${LOG_PREFIX} ⚠ Profile incomplete for user:`, profile?.email)
+    // console.warn(`${LOG_PREFIX} ⚠ Profile incomplete for user:`, profile?.email)
     return (
       <div style={{
         display: 'flex',
@@ -80,16 +80,16 @@ export default function ProtectedRoute({ children, allowedRoles, requiredPermiss
 
   // ─── Role check ───
   if (allowedRoles && !allowedRoles.includes(role)) {
-    console.warn(`${LOG_PREFIX} ❌ Role "${role}" not in allowed: [${allowedRoles.join(', ')}]`)
+    // console.warn(`${LOG_PREFIX} ❌ Role "${role}" not in allowed: [${allowedRoles.join(', ')}]`)
     return <Navigate to="/unauthorized" replace />
   }
 
   // ─── Permission check ───
   if (requiredPermission && !checkPermission(requiredPermission)) {
-    console.warn(`${LOG_PREFIX} ❌ Missing permission: "${requiredPermission}" for role "${role}"`)
+    // console.warn(`${LOG_PREFIX} ❌ Missing permission: "${requiredPermission}" for role "${role}"`)
     return <Navigate to="/unauthorized" replace />
   }
 
-  console.log(`${LOG_PREFIX} ✅ Access granted for role: ${role}`)
+  // console.log(`${LOG_PREFIX} ✅ Access granted for role: ${role}`)
   return children
 }

@@ -137,7 +137,7 @@ export function useIncidentReporting() {
           // GPS completely unavailable
           if (import.meta.env.DEV) {
             // Dev mode: use fallback coordinates so testing isn't blocked
-            console.warn(`${LOG_PREFIX} GPS unavailable, using dev fallback (La Paz center)`)
+            // console.warn(`${LOG_PREFIX} GPS unavailable, using dev fallback (La Paz center)`)
             currentPos = DEV_FALLBACK_POSITION
           } else {
             // Production: return clean error for UI display

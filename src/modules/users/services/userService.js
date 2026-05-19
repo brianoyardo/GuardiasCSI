@@ -29,22 +29,22 @@ const LOG_PREFIX = '[UserService]'
  */
 export async function getUserProfile(uid) {
   try {
-    console.log(`${LOG_PREFIX} Fetching profile for uid: ${uid}`)
+    // console.log(`${LOG_PREFIX} Fetching profile for uid: ${uid}`)
     const userRef = doc(db, COLLECTIONS.USERS, uid)
     const userSnap = await getDoc(userRef)
 
     if (userSnap.exists()) {
       const profile = { id: userSnap.id, ...userSnap.data() }
-      console.log(`${LOG_PREFIX} Profile found:`, {
-        uid: profile.id,
-        email: profile.email,
-        role: profile.role,
-        status: profile.status,
-      })
+      // console.log(`${LOG_PREFIX} Profile found:`, {
+      //   uid: profile.id,
+      //   email: profile.email,
+      //   role: profile.role,
+      //   status: profile.status,
+      // })
       return profile
     }
 
-    console.log(`${LOG_PREFIX} No profile found for uid: ${uid}`)
+    // console.log(`${LOG_PREFIX} No profile found for uid: ${uid}`)
     return null
   } catch (error) {
     console.error(`${LOG_PREFIX} Error fetching profile:`, error)
@@ -62,7 +62,7 @@ export async function getUserProfile(uid) {
 export async function createUserProfile(firebaseUser, overrides = {}) {
   const uid = firebaseUser.uid
 
-  console.log(`${LOG_PREFIX} Creating Firestore profile for: ${firebaseUser.email}`)
+  // console.log(`${LOG_PREFIX} Creating Firestore profile for: ${firebaseUser.email}`)
 
   const profile = {
     uid,
@@ -89,11 +89,11 @@ export async function createUserProfile(firebaseUser, overrides = {}) {
     const userRef = doc(db, COLLECTIONS.USERS, uid)
     await setDoc(userRef, profile)
 
-    console.log(`${LOG_PREFIX} ✅ Profile created successfully:`, {
-      uid,
-      email: profile.email,
-      role: profile.role,
-    })
+    // console.log(`${LOG_PREFIX} ✅ Profile created successfully:`, {
+    //   uid,
+    //   email: profile.email,
+    //   role: profile.role,
+    // })
 
     // Return with resolved ID
     return { id: uid, ...profile }
@@ -114,10 +114,10 @@ export async function updateLastLogin(uid) {
       lastLogin: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} LastLogin updated for: ${uid}`)
+    // console.log(`${LOG_PREFIX} LastLogin updated for: ${uid}`)
   } catch (error) {
     // Non-blocking
-    console.warn(`${LOG_PREFIX} Failed to update lastLogin:`, error)
+    // console.warn(`${LOG_PREFIX} Failed to update lastLogin:`, error)
   }
 }
 
@@ -129,7 +129,7 @@ export async function updateLastLogin(uid) {
  * @returns {Promise<object>} User profile
  */
 export async function ensureUserProfile(firebaseUser) {
-  console.log(`${LOG_PREFIX} 🔄 Syncing Auth → Firestore for: ${firebaseUser.email}`)
+  // console.log(`${LOG_PREFIX} 🔄 Syncing Auth → Firestore for: ${firebaseUser.email}`)
 
   const existingProfile = await getUserProfile(firebaseUser.uid)
 
@@ -143,7 +143,7 @@ export async function ensureUserProfile(firebaseUser) {
   }
 
   // Profile doesn't exist — create it
-  console.log(`${LOG_PREFIX} ⚠ No Firestore profile found. Auto-creating...`)
+  // console.log(`${LOG_PREFIX} ⚠ No Firestore profile found. Auto-creating...`)
   const newProfile = await createUserProfile(firebaseUser)
   return newProfile
 }
@@ -173,12 +173,12 @@ function validateProfile(profile) {
 
   // Check for critical missing fields
   if (!validated.role) {
-    console.warn(`${LOG_PREFIX} ⚠ Profile missing role, defaulting to guard`)
+    // console.warn(`${LOG_PREFIX} ⚠ Profile missing role, defaulting to guard`)
     validated.role = ROLES.GUARD
   }
 
   if (!validated.status) {
-    console.warn(`${LOG_PREFIX} ⚠ Profile missing status, defaulting to active`)
+    // console.warn(`${LOG_PREFIX} ⚠ Profile missing status, defaulting to active`)
     validated.status = USER_STATUS.ACTIVE
   }
 
@@ -197,7 +197,7 @@ export async function updateUserProfile(uid, fields) {
       ...fields,
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} Profile updated for: ${uid}`, Object.keys(fields))
+    // console.log(`${LOG_PREFIX} Profile updated for: ${uid}`, Object.keys(fields))
   } catch (error) {
     console.error(`${LOG_PREFIX} Error updating profile:`, error)
     throw error
@@ -250,7 +250,7 @@ export async function enrollVoiceProfile(uid, voiceData) {
       biometricEnrolled: true,
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} 🎤 Voice profile enrolled for: ${uid}`)
+    // console.log(`${LOG_PREFIX} 🎤 Voice profile enrolled for: ${uid}`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Error enrolling voice profile:`, error)
     throw error
@@ -274,7 +274,7 @@ export async function updateVoiceVerification(uid, voiceResult) {
       lastVoiceVerifiedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} 🎤 Voice verification updated for: ${uid} (score: ${voiceResult.matchScore})`)
+    // console.log(`${LOG_PREFIX} 🎤 Voice verification updated for: ${uid} (score: ${voiceResult.matchScore})`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Error updating voice verification:`, error)
     throw error
@@ -371,7 +371,7 @@ export async function adminCreateUser(data) {
 
     await setDoc(userRef, profile)
 
-    console.log(`${LOG_PREFIX} ✅ User created: ${email} (${role})`)
+    // console.log(`${LOG_PREFIX} ✅ User created: ${email} (${role})`)
     return { id: createdUid, ...profile }
   } catch (error) {
     // Cleanup Auth user if Firestore creation failed
@@ -410,7 +410,7 @@ export async function updateUserRole(uid, newRole) {
     role: newRole,
     updatedAt: serverTimestamp(),
   })
-  console.log(`${LOG_PREFIX} Role updated for ${uid} → ${newRole}`)
+  // console.log(`${LOG_PREFIX} Role updated for ${uid} → ${newRole}`)
 }
 
 /**
@@ -425,7 +425,7 @@ export async function toggleUserStatus(uid, currentStatus) {
     status: newStatus,
     updatedAt: serverTimestamp(),
   })
-  console.log(`${LOG_PREFIX} Status toggled for ${uid} → ${newStatus}`)
+  // console.log(`${LOG_PREFIX} Status toggled for ${uid} → ${newStatus}`)
   return newStatus
 }
 

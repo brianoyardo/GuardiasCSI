@@ -4,46 +4,9 @@ import { useAuth } from '@/modules/auth/context/AuthContext'
 import { logout } from '@/modules/auth/services/authService'
 import { createPanicIncident } from '@/modules/incidents/services/incidentService'
 import { t } from '@/config/labels'
-import styled from 'styled-components'
 import { FaExclamationTriangle } from 'react-icons/fa'
 import PanicModal from '@/components/ui/PanicModal/PanicModal'
 import './GuardLayout.css'
-
-const PanicButtonCircle = styled.button`
-  position: relative;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  border: 3px solid #ef4444;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow:
-    0 4px 16px rgba(220, 38, 38, 0.5),
-    0 0 24px rgba(239, 68, 68, 0.3),
-    0 -2px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow:
-      0 6px 24px rgba(220, 38, 38, 0.7),
-      0 0 32px rgba(239, 68, 68, 0.5),
-      0 -2px 8px rgba(0, 0, 0, 0.3);
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-`
-
-const PanicIcon = styled(FaExclamationTriangle)`
-  font-size: 1.5rem;
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
-`
 
 export default function GuardLayout() {
   const { user } = useAuth()
@@ -125,12 +88,6 @@ export default function GuardLayout() {
           <span className="guard-layout__nav-label">{t('nav.misRondas')}</span>
         </NavLink>
 
-        <div className="guard-layout__panic-container">
-          <PanicButtonCircle onClick={() => setShowPanicModal(true)} aria-label="Botón de pánico">
-            <PanicIcon />
-          </PanicButtonCircle>
-        </div>
-
         <NavLink
           to="/guard/incidents"
           className={({ isActive }) =>
@@ -141,6 +98,13 @@ export default function GuardLayout() {
           <span className="guard-layout__nav-label">Reportar</span>
         </NavLink>
       </nav>
+
+      {/* Panic Button (absolute, outside nav flow) */}
+      <div className="panic-button-container">
+        <button className="panic-button-circle" onClick={() => setShowPanicModal(true)} aria-label="Botón de pánico">
+          <FaExclamationTriangle />
+        </button>
+      </div>
 
       {/* Panic Modal */}
       {showPanicModal && (

@@ -145,7 +145,7 @@ export async function createAssignment(data) {
       updatedAt: serverTimestamp(),
     })
 
-    console.log(`${LOG_PREFIX} ✅ Assignment created: ${assignRef.id} → Guard ${data.guardId}`)
+    // console.log(`${LOG_PREFIX} ✅ Assignment created: ${assignRef.id} → Guard ${data.guardId}`)
     return assignRef.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error creating assignment:`, error)
@@ -166,7 +166,7 @@ export async function updateAssignmentStatus(assignmentId, status, extraFields =
       ...extraFields,
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} Assignment ${assignmentId} → ${status}`)
+    // console.log(`${LOG_PREFIX} Assignment ${assignmentId} → ${status}`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Error updating assignment:`, error)
     throw error

@@ -103,7 +103,7 @@ export async function startExecution(data) {
       shift: execution.shift,
     })
 
-    console.log(`${LOG_PREFIX} ✅ Execution started: ${execRef.id} (state: ${initialState})`)
+    // console.log(`${LOG_PREFIX} ✅ Execution started: ${execRef.id} (state: ${initialState})`)
     return execRef.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error starting execution:`, error)
@@ -154,7 +154,7 @@ export async function registerCheckpoint(executionId, checkpointId, position, di
       createdAt: serverTimestamp(),
     })
 
-    console.log(`${LOG_PREFIX} ✓ Checkpoint registered: ${checkpointId} (${distance.toFixed(0)}m)`)
+    // console.log(`${LOG_PREFIX} ✓ Checkpoint registered: ${checkpointId} (${distance.toFixed(0)}m)`)
   } catch (error) {
     console.error(`${LOG_PREFIX} ❌ FAILED to register checkpoint in Firestore:`, error)
     console.error(`${LOG_PREFIX} Error details:`, {
@@ -193,7 +193,7 @@ export async function updateExecutionPosition(executionId, position, accuracy = 
     })
   } catch (error) {
     // Non-blocking — telemetry can continue even if this fails
-    console.warn(`${LOG_PREFIX} Failed to update lastPosition for ${executionId}:`, error)
+    // console.warn(`${LOG_PREFIX} Failed to update lastPosition for ${executionId}:`, error)
   }
 }
 
@@ -240,7 +240,7 @@ export async function transitionExecution(executionId, currentState, nextState, 
       }
     }
 
-    console.log(`${LOG_PREFIX} Transition: ${currentState} → ${nextState} (${executionId})`)
+    // console.log(`${LOG_PREFIX} Transition: ${currentState} → ${nextState} (${executionId})`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Error transitioning execution:`, error)
     throw error
@@ -409,7 +409,7 @@ export async function startVoiceValidation(executionId, currentState, position) 
     updatedAt: serverTimestamp(),
   })
 
-  console.log(`${LOG_PREFIX} 🎤 Voice validation started: ${executionId}`)
+  // console.log(`${LOG_PREFIX} 🎤 Voice validation started: ${executionId}`)
 }
 
 /**
@@ -472,7 +472,7 @@ export async function recordVoiceValidation(executionId, voiceResult) {
       await updateAssignmentStatus(assignmentId, RONDA_STATES.IN_PROGRESS)
     }
 
-    console.log(`${LOG_PREFIX} 🎤 Voice validation recorded: ${executionId} (score: ${voiceResult.matchScore}, passed: ${voiceResult.passed}) → ${nextState}`)
+    // console.log(`${LOG_PREFIX} 🎤 Voice validation recorded: ${executionId} (score: ${voiceResult.matchScore}, passed: ${voiceResult.passed}) → ${nextState}`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Error recording voice validation:`, error)
     throw error

@@ -49,7 +49,7 @@ export async function createIncident(data) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} ✅ Incident created: ${ref.id}`)
+    // console.log(`${LOG_PREFIX} ✅ Incident created: ${ref.id}`)
     return ref.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error creating incident:`, error)
@@ -90,7 +90,7 @@ export async function createPanicIncident(data) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    console.log(`${LOG_PREFIX} 🚨 PANIC INCIDENT created: ${ref.id}`)
+    // console.log(`${LOG_PREFIX} 🚨 PANIC INCIDENT created: ${ref.id}`)
     return ref.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error creating panic incident:`, error)
@@ -117,7 +117,7 @@ export async function updateIncidentStatus(incidentId, status, extras = {}) {
     }
 
     await updateDoc(doc(db, COLLECTIONS.INCIDENTS, incidentId), updates)
-    console.log(`${LOG_PREFIX} Incident ${incidentId} → ${status}`)
+    // console.log(`${LOG_PREFIX} Incident ${incidentId} → ${status}`)
   } catch (error) {
     console.error(`${LOG_PREFIX} Error updating incident:`, error)
     throw error

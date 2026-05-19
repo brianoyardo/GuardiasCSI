@@ -60,7 +60,7 @@ export function useMapTracking(options = {}) {
           initialTrail[i].lat, initialTrail[i].lng
         )
       }
-      console.log(`${LOG_PREFIX} 🗺️ Trail hydrated: ${initialTrail.length} points, ${totalDistRef.current.toFixed(0)}m`)
+      // console.log(`${LOG_PREFIX} 🗺️ Trail hydrated: ${initialTrail.length} points, ${totalDistRef.current.toFixed(0)}m`)
     }
   }, [initialTrail])
 
@@ -127,7 +127,7 @@ export function useMapTracking(options = {}) {
    * Start recording trail
    */
   const startRecording = useCallback(() => {
-    console.log(`${LOG_PREFIX} 🔴 Recording started`)
+    // console.log(`${LOG_PREFIX} 🔴 Recording started`)
     startTimeRef.current = Date.now()
     totalDistRef.current = 0
     lastPointRef.current = null
@@ -147,7 +147,7 @@ export function useMapTracking(options = {}) {
    * Stop recording and return trail data
    */
   const stopRecording = useCallback(() => {
-    console.log(`${LOG_PREFIX} ⏹ Recording stopped (${trail.length} points, ${totalDistRef.current.toFixed(0)}m)`)
+    // console.log(`${LOG_PREFIX} ⏹ Recording stopped (${trail.length} points, ${totalDistRef.current.toFixed(0)}m)`)
     setIsRecording(false)
 
     return {
