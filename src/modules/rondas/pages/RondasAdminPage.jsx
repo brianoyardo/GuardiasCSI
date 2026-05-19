@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/modules/auth/context/AuthContext'
-import { createAssignment, getAllAssignments } from '@/modules/rondas/services/rondaAssignmentService'
+import { createAssignment, subscribeToAllAssignments } from '@/modules/rondas/services/rondaAssignmentService'
 import { getRoutes } from '@/modules/spatial/services/spatialService'
 import { getAllUsers } from '@/modules/users/services/userService'
 import { RONDA_STATES, STATE_LABELS, STATE_COLORS } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { ROLES } from '@/config/roles'
+import RondaAssignmentModal from '@/modules/admin/components/RondaAssignmentModal/RondaAssignmentModal'
 import './RondasAdminPage.css'
 
 export default function RondasAdminPage() {
@@ -13,82 +14,41 @@ export default function RondasAdminPage() {
   const [routes, setRoutes] = useState([])
   const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [filter, setFilter] = useState('ALL')
 
-  // Form state
-  const [form, setForm] = useState({
-    guardId: '',
-    rondaId: '',
-    routeId: '',
-    scheduledStart: '',
-    scheduledEnd: '',
-    priority: 'normal',
-    notes: '',
-  })
-
-  // Load data
   useEffect(() => {
-    loadData()
+    async function loadInitialData() {
+      setLoading(true)
+      try {
+        const [guardsData, routesData] = await Promise.all([
+          getAllUsers({ role: ROLES.GUARD }),
+          getRoutes(true),
+        ])
+        setGuards(guardsData.filter(g => g.status === 'active'))
+        setRoutes(routesData)
+      } catch (err) {
+        console.error('Error loading data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadInitialData()
   }, [])
 
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const [guardsData, routesData, assignmentsData] = await Promise.all([
-        getAllUsers({ role: ROLES.GUARD }),
-        getRoutes(true),
-        getAllAssignments(),
-      ])
-      setGuards(guardsData.filter(g => g.status === 'active'))
-      setRoutes(routesData)
-      setAssignments(assignmentsData)
-    } catch (err) {
-      console.error('Error loading data:', err)
-      setError('Error al cargar datos')
-    } finally {
-      setLoading(false)
-    }
-  }
+  useEffect(() => {
+    const unsubscribe = subscribeToAllAssignments((data) => {
+      setAssignments(data)
+    })
+    return () => unsubscribe()
+  }, [])
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!form.guardId || !form.routeId || !form.scheduledStart) {
-      setError('Complete todos los campos obligatorios')
-      return
-    }
-
-    setSubmitting(true)
-    setError(null)
-
-    try {
-      const startTs = new Date(form.scheduledStart).getTime()
-      const endTs = startTs + (90 * 60 * 1000) // Default 1.5h duration
-
-      await createAssignment({
-        guardId: form.guardId,
-        rondaId: form.rondaId || form.routeId,
-        routeId: form.routeId,
-        scheduledStart: startTs,
-        scheduledEnd: endTs,
-        assignedBy: user.uid,
-        priority: form.priority,
-        notes: form.notes,
-      })
-
-      // Reset form
-      setForm({ guardId: '', rondaId: '', routeId: '', scheduledStart: '', scheduledEnd: '', priority: 'normal', notes: '' })
-      setError(null)
-
-      // Refresh assignments
-      const updated = await getAllAssignments()
-      setAssignments(updated)
-    } catch (err) {
-      console.error('Error creating assignment:', err)
-      setError('Error al crear asignación')
-    } finally {
-      setSubmitting(false)
-    }
+  const handleCreateAssignment = async (data) => {
+    await createAssignment({
+      ...data,
+      assignedBy: user.uid,
+    })
+    setShowModal(false)
   }
 
   const formatTimestamp = (ts) => {
@@ -112,159 +72,108 @@ export default function RondasAdminPage() {
     return r ? r.name : routeId?.slice(-8) || '—'
   }
 
-  const todayAssignments = assignments.filter(a => {
-    if (!a.scheduledStart) return false
-    const d = a.scheduledStart.toMillis ? new Date(a.scheduledStart.toMillis()) : new Date(a.scheduledStart)
-    const today = new Date()
-    return d.toDateString() === today.toDateString()
+  const filteredAssignments = assignments.filter(a => {
+    if (filter === 'ALL') return true
+    if (filter === 'ACTIVE') return ['in_progress', 'paused', 'validating_voice'].includes(a.status)
+    if (filter === 'PENDING') return ['available', 'pending'].includes(a.status)
+    if (filter === 'COMPLETED') return ['completed', 'late', 'failed', 'cancelled'].includes(a.status)
+    return true
   })
-
-  const allAssignments = assignments.length > todayAssignments.length ? assignments : todayAssignments
 
   return (
     <div className="rondas-admin" id="rondas-admin-page">
+      {/* Header */}
       <div className="rondas-admin__header">
         <div>
           <h1 className="rondas-admin__title">Gestión de Rondas</h1>
-          <p className="rondas-admin__subtitle">Asignar patrullajes a guardias</p>
+          <p className="rondas-admin__subtitle">Asignar y monitorear patrullajes</p>
         </div>
+        <button className="rondas-admin__btn-create" onClick={() => setShowModal(true)}>
+          ➕ Asignar Nueva Ronda
+        </button>
       </div>
 
-      {error && <div className="rondas-admin__error">{error}</div>}
+      {/* Filter Tabs */}
+      <div className="rondas-admin__filters">
+        {[
+          { key: 'ALL', label: 'Todas' },
+          { key: 'ACTIVE', label: '🔴 En Curso' },
+          { key: 'PENDING', label: '⏳ Pendientes' },
+          { key: 'COMPLETED', label: '✓ Completadas' },
+        ].map(f => (
+          <button
+            key={f.key}
+            className={`rondas-admin__filter-btn ${filter === f.key ? 'rondas-admin__filter-btn--active' : ''}`}
+            onClick={() => setFilter(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
-      <div className="rondas-admin__layout">
-        {/* ─── Assignment Form ─── */}
-        <div className="rondas-admin__form-card">
-          <h2 className="rondas-admin__form-title">Nueva Asignación</h2>
-
-          <form onSubmit={handleSubmit} className="rondas-admin__form">
-            <div className="rondas-admin__field">
-              <label>Guardia *</label>
-              <select
-                value={form.guardId}
-                onChange={(e) => setForm({ ...form, guardId: e.target.value })}
-                required
-              >
-                <option value="">Seleccionar guardia...</option>
-                {guards.map(g => (
-                  <option key={g.id} value={g.uid || g.id}>
-                    {g.fullName || g.email} {g.guardId ? `(${g.guardId})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="rondas-admin__field">
-              <label>Ruta *</label>
-              <select
-                value={form.routeId}
-                onChange={(e) => setForm({ ...form, routeId: e.target.value, rondaId: e.target.value })}
-                required
-              >
-                <option value="">Seleccionar ruta...</option>
-                {routes.map(r => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="rondas-admin__field">
-              <label>Fecha y Hora Programada *</label>
-              <input
-                type="datetime-local"
-                value={form.scheduledStart}
-                onChange={(e) => setForm({ ...form, scheduledStart: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="rondas-admin__row">
-              <div className="rondas-admin__field">
-                <label>Prioridad</label>
-                <select
-                  value={form.priority}
-                  onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                >
-                  <option value="low">Baja</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">Alta</option>
-                  <option value="urgent">Urgente</option>
-                </select>
-              </div>
-
-              <div className="rondas-admin__field">
-                <label>Notas</label>
-                <input
-                  type="text"
-                  placeholder="Opcional..."
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="rondas-admin__btn-submit"
-              disabled={submitting}
-            >
-              {submitting ? 'Asignando...' : 'Asignar Ronda'}
-            </button>
-          </form>
-        </div>
-
-        {/* ─── Assignments Table ─── */}
-        <div className="rondas-admin__table-card">
-          <h2 className="rondas-admin__table-title">
-            Asignaciones {todayAssignments.length > 0 && todayAssignments.length < assignments.length ? '(Hoy)' : '(Todas)'}
-          </h2>
-
-          {loading ? (
-            <div className="rondas-admin__loading">Cargando asignaciones...</div>
-          ) : allAssignments.length === 0 ? (
-            <div className="rondas-admin__empty">No hay asignaciones registradas</div>
-          ) : (
-            <div className="rondas-admin__table-wrapper">
-              <table className="rondas-admin__table">
-                <thead>
-                  <tr>
-                    <th>Guardia</th>
-                    <th>Ruta</th>
-                    <th>Hora Programada</th>
-                    <th>Prioridad</th>
-                    <th>Estado</th>
+      {/* Table */}
+      {loading ? (
+        <div className="rondas-admin__loading">Cargando asignaciones...</div>
+      ) : filteredAssignments.length === 0 ? (
+        <div className="rondas-admin__empty">No hay asignaciones en este filtro</div>
+      ) : (
+        <div className="rondas-admin__table-wrapper">
+          <table className="rondas-admin__table">
+            <thead>
+              <tr>
+                <th>Guardia</th>
+                <th>Ruta</th>
+                <th>Hora Programada</th>
+                <th>Prioridad</th>
+                <th>Estado</th>
+                <th>Reloj Global</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAssignments.map(a => {
+                const stateColor = STATE_COLORS[a.status] || '#64748b'
+                return (
+                  <tr key={a.id}>
+                    <td className="rondas-admin__cell-guard">{getGuardName(a.guardId)}</td>
+                    <td>{getRouteName(a.routeId)}</td>
+                    <td>{formatTimestamp(a.scheduledStart)}</td>
+                    <td>
+                      <span className={`rondas-admin__priority rondas-admin__priority--${a.priority}`}>
+                        {a.priority === 'urgent' ? '🔴 Urgente' : a.priority === 'high' ? '🟠 Alta' : a.priority === 'low' ? '🟢 Baja' : '🔵 Normal'}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className="rondas-admin__status-badge"
+                        style={{ background: `${stateColor}22`, color: stateColor, borderColor: `${stateColor}44` }}
+                      >
+                        {STATE_LABELS[a.status] || a.status}
+                      </span>
+                    </td>
+                    <td>
+                      {a.strictTimeSync ? (
+                        <span className="rondas-admin__sync-badge">🌐 Activo</span>
+                      ) : (
+                        <span className="rondas-admin__sync-badge rondas-admin__sync-badge--off">Local</span>
+                      )}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {allAssignments.map(a => {
-                    const stateColor = STATE_COLORS[a.status] || '#64748b'
-                    return (
-                      <tr key={a.id}>
-                        <td className="rondas-admin__cell-guard">{getGuardName(a.guardId)}</td>
-                        <td>{getRouteName(a.routeId)}</td>
-                        <td>{formatTimestamp(a.scheduledStart)}</td>
-                        <td>
-                          <span className={`rondas-admin__priority rondas-admin__priority--${a.priority}`}>
-                            {a.priority === 'urgent' ? 'Urgente' : a.priority === 'high' ? 'Alta' : a.priority === 'low' ? 'Baja' : 'Normal'}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className="rondas-admin__status-badge"
-                            style={{ background: `${stateColor}22`, color: stateColor, borderColor: `${stateColor}44` }}
-                          >
-                            {STATE_LABELS[a.status] || a.status}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                )
+              })}
+            </tbody>
+          </table>
         </div>
-      </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <RondaAssignmentModal
+          guards={guards}
+          routes={routes}
+          onSubmit={handleCreateAssignment}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   )
 }

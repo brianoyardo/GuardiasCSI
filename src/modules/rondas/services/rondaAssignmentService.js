@@ -86,6 +86,27 @@ export function subscribeToGuardAssignments(guardId, callback) {
 }
 
 /**
+ * Subscribe to ALL assignments (admin/ops real-time view)
+ * @param {function} callback - Called with array of assignments on each update
+ * @returns {function} Unsubscribe function
+ */
+export function subscribeToAllAssignments(callback) {
+  const q = query(
+    collection(db, COLLECTIONS.RONDA_ASSIGNMENTS),
+    orderBy('scheduledStart', 'desc')
+  )
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const assignments = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+    callback(assignments)
+  }, (error) => {
+    console.error(`${LOG_PREFIX} Error in all assignments subscription:`, error)
+  })
+
+  return unsubscribe
+}
+
+/**
  * Get all assignments (admin/ops view)
  * @param {object} [filters]
  * @returns {Promise<object[]>}
