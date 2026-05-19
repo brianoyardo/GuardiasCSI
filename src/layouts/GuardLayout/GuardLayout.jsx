@@ -1,13 +1,64 @@
+import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { logout } from '@/modules/auth/services/authService'
 import { createPanicIncident } from '@/modules/incidents/services/incidentService'
 import { t } from '@/config/labels'
+import styled from 'styled-components'
+import { FaExclamationTriangle } from 'react-icons/fa'
+import PanicModal from '@/components/ui/PanicModal/PanicModal'
 import './GuardLayout.css'
+
+const PanicButtonContainer = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+`
+
+const PanicButtonCircle = styled.button`
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border: 3px solid #ef4444;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow:
+    0 4px 16px rgba(220, 38, 38, 0.5),
+    0 0 24px rgba(239, 68, 68, 0.3),
+    0 -2px 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(-12px);
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-14px) scale(1.05);
+    box-shadow:
+      0 6px 24px rgba(220, 38, 38, 0.7),
+      0 0 32px rgba(239, 68, 68, 0.5),
+      0 -2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  &:active {
+    transform: translateY(-10px) scale(0.95);
+  }
+`
+
+const PanicIcon = styled(FaExclamationTriangle)`
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+`
 
 export default function GuardLayout() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [showPanicModal, setShowPanicModal] = useState(false)
+  const [isSending, setIsSending] = useState(false)
 
   const handleLogout = async () => {
     try {
@@ -18,11 +69,12 @@ export default function GuardLayout() {
     }
   }
 
-  const triggerPanic = async () => {
-    if (!confirm('🚨 ¿Confirmar alerta de pánico? Se enviará tu ubicación exacta.')) return
+  const handlePanicConfirm = async () => {
+    setIsSending(true)
 
     if (!navigator.geolocation) {
       alert('GPS no disponible en este dispositivo.')
+      setIsSending(false)
       return
     }
 
@@ -41,11 +93,11 @@ export default function GuardLayout() {
         guardId: user.uid,
         location: { lat: latitude, lng: longitude },
       })
-
-      alert('🚨 Alerta enviada. Mantén la calma. Ayuda en camino.')
     } catch (err) {
       console.error('Panic button error:', err)
       alert('Error enviando alerta. Verifica tu conexión o GPS.')
+    } finally {
+      setIsSending(false)
     }
   }
 
@@ -82,6 +134,12 @@ export default function GuardLayout() {
           <span className="guard-layout__nav-label">{t('nav.misRondas')}</span>
         </NavLink>
 
+        <PanicButtonContainer>
+          <PanicButtonCircle onClick={() => setShowPanicModal(true)} aria-label="Botón de pánico">
+            <PanicIcon />
+          </PanicButtonCircle>
+        </PanicButtonContainer>
+
         <NavLink
           to="/guard/incidents"
           className={({ isActive }) =>
@@ -93,10 +151,14 @@ export default function GuardLayout() {
         </NavLink>
       </nav>
 
-      {/* Panic FAB */}
-      <button className="guard-layout__panic-fab" onClick={triggerPanic} aria-label="Botón de pánico">
-        🚨 PÁNICO
-      </button>
+      {/* Panic Modal */}
+      {showPanicModal && (
+        <PanicModal
+          onConfirm={handlePanicConfirm}
+          onCancel={() => setShowPanicModal(false)}
+          isSending={isSending}
+        />
+      )}
     </div>
   )
 }

@@ -158,12 +158,10 @@ export function useIncidentReporting() {
         for (const file of data.images) {
           try {
             const uploadFile = file
-            alert('Enviando archivo: ' + uploadFile.name + ' | Tamaño: ' + (uploadFile.size / 1024).toFixed(2) + 'KB | Tipo: ' + uploadFile.type)
             const result = await uploadEvidence(uploadFile)
             if (result && result.fileId) evidenceIds.push(result.fileId)
           } catch (uploadErr) {
-            alert('Error de Subida a Appwrite: ' + (uploadErr.message || JSON.stringify(uploadErr)))
-            console.error(`${LOG_PREFIX} ⚠️ Failed to upload evidence:`, uploadErr)
+            //console.error(`${LOG_PREFIX} ⚠️ Failed to upload evidence:`, uploadErr)
           }
         }
       }
@@ -181,11 +179,11 @@ export function useIncidentReporting() {
         executionId: data.executionId,
       })
 
-      console.log(`${LOG_PREFIX} ✅ Incident successfully reported: ${incidentId}`)
+      //console.log(`${LOG_PREFIX} ✅ Incident successfully reported: ${incidentId}`)
       return { success: true, incidentId }
 
     } catch (err) {
-      console.error(`${LOG_PREFIX} Error reporting incident:`, err)
+      //console.error(`${LOG_PREFIX} Error reporting incident:`, err)
       setError(err.message)
       return { success: false, error: err.message }
     } finally {

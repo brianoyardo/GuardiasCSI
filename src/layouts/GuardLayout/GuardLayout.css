@@ -118,39 +118,9 @@
   font-weight: var(--font-medium);
 }
 
-/* ─── Panic FAB ─── */
-.guard-layout__panic-fab {
-  position: fixed;
-  bottom: calc(var(--bottom-nav-height) + var(--space-4));
-  right: var(--space-4);
-  z-index: calc(var(--z-sidebar) + 10);
-  padding: var(--space-3) var(--space-5);
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  color: white;
-  font-size: var(--text-sm);
-  font-weight: var(--font-bold);
-  border: 2px solid #ef4444;
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.5), 0 0 24px rgba(239, 68, 68, 0.3);
-  transition: all var(--transition-fast);
-  letter-spacing: 0.5px;
-}
-
-.guard-layout__panic-fab:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 24px rgba(220, 38, 38, 0.7), 0 0 32px rgba(239, 68, 68, 0.5);
-}
-
-.guard-layout__panic-fab:active {
-  transform: scale(0.95);
-}
-
+/* ─── Bottom Nav: accommodate elevated panic button ─── */
 @media (max-width: 768px) {
-  .guard-layout__panic-fab {
-    bottom: calc(var(--bottom-nav-height) + var(--space-3));
-    right: var(--space-3);
-    padding: var(--space-2) var(--space-4);
-    font-size: var(--text-xs);
+  .guard-layout__bottom-nav {
+    padding: 0 var(--space-6);
   }
 }

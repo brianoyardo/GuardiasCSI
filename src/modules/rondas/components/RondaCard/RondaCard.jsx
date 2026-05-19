@@ -1,13 +1,18 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { STATE_LABELS, STATE_COLORS, canBeStarted, isActiveState } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { getTrueTime } from '@/utils/timeSync'
 import './RondaCard.css'
 
-const FIVE_MINUTES = 5 * 60 * 1000
-
 export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
   const navigate = useNavigate()
   const { status, scheduledStart, priority, rondaId } = assignment
+  const [now, setNow] = useState(getTrueTime())
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(getTrueTime()), 10000)
+    return () => clearInterval(interval)
+  }, [])
 
   const stateLabel = STATE_LABELS[status] || status
   const stateColor = STATE_COLORS[status] || '#64748b'
@@ -22,9 +27,10 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
     return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })
   }
 
-  const now = getTrueTime()
+  const TEN_MINUTES = 10 * 60 * 1000
+  const FIVE_MINUTES = 5 * 60 * 1000
   const isTooEarly = canBeStarted(status) && scheduledStart && now < (scheduledStart - FIVE_MINUTES)
-  const isMissed = canBeStarted(status) && scheduledStart && now > (scheduledStart + FIVE_MINUTES)
+  const isMissed = canBeStarted(status) && scheduledStart && now > (scheduledStart + TEN_MINUTES)
   const isLate = canBeStarted(status) && scheduledStart && now > scheduledStart && !isMissed
 
   const handleAction = () => {

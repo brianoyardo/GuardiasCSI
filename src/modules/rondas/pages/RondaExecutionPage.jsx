@@ -94,19 +94,13 @@ export default function RondaExecutionPage() {
           where('assignmentId', '==', paramId)
         )
         const execSnap = await getDocs(execQ)
-        console.log('[RondaExecution] 🔍 Buscando ejecuciones para Assignment ID:', paramId)
-        console.log('[RondaExecution] 📊 Documentos encontrados:', execSnap.docs.length)
-        execSnap.docs.forEach(d => console.log(' -> Exec ID:', d.id, 'Status:', d.data().status))
         const activeDocs = execSnap.docs.filter(d => activeStatuses.includes(d.data().status))
 
         if (activeDocs.length > 0) {
-          // Encontramos una ejecución viva
           const activeDoc = activeDocs[0]
           foundExecutionId = activeDoc.id
           execData = activeDoc.data()
-          console.log('[RondaExecution] ⚡ Ejecución activa recuperada por Query:', foundExecutionId)
         } else if (foundExecutionId) {
-          // Fallback: Si la query falló pero tenemos ID, buscar directo
           const exec = await getExecution(foundExecutionId)
           if (exec) execData = exec
         }
@@ -221,14 +215,12 @@ export default function RondaExecutionPage() {
     if (phase === 'execution' && executionId && !activatedRef.current) {
       activatedRef.current = true
       exec.startWithExecutionId(executionId)
-      console.log('[RondaExecution] GPS tracking activated after restore')
     }
   }, [phase, executionId])
 
   // ─── Redirect to Mis Rondas when completed ───
   useEffect(() => {
     if (exec.status === RONDA_STATES.COMPLETED) {
-      console.log('[RondaExecution] ✅ Ronda completed, redirecting to Mis Rondas')
       const timer = setTimeout(() => {
         navigate('/guard/mis-rondas', { replace: true })
       }, 2000)
