@@ -38,7 +38,7 @@ export async function runValidationProtocol() {
   results.telemetry.bufferedPoints = bufferState ? bufferState.length : 0
   results.telemetry.flowSuccess = (pointsReceived === results.telemetry.bufferedPoints && pointsReceived > 0)
   
-  console.log(`[Telemetry] Emitidos: ${pointsReceived}, en Buffer: ${results.telemetry.bufferedPoints}`)
+  // console.log(`[Telemetry] Emitidos: ${pointsReceived}, en Buffer: ${results.telemetry.bufferedPoints}`)
 
   // Test 3: Offline-First
   console.log('--- 3. Validando Resiliencia Offline-First ---')
@@ -65,7 +65,7 @@ export async function runValidationProtocol() {
   await wait(100) // Wait for flush async
   results.offline.recoveredFlush = flushedEventFired
   
-  console.log(`[Offline] Prevenido: ${results.offline.preventedFlush}, Recuperado: ${results.offline.recoveredFlush}`)
+  // console.log(`[Offline] Prevenido: ${results.offline.preventedFlush}, Recuperado: ${results.offline.recoveredFlush}`)
 
   // Test 4: Detection Engine
   console.log('--- 4. Validando Detection Engine ---')
@@ -79,7 +79,7 @@ export async function runValidationProtocol() {
   await wait(250)
   results.detection.driftDetected = detectionFired
   g1.stop()
-  console.log(`[Detection] Anomalía detectada: ${detectionFired}`)
+  // console.log(`[Detection] Anomalía detectada: ${detectionFired}`)
 
   // Test 2: Stress Test (20 guards)
   console.log('--- 2. Validando Stress Test (20 guardias) ---')
@@ -100,7 +100,7 @@ export async function runValidationProtocol() {
   await wait(2000) // Run 20 guards at 20fps for 2 seconds (expect ~800 points)
   
   results.stress.pointsProcessed = stressPoints
-  console.log(`[Stress] Puntos procesados concurrentemente: ${stressPoints}`)
+  // console.log(`[Stress] Puntos procesados concurrentemente: ${stressPoints}`)
 
   // Test 6: Memory Leak & Cleanup Audit
   console.log('--- 6. Validando Memory Leaks ---')
@@ -114,9 +114,9 @@ export async function runValidationProtocol() {
   results.memory.simulatorsCleared = (simulatorRegistry.simulators.size === 0)
   results.memory.deltaMb = ((endMem - startMem) / 1024 / 1024).toFixed(2)
 
-  console.log(`[Memory] Intervals cleared: ${results.memory.intervalsCleared}`)
-  console.log(`[Memory] Simulators cleared: ${results.memory.simulatorsCleared}`)
-  console.log(`[Memory] Memory Delta (MB): ${results.memory.deltaMb} MB`)
+  // console.log(`[Memory] Intervals cleared: ${results.memory.intervalsCleared}`)
+  // console.log(`[Memory] Simulators cleared: ${results.memory.simulatorsCleared}`)
+  // console.log(`[Memory] Memory Delta (MB): ${results.memory.deltaMb} MB`)
 
   // Cleanup testing subs
   sub1(); sub2(); sub3(); sub4();

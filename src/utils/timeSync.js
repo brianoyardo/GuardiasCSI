@@ -1,5 +1,6 @@
 let serverTime = 0
 let localPerf = 0
+export let isTimeSynced = false
 
 export const syncTrueTime = async () => {
   try {
@@ -9,10 +10,12 @@ export const syncTrueTime = async () => {
     const data = await res.json()
     serverTime = new Date(data.dateTime + 'Z').getTime()
     localPerf = performance.now()
+    isTimeSynced = true
 
-    console.log('[TimeSync] Reloj blindado sincronizado con éxito.')
+    // console.log('[TimeSync] Reloj blindado sincronizado con éxito.')
   } catch (err) {
-    console.warn('[TimeSync] Fallo la red, operando con reloj local.', err.message)
+    isTimeSynced = false
+    // console.warn('[TimeSync] Fallo la red, operando con reloj local.', err.message)
   }
 }
 

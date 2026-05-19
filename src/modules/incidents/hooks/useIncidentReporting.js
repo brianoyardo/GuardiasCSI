@@ -31,7 +31,7 @@ const DEV_FALLBACK_POSITION = {
 async function compressImage(file, maxWidth = 1200, quality = 0.7) {
   const ONE_MB = 1024 * 1024
   if (file.size < ONE_MB) {
-    console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB — skipping (under 1MB)`)
+    // console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB — skipping (under 1MB)`)
     return file
   }
 
@@ -66,7 +66,7 @@ async function compressImage(file, maxWidth = 1200, quality = 0.7) {
               const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg') || 'image.jpg', {
                 type: 'image/jpeg',
               })
-              console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
+              // console.log(`[compressImage] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
               resolve(compressed)
             },
             'image/jpeg',

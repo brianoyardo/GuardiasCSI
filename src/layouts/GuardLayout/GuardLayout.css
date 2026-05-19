@@ -1,7 +1,7 @@
 /* ============================================
    GuardLayout — SentinelOps
    Mobile-first layout for field guards
-   Bottom navigation, no sidebar
+   Bottom navigation with panic button cutout
    ============================================ */
 
 .guard-layout {
@@ -70,18 +70,21 @@
   overflow-y: auto;
 }
 
-/* ─── Bottom Navigation ─── */
+/* ─── Bottom Navigation with Cutout ─── */
 .guard-layout__bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   height: var(--bottom-nav-height);
-  background: var(--color-dark-surface);
-  border-top: 1px solid var(--color-dark-border);
+  background: transparent;
+  background-image: radial-gradient(circle at 50% -15px, transparent 40px, var(--color-dark-surface) 41px);
+  filter: drop-shadow(0 -4px 6px rgba(0, 0, 0, 0.3));
+  border-top: none;
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
   z-index: var(--z-sidebar);
   backdrop-filter: blur(20px);
 }
@@ -118,9 +121,17 @@
   font-weight: var(--font-medium);
 }
 
-/* ─── Bottom Nav: accommodate elevated panic button ─── */
+/* ─── Panic Button Container (absolute in cutout) ─── */
+.guard-layout__panic-container {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: calc(var(--z-sidebar) + 1);
+}
+
 @media (max-width: 768px) {
   .guard-layout__bottom-nav {
-    padding: 0 var(--space-6);
+    padding: 0 var(--space-4);
   }
 }

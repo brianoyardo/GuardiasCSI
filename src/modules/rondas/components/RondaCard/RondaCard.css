@@ -137,3 +137,10 @@
 .ronda-card__priority--urgent { color: var(--color-danger-400); }
 .ronda-card__priority--high { color: #f97316; }
 .ronda-card__priority--normal { color: var(--color-dark-text-muted); }
+
+/* ─── Sync indicator ─── */
+.ronda-card__sync-indicator {
+  color: var(--color-accent-400);
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}

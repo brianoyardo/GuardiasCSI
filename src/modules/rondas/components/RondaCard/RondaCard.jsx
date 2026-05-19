@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { STATE_LABELS, STATE_COLORS, canBeStarted, isActiveState } from '@/modules/rondas/stateMachine/rondaStateMachine'
-import { getTrueTime } from '@/utils/timeSync'
+import { getTrueTime, isTimeSynced } from '@/utils/timeSync'
 import './RondaCard.css'
 
 export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
   const navigate = useNavigate()
-  const { status, scheduledStart, priority, rondaId } = assignment
+  const { status, scheduledStart, priority, rondaId, strictTimeSync } = assignment
   const [now, setNow] = useState(getTrueTime())
 
   useEffect(() => {
-    const interval = setInterval(() => setNow(getTrueTime()), 10000)
+    const interval = setInterval(() => setNow(getTrueTime()), 1000)
     return () => clearInterval(interval)
   }, [])
 
@@ -32,6 +32,7 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
   const isTooEarly = canBeStarted(status) && scheduledStart && now < (scheduledStart - FIVE_MINUTES)
   const isMissed = canBeStarted(status) && scheduledStart && now > (scheduledStart + TEN_MINUTES)
   const isLate = canBeStarted(status) && scheduledStart && now > scheduledStart && !isMissed
+  const isSyncBlocked = strictTimeSync && !isTimeSynced
 
   const handleAction = () => {
     navigate(`/guard/ronda/${assignment.id}`, { state: { startedLate: isLate } })
@@ -76,6 +77,11 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
             {priority === 'urgent' ? '🔴 URGENTE' : priority === 'high' ? '🟠 ALTA' : ''}
           </span>
         )}
+        {isTimeSynced && (
+          <span className="ronda-card__meta-item ronda-card__sync-indicator">
+            🌐 Reloj seguro
+          </span>
+        )}
       </div>
 
       {isActiveState(status) && totalCheckpoints > 0 && (
@@ -88,7 +94,11 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
       )}
 
       {canBeStarted(status) && (
-        isTooEarly ? (
+        isSyncBlocked ? (
+          <button className="ronda-card__action ronda-card__action--locked" disabled>
+            🌐 Sincronizando reloj seguro...
+          </button>
+        ) : isTooEarly ? (
           <button className="ronda-card__action ronda-card__action--locked" disabled>
             ⏳ Disponible a las {formatTime(scheduledStart - FIVE_MINUTES)}
           </button>

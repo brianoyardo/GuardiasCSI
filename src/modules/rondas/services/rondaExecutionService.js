@@ -122,7 +122,7 @@ export async function startExecution(data) {
  */
 export async function registerCheckpoint(executionId, checkpointId, position, distance, notes = '') {
   try {
-    console.log(`[ExecutionService] 📝 Writing checkpoint:`, { executionId, checkpointId, distance })
+    // console.log(`[ExecutionService] 📝 Writing checkpoint:`, { executionId, checkpointId, distance })
 
     const execRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, executionId)
 
@@ -369,7 +369,7 @@ export async function getExecutionTelemetry(executionId) {
     const reconstructedTrack = chunks.flatMap(chunk => chunk.points || [])
     
     const latencyMs = Math.round(performance.now() - startTime)
-    console.log(`[Playback] Reconstructed ${reconstructedTrack.length} points from ${chunks.length} chunks in ${latencyMs}ms.`)
+    // console.log(`[Playback] Reconstructed ${reconstructedTrack.length} points from ${chunks.length} chunks in ${latencyMs}ms.`)
     
     return reconstructedTrack
   } catch (error) {

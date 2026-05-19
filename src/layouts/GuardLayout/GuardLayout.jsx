@@ -9,14 +9,6 @@ import { FaExclamationTriangle } from 'react-icons/fa'
 import PanicModal from '@/components/ui/PanicModal/PanicModal'
 import './GuardLayout.css'
 
-const PanicButtonContainer = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-`
-
 const PanicButtonCircle = styled.button`
   position: relative;
   width: 64px;
@@ -33,11 +25,10 @@ const PanicButtonCircle = styled.button`
     0 4px 16px rgba(220, 38, 38, 0.5),
     0 0 24px rgba(239, 68, 68, 0.3),
     0 -2px 8px rgba(0, 0, 0, 0.2);
-  transform: translateY(-12px);
   transition: all 0.2s ease;
 
   &:hover {
-    transform: translateY(-14px) scale(1.05);
+    transform: scale(1.05);
     box-shadow:
       0 6px 24px rgba(220, 38, 38, 0.7),
       0 0 32px rgba(239, 68, 68, 0.5),
@@ -45,7 +36,7 @@ const PanicButtonCircle = styled.button`
   }
 
   &:active {
-    transform: translateY(-10px) scale(0.95);
+    transform: scale(0.95);
   }
 `
 
@@ -122,7 +113,7 @@ export default function GuardLayout() {
         <Outlet />
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation with Cutout */}
       <nav className="guard-layout__bottom-nav" id="guard-bottom-nav">
         <NavLink
           to="/guard/mis-rondas"
@@ -134,11 +125,11 @@ export default function GuardLayout() {
           <span className="guard-layout__nav-label">{t('nav.misRondas')}</span>
         </NavLink>
 
-        <PanicButtonContainer>
+        <div className="guard-layout__panic-container">
           <PanicButtonCircle onClick={() => setShowPanicModal(true)} aria-label="Botón de pánico">
             <PanicIcon />
           </PanicButtonCircle>
-        </PanicButtonContainer>
+        </div>
 
         <NavLink
           to="/guard/incidents"
