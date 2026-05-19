@@ -3,14 +3,16 @@ let localPerf = 0
 
 export const syncTrueTime = async () => {
   try {
-    const res = await fetch('https://worldtimeapi.org/api/timezone/America/La_Paz')
-    if (!res.ok) return
+    const res = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=UTC')
+    if (!res.ok) throw new Error('API no respondió correctamente')
+
     const data = await res.json()
-    serverTime = new Date(data.datetime).getTime()
+    serverTime = new Date(data.dateTime + 'Z').getTime()
     localPerf = performance.now()
-    console.log('[TimeSync] Hora real de La Paz sincronizada')
+
+    console.log('[TimeSync] Reloj blindado sincronizado con éxito.')
   } catch (err) {
-    console.warn('[TimeSync] Fallo al sincronizar hora real:', err)
+    console.warn('[TimeSync] Fallo la red, operando con reloj local.', err.message)
   }
 }
 
