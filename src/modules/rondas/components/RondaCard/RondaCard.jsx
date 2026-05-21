@@ -7,7 +7,7 @@ import './RondaCard.css'
 
 export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
   const navigate = useNavigate()
-  const { status, scheduledStart, priority, rondaId, strictTimeSync } = assignment
+  const { status, scheduledStart, priority, rondaId, routeName, strictTimeSync } = assignment
   const [localNow, setLocalNow] = useState(Date.now())
   const [globalNow, setGlobalNow] = useState(getTrueTime())
 
@@ -55,7 +55,7 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
     <div className={`ronda-card ronda-card--${status}`} id={`ronda-${assignment.id}`}>
       <div className="ronda-card__header">
         <h3 className="ronda-card__title">
-          Ronda #{rondaId?.slice(-4) || '—'}
+          {routeName || `Ronda #${rondaId?.slice(-4) || '—'}`}
         </h3>
         <span
           className="ronda-card__badge"

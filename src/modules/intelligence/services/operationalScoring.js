@@ -1,6 +1,11 @@
 /**
  * SentinelOps — Operational Scoring
  * Generates an operational score (0-100) based on multiple spatial and temporal dimensions.
+ * 
+ * Phase 20.5: Updated criteria
+ *   - Adherence: 50 pts (spatial fidelity)
+ *   - Checkpoints: 50 pts (completion rate)
+ *   - Penalties: GPS anomalies, late start, voice failure
  */
 
 const LOG_PREFIX = '[OperationalScoring]'
@@ -16,23 +21,20 @@ export function calculateOperationalScore(execution, complianceResults) {
   try {
     // Breakdown weights (Total = 100)
     const WEIGHTS = {
-      adherence: 40,    // Did they walk the line?
-      checkpoints: 40,  // Did they validate the required points?
-      punctuality: 20,  // Did they finish on time?
+      adherence: 50,    // Did they walk the line?
+      checkpoints: 50,  // Did they validate the required points?
     }
 
     const breakdown = {
       adherenceScore: 0,
       checkpointsScore: 0,
-      punctualityScore: 0,
     }
 
-    // 1. Spatial Adherence (40 pts)
-    // If adherencePercentage is 90%, they get 0.9 * 40 = 36 pts
+    // 1. Spatial Adherence (50 pts)
     const adherencePercent = complianceResults?.adherencePercentage || 0
     breakdown.adherenceScore = (adherencePercent / 100) * WEIGHTS.adherence
 
-    // 2. Checkpoints (40 pts)
+    // 2. Checkpoints (50 pts)
     const totalCheckpoints = execution.checkpointIds?.length || 0
     const completedCheckpoints = execution.completedCheckpoints?.length || 0
     
@@ -42,22 +44,25 @@ export function calculateOperationalScore(execution, complianceResults) {
       breakdown.checkpointsScore = WEIGHTS.checkpoints // Free points if no checkpoints assigned
     }
 
-    // 3. Punctuality (20 pts)
-    // For now, if state is COMPLETED it's 20. If LATE, it's 5. If MISSED, 0.
-    if (execution.status === 'completed') {
-      breakdown.punctualityScore = WEIGHTS.punctuality
-    } else if (execution.status === 'late') {
-      breakdown.punctualityScore = WEIGHTS.punctuality * 0.25
-    }
-
-    // 4. Penalties (Incidentes críticos durante la ronda, anomalías)
-    // If there were GPS anomalies detected, subtract 5 points (min 0)
+    // 3. Penalties
     let penalty = 0
+
+    // GPS Anomalies: -2 per anomaly
     const anomalyEvents = (execution.events || []).filter(e => e.type === 'GPS_ANOMALY').length
     penalty += (anomalyEvents * 2)
 
+    // Late start: -5
+    if (execution.startedLate) {
+      penalty += 5
+    }
+
+    // Voice validation failure: -3
+    if (execution.voicePassphrase && !execution.voiceValidated) {
+      penalty += 3
+    }
+
     // Calculate total
-    let totalScore = breakdown.adherenceScore + breakdown.checkpointsScore + breakdown.punctualityScore - penalty
+    let totalScore = breakdown.adherenceScore + breakdown.checkpointsScore - penalty
     if (totalScore < 0) totalScore = 0
     if (totalScore > 100) totalScore = 100
 
@@ -66,7 +71,6 @@ export function calculateOperationalScore(execution, complianceResults) {
       breakdown: {
         adherence: Math.round(breakdown.adherenceScore),
         checkpoints: Math.round(breakdown.checkpointsScore),
-        punctuality: Math.round(breakdown.punctualityScore),
         penalties: penalty
       }
     }
@@ -75,3 +79,4 @@ export function calculateOperationalScore(execution, complianceResults) {
     return { score: 0, breakdown: null }
   }
 }
+

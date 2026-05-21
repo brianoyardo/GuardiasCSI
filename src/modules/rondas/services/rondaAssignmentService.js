@@ -5,6 +5,8 @@ import {
 import { db } from '@/config/firebase'
 import { COLLECTIONS } from '@/config/constants'
 import { RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
+import { getUserProfile } from '@/modules/users/services/userService'
+import { getRoute, getGeofences } from '@/modules/spatial/services/spatialService'
 
 /**
  * SentinelOps — Ronda Assignment Service
@@ -151,10 +153,45 @@ export async function createAssignment(data) {
   try {
     const assignRef = doc(collection(db, COLLECTIONS.RONDA_ASSIGNMENTS))
 
+    // ─── Anti-Lookup: Resolve denormalized names at write time ───
+    let guardName = data.guardName || ''
+    let guardCode = data.guardCode || ''
+    let routeName = data.routeName || ''
+    let geofenceName = data.geofenceName || ''
+
+    if (!guardName || !guardCode) {
+      try {
+        const guardProfile = await getUserProfile(data.guardId)
+        if (guardProfile) {
+          guardName = guardProfile.fullName || guardProfile.email || ''
+          guardCode = guardProfile.guardId || data.guardId?.slice(0, 6) || ''
+        }
+      } catch (_) { /* Non-blocking: proceed with empty strings */ }
+    }
+
+    if (!routeName && data.routeId) {
+      try {
+        const routeDoc = await getRoute(data.routeId)
+        if (routeDoc) routeName = routeDoc.name || ''
+      } catch (_) { /* Non-blocking */ }
+    }
+
+    if (!geofenceName && data.routeId) {
+      try {
+        const allGeofences = await getGeofences()
+        const linked = allGeofences.find(g => g.routeId === data.routeId)
+        if (linked) geofenceName = linked.name || ''
+      } catch (_) { /* Non-blocking */ }
+    }
+
     await setDoc(assignRef, {
       rondaId: data.rondaId,
       guardId: data.guardId,
+      guardName,
+      guardCode,
       routeId: data.routeId,
+      routeName,
+      geofenceName,
       scheduledStart: data.scheduledStart,
       scheduledEnd: data.scheduledEnd,
       assignedBy: data.assignedBy,
@@ -167,7 +204,7 @@ export async function createAssignment(data) {
       updatedAt: serverTimestamp(),
     })
 
-    // console.log(`${LOG_PREFIX} ✅ Assignment created: ${assignRef.id} → Guard ${data.guardId}`)
+    // console.log(`${LOG_PREFIX} ✅ Assignment created: ${assignRef.id} → Guard ${guardCode}`)
     return assignRef.id
   } catch (error) {
     console.error(`${LOG_PREFIX} Error creating assignment:`, error)

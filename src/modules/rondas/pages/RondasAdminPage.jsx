@@ -84,15 +84,21 @@ export default function RondasAdminPage() {
     })
   }
 
-  const getGuardInfo = (guardId) => {
-    const g = guards.find(u => u.uid === guardId || u.id === guardId)
-    if (!g) return { name: 'Desconocido', id: guardId?.slice(-6) || '—' }
+  const getGuardInfo = (assignment) => {
+    // Prefer denormalized fields; fall back to lookup
+    if (assignment.guardName || assignment.guardCode) {
+      return { name: assignment.guardName || 'Desconocido', id: assignment.guardCode || assignment.guardId?.slice(-6) || '—' }
+    }
+    const g = guards.find(u => u.uid === assignment.guardId || u.id === assignment.guardId)
+    if (!g) return { name: 'Desconocido', id: assignment.guardId?.slice(-6) || '—' }
     return { name: g.fullName || g.email, id: g.guardId || g.uid?.slice(-6) }
   }
 
-  const getRouteName = (routeId) => {
-    const r = routes.find(rt => rt.id === routeId)
-    return r ? r.name : routeId?.slice(-8) || '—'
+  const getRouteName = (assignment) => {
+    // Prefer denormalized field; fall back to lookup
+    if (assignment.routeName) return assignment.routeName
+    const r = routes.find(rt => rt.id === assignment.routeId)
+    return r ? r.name : assignment.routeId?.slice(-8) || '—'
   }
 
   const isVisuallyMissed = (a) => {
@@ -153,8 +159,9 @@ export default function RondasAdminPage() {
     if (search) {
       const q = search.toLowerCase()
       result = result.filter(a => {
-        const guardName = getGuardInfo(a.guardId).name.toLowerCase()
-        const guardId = (a.guardId || '').toLowerCase()
+        const guardInfo = getGuardInfo(a)
+        const guardName = guardInfo.name.toLowerCase()
+        const guardId = (a.guardCode || a.guardId || '').toLowerCase()
         return guardName.includes(q) || guardId.includes(q)
       })
     }
@@ -208,8 +215,8 @@ export default function RondasAdminPage() {
   const exportToCSV = () => {
     const headers = ['Guardia', 'Ruta', 'Inicio Programado', 'Fin Real', 'Prioridad', 'Estado', 'Reloj Global']
     const rows = filteredAssignments.map(a => [
-      `"${getGuardInfo(a.guardId).name}"`,
-      `"${getRouteName(a.routeId)}"`,
+      `"${getGuardInfo(a).name}"`,
+      `"${getRouteName(a)}"`,
       `"${formatTimestamp(a.scheduledStart)}"`,
       `"${formatTimestamp(a.actualEnd)}"`,
       a.priority || 'normal',
@@ -243,14 +250,14 @@ export default function RondasAdminPage() {
     const missed = isVisuallyMissed(a)
     const displayStatus = missed ? 'No Cumplida' : (STATE_LABELS[a.status] || a.status)
     const stateColor = missed ? '#ef4444' : (STATE_COLORS[a.status] || '#64748b')
-    const guardInfo = getGuardInfo(a.guardId)
+    const guardInfo = getGuardInfo(a)
     return (
       <tr key={a.id} className={missed ? 'rondas-admin__row--missed' : ''}>
         <td className="rondas-admin__cell-guard">
           <div className="rondas-admin__guard-name">{guardInfo.name}</div>
           <div className="rondas-admin__guard-id">ID: {guardInfo.id}</div>
         </td>
-        <td>{getRouteName(a.routeId)}</td>
+        <td>{getRouteName(a)}</td>
         <td>{formatTimestamp(a.scheduledStart)}</td>
         <td>
           <span className={`rondas-admin__priority rondas-admin__priority--${a.priority}`}>
@@ -421,7 +428,7 @@ export default function RondasAdminPage() {
                       <tr className="rondas-admin__group-header">
                         <td colSpan={6}>
                           <span className="rondas-admin__group-name">
-                            👤 {getGuardInfo(guardId).name}
+                            👤 {getGuardInfo({ guardId: guardId, guardName: guardAssignments[0]?.guardName, guardCode: guardAssignments[0]?.guardCode }).name}
                             <span className="rondas-admin__group-count">({guardAssignments.length})</span>
                           </span>
                         </td>

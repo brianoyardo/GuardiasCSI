@@ -5,6 +5,8 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 
 /**
  * Hook to inject Geoman drawing controls into a Leaflet map
+ * Phase 18.3: Ensures map dragging stays enabled during drawing
+ * Phase 18.4: Anti-MultiClick for checkpoint mode handled at parent level
  */
 export function useGeoman({ 
   onDrawCreated, 
@@ -41,19 +43,32 @@ export function useGeoman({
       fillOpacity: 0.2,
     })
 
+    // Phase 18.3: Prevent self-intersection
+    map.pm.setGlobalOptions({
+      allowSelfIntersection: false,
+    })
+
     // Event listeners
     map.on('pm:create', (e) => {
       if (onDrawCreated) onDrawCreated(e)
+      // Phase 18.3: Re-enable dragging after draw complete
+      map.dragging.enable()
     })
 
     map.on('pm:remove', (e) => {
       if (onDrawDeleted) onDrawDeleted(e)
     })
 
+    // Phase 18.3: Prevent right-click context menu from interfering
+    map.on('contextmenu', (e) => {
+      e.originalEvent.preventDefault()
+    })
+
     return () => {
       map.pm.removeControls()
       map.off('pm:create')
       map.off('pm:remove')
+      map.off('contextmenu')
     }
   }, [map, onDrawCreated, onDrawDeleted])
 
@@ -82,6 +97,12 @@ export function useGeoman({
         snapDistance: 20,
       })
     }
+
+    // Phase 18.3: Force-enable dragging after mode switch
+    // Geoman can disable it in some edge cases
+    setTimeout(() => {
+      map.dragging.enable()
+    }, 100)
   }, [mode, map])
 
   return map

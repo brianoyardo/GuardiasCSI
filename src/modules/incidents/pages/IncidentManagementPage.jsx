@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react'
 import { getIncidents, updateIncidentStatus } from '@/modules/incidents/services/incidentService'
+import { getEvidencePreviewUrl } from '@/services/appwriteStorage'
 import { INCIDENT_SEVERITY } from '@/config/constants'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import './IncidentManagementPage.css'
 
 /**
  * IncidentManagementPage — Admin view for managing incidents
- * 
- * Layout: Split view (List | Detail)
- * Prepared for integrating with the Command Center map.
+ * Phase 19: Appwrite media preview + Guard identity display
  */
 export default function IncidentManagementPage() {
   const { user } = useAuth()
   const [incidents, setIncidents] = useState([])
-  const [filter, setFilter] = useState('open') // open | resolved | all
+  const [filter, setFilter] = useState('open')
   const [activeIncidentId, setActiveIncidentId] = useState(null)
+  const [mediaModal, setMediaModal] = useState(null) // { url, name } or null
+  const [zoomLevel, setZoomLevel] = useState(1)
 
   useEffect(() => {
     loadIncidents()
@@ -34,7 +35,7 @@ export default function IncidentManagementPage() {
       await updateIncidentStatus(id, newStatus, {
         resolvedBy: newStatus === 'resolved' ? user.uid : null,
       })
-      await loadIncidents() // Reload to get fresh data
+      await loadIncidents()
     } catch (err) {
       console.error('Failed to update status:', err)
     }
@@ -55,6 +56,31 @@ export default function IncidentManagementPage() {
       case INCIDENT_SEVERITY.MEDIUM: return '#f97316'
       default: return '#f59e0b'
     }
+  }
+
+  // Phase 19.1: Get evidence thumbnail URLs
+  const getEvidenceThumbnails = (evidenceIds) => {
+    if (!evidenceIds || evidenceIds.length === 0) return []
+    return evidenceIds.map(id => ({
+      id,
+      url: getEvidencePreviewUrl(id),
+    }))
+  }
+
+  const openMediaModal = (url) => {
+    setMediaModal({ url })
+    setZoomLevel(1)
+  }
+
+  const closeMediaModal = () => {
+    setMediaModal(null)
+    setZoomLevel(1)
+  }
+
+  const formatTimestamp = (ts) => {
+    if (!ts) return '—'
+    const d = ts.toMillis ? new Date(ts.toMillis()) : new Date(ts)
+    return d.toLocaleString('es-BO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
   }
 
   return (
@@ -91,21 +117,31 @@ export default function IncidentManagementPage() {
             {filteredList.length === 0 ? (
               <div className="inc-mgmt__empty">No hay incidentes</div>
             ) : (
-              filteredList.map(inc => (
-                <div 
-                  key={inc.id}
-                  className={`inc-mgmt__card ${activeIncidentId === inc.id ? 'inc-mgmt__card--active' : ''}`}
-                  onClick={() => setActiveIncidentId(inc.id)}
-                >
-                  <div className="inc-mgmt__card-severity" style={{ background: getSeverityColor(inc.severity) }} />
-                  <div className="inc-mgmt__card-info">
-                    <div className="inc-mgmt__card-title">{inc.title}</div>
-                    <div className="inc-mgmt__card-meta">
-                      {new Date(inc.createdAt?.toMillis?.() || Date.now()).toLocaleString('es-BO')} • {inc.status}
+              filteredList.map(inc => {
+                const thumbnails = getEvidenceThumbnails(inc.evidenceIds)
+                return (
+                  <div 
+                    key={inc.id}
+                    className={`inc-mgmt__card ${activeIncidentId === inc.id ? 'inc-mgmt__card--active' : ''}`}
+                    onClick={() => setActiveIncidentId(inc.id)}
+                  >
+                    <div className="inc-mgmt__card-severity" style={{ background: getSeverityColor(inc.severity) }} />
+                    <div className="inc-mgmt__card-info">
+                      <div className="inc-mgmt__card-title">{inc.title}</div>
+                      <div className="inc-mgmt__card-meta">
+                        {inc.guardCode && <span className="inc-mgmt__card-guard">{inc.guardCode}</span>}
+                        <span>{formatTimestamp(inc.createdAt)} • {inc.status}</span>
+                      </div>
                     </div>
+                    {/* Phase 19.1: Thumbnail preview in card */}
+                    {thumbnails.length > 0 && (
+                      <div className="inc-mgmt__card-thumb">
+                        <img src={thumbnails[0].url} alt="Evidencia" loading="lazy" />
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>
@@ -126,17 +162,49 @@ export default function IncidentManagementPage() {
                     <span className="inc-mgmt__badge" style={{ background: 'var(--color-dark-surface)', border: '1px solid var(--color-dark-border)' }}>
                       {activeIncident.type}
                     </span>
-                    <span className="inc-mgmt__badge" style={{ background: activeIncident.status === 'open' ? 'var(--color-warning-400)' : 'var(--color-accent-600)', color: 'white' }}>
+                    <span className="inc-mgmt__badge" style={{ background: activeIncident.status === 'open' ? '#eab308' : '#22c55e', color: 'white' }}>
                       {activeIncident.status}
                     </span>
                   </div>
                 </div>
               </div>
 
+              {/* Phase 19.2: Guard Reporter Section */}
+              <div className="inc-mgmt__reporter">
+                <div className="inc-mgmt__reporter-label">Reportado por</div>
+                <div className="inc-mgmt__reporter-info">
+                  <span className="inc-mgmt__reporter-code">{activeIncident.guardCode || activeIncident.reportedBy?.slice(0, 8) || '—'}</span>
+                  <span className="inc-mgmt__reporter-name">{activeIncident.guardName || 'Guardia no identificado'}</span>
+                </div>
+                {activeIncident.geofenceName && (
+                  <div className="inc-mgmt__reporter-location">
+                    📍 {activeIncident.geofenceName}{activeIncident.routeName ? ` · ${activeIncident.routeName}` : ''}
+                  </div>
+                )}
+              </div>
+
               <div className="inc-mgmt__detail-desc">
                 <strong>Descripción:</strong><br/><br/>
                 {activeIncident.description || 'Sin descripción proporcionada.'}
               </div>
+
+              {/* Phase 19.1: Evidence Gallery */}
+              {activeIncident.evidenceIds && activeIncident.evidenceIds.length > 0 && (
+                <div className="inc-mgmt__evidence">
+                  <div className="inc-mgmt__evidence-title">📎 Evidencia ({activeIncident.evidenceIds.length})</div>
+                  <div className="inc-mgmt__evidence-grid">
+                    {getEvidenceThumbnails(activeIncident.evidenceIds).map(thumb => (
+                      <div 
+                        key={thumb.id}
+                        className="inc-mgmt__evidence-item"
+                        onClick={() => openMediaModal(thumb.url)}
+                      >
+                        <img src={thumb.url} alt="Evidencia" loading="lazy" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Actions */}
               {activeIncident.status !== 'resolved' && activeIncident.status !== 'closed' && (
@@ -159,6 +227,28 @@ export default function IncidentManagementPage() {
           )}
         </div>
       </div>
+
+      {/* Phase 19.1: Glassmorphic Media Modal */}
+      {mediaModal && (
+        <div className="inc-mgmt__media-overlay" onClick={closeMediaModal}>
+          <div className="inc-mgmt__media-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="inc-mgmt__media-controls">
+              <button onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.25))}>−</button>
+              <span>{Math.round(zoomLevel * 100)}%</span>
+              <button onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}>+</button>
+              <button onClick={() => setZoomLevel(1)}>Reset</button>
+              <button className="inc-mgmt__media-close" onClick={closeMediaModal}>✕</button>
+            </div>
+            <div className="inc-mgmt__media-container">
+              <img 
+                src={mediaModal.url} 
+                alt="Evidencia ampliada"
+                style={{ transform: `scale(${zoomLevel})` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

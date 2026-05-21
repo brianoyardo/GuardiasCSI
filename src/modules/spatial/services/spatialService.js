@@ -10,10 +10,34 @@ import { normalizeGeometry, sanitizeForFirestore } from '../utils/geoJsonUtils'
  * SentinelOps — Spatial Service
  * Manages spatial entities (Routes, Checkpoints, Geofences)
  * with versioning and audit trails.
+ * 
+ * Semantic ID format:
+ *   Geofences:   GEO-EMPRESA-PIL
+ *   Routes:      RUTA-EMPRESA-PIL-NORTE
+ *   Checkpoints: CP-EMPRESA-PIL-NORTE-01
  */
 
 const LOG_PREFIX = '[SpatialService]'
 
+/**
+ * Generate a semantic document ID from a name string.
+ * Sanitizes to uppercase, removes special chars, replaces spaces with hyphens.
+ * @param {string} prefix - 'GEO' | 'RUTA' | 'CP'
+ * @param {string} name - Human-readable name
+ * @param {string} [suffix] - Optional suffix (e.g. order number)
+ * @returns {string} Semantic ID (e.g. 'GEO-EMPRESA-PIL')
+ */
+function generateSemanticId(prefix, name, suffix = '') {
+  const sanitized = name
+    .toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^A-Z0-9\s-]/g, '') // Keep only alphanumeric, spaces, hyphens
+    .replace(/\s+/g, '-')          // Spaces → hyphens
+    .replace(/-+/g, '-')           // Collapse multiple hyphens
+    .replace(/^-|-$/g, '')         // Trim leading/trailing hyphens
+  const base = `${prefix}-${sanitized}`
+  return suffix ? `${base}-${suffix}` : base
+}
 /**
  * Generic save function for spatial entities
  */
@@ -98,9 +122,12 @@ async function getSpatialEntities(collectionName, activeOnly = false) {
 
 /**
  * Routes (LineStrings)
+ * Semantic ID format: RUTA-{GEOFENCE-CONTEXT}-{NAME}
  */
 export async function saveRoute(id, data, userId) {
-  return saveSpatialEntity(SPATIAL_COLLECTIONS.ROUTES, id, {
+  // Generate semantic ID for new routes
+  const effectiveId = id || generateSemanticId('RUTA', data.name)
+  return saveSpatialEntity(SPATIAL_COLLECTIONS.ROUTES, effectiveId, {
     name: data.name,
     description: data.description || '',
     status: data.status || 'active',
@@ -128,9 +155,25 @@ export async function getRoute(id) {
 
 /**
  * Checkpoints (Points)
+ * Semantic ID format: CP-{ROUTE-NAME}-{ORDER}
  */
 export async function saveCheckpoint(id, data, userId) {
-  return saveSpatialEntity(SPATIAL_COLLECTIONS.CHECKPOINTS, id, {
+  // Generate semantic ID for new checkpoints
+  let effectiveId = id
+  if (!effectiveId) {
+    const routeLabel = data.routeId || 'UNLINKED'
+    const orderStr = String(data.order || 0).padStart(2, '0')
+    // Try to get route name for a better ID
+    let routeNameForId = routeLabel
+    if (data.routeId) {
+      try {
+        const routeDoc = await getRoute(data.routeId)
+        if (routeDoc?.name) routeNameForId = routeDoc.name
+      } catch (_) { /* fallback to routeId */ }
+    }
+    effectiveId = generateSemanticId('CP', routeNameForId, orderStr)
+  }
+  return saveSpatialEntity(SPATIAL_COLLECTIONS.CHECKPOINTS, effectiveId, {
     name: data.name,
     description: data.description || '',
     status: data.status || 'active',
@@ -173,9 +216,12 @@ export async function getCheckpointsByRoute(routeId) {
 
 /**
  * Geofences (Polygons)
+ * Semantic ID format: GEO-{NAME}
  */
 export async function saveGeofence(id, data, userId) {
-  return saveSpatialEntity(SPATIAL_COLLECTIONS.GEOFENCES, id, {
+  // Generate semantic ID for new geofences
+  const effectiveId = id || generateSemanticId('GEO', data.name)
+  return saveSpatialEntity(SPATIAL_COLLECTIONS.GEOFENCES, effectiveId, {
     name: data.name,
     type: data.type || 'restricted',
     status: data.status || 'active',

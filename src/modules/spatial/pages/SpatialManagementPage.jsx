@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import GisEditorMap from '@/modules/spatial/components/GisEditorMap'
 import { saveRoute, saveGeofence, saveCheckpoint, getRoutes, getGeofences, getCheckpoints } from '@/modules/spatial/services/spatialService'
@@ -6,6 +6,7 @@ import { latLngToGeoJsonPoint, latLngsToGeoJsonLineString, latLngsToGeoJsonPolyg
 import { RouteLayer, GeofenceLayer, CheckpointMarker } from '@/modules/maps'
 import { useMapLayerStore } from '@/stores/mapLayerStore'
 import { useMapControlStore } from '@/stores/mapControlStore'
+import CustomSelect from '@/components/ui/CustomSelect/CustomSelect'
 import GISErrorBoundary from '@/modules/spatial/components/GISErrorBoundary'
 import './SpatialManagementPage.css'
 
@@ -17,22 +18,43 @@ function geoJsonToLeafletPositions(geometry) {
   if (!geometry || !geometry.coordinates) return []
 
   if (geometry.type === 'LineString') {
-    // [[lng, lat], ...] → [{lat, lng}, ...]
     return geometry.coordinates.map(([lng, lat]) => ({ lat, lng }))
   }
 
   if (geometry.type === 'Polygon') {
-    // [[[lng, lat], ...]] → [{lat, lng}, ...] (outer ring only)
     return geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }))
   }
 
   if (geometry.type === 'Point') {
-    // [lng, lat] → {lat, lng}
     const [lng, lat] = geometry.coordinates
     return { lat, lng }
   }
 
   return []
+}
+
+/**
+ * Accordion Section — collapsible entity group
+ */
+function AccordionSection({ title, count, icon, isOpen, onToggle, children }) {
+  return (
+    <div className="accordion-section">
+      <button
+        className={`accordion-section__header ${isOpen ? 'accordion-section__header--open' : ''}`}
+        onClick={onToggle}
+      >
+        <span className="accordion-section__icon">{icon}</span>
+        <span className="accordion-section__title">{title}</span>
+        <span className="accordion-section__count">{count}</span>
+        <span className={`accordion-section__arrow ${isOpen ? 'accordion-section__arrow--open' : ''}`}>▾</span>
+      </button>
+      <div className={`accordion-section__body ${isOpen ? 'accordion-section__body--open' : ''}`}>
+        <div className="accordion-section__content">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function SpatialManagementPage() {
@@ -47,6 +69,12 @@ export default function SpatialManagementPage() {
   // Pending Entity (currently being drawn)
   const [pendingFeature, setPendingFeature] = useState(null)
   const [formData, setFormData] = useState({ name: '', description: '', type: 'restricted', routeId: '', order: 1 })
+
+  // Accordion state
+  const [openSections, setOpenSections] = useState({ geofences: true, routes: true, checkpoints: false })
+
+  // Anti-MultiClick lock
+  const [checkpointLocked, setCheckpointLocked] = useState(false)
 
   // Status
   const [loading, setLoading] = useState(true)
@@ -71,7 +99,6 @@ export default function SpatialManagementPage() {
       const [r, g, c] = await Promise.all([
         getRoutes(), getGeofences(), getCheckpoints()
       ])
-      // Only set if we actually got valid arrays back
       if (Array.isArray(r)) setRoutes(r)
       if (Array.isArray(g)) setGeofences(g)
       if (Array.isArray(c)) setCheckpoints(c)
@@ -83,12 +110,30 @@ export default function SpatialManagementPage() {
     }
   }
 
+  // ─── CustomSelect options ───
+  const routeOptions = useMemo(() => [
+    { value: '', label: '— Asociar a Ruta —' },
+    ...routes.map(r => ({ value: r.id, label: r.name }))
+  ], [routes])
+
+  const geofenceTypeOptions = useMemo(() => [
+    { value: 'restricted', label: 'Restringida (Alerta)' },
+    { value: 'patrol', label: 'Zona de Patrullaje' },
+    { value: 'warning', label: 'Advertencia' },
+  ], [])
+
   const handleDrawCreated = (e) => {
     const layer = e.layer
     let geometry = null
 
     if (mode === 'draw_checkpoint') {
+      // Phase 18.4: Anti-MultiClick — lock after first placement
+      if (checkpointLocked) {
+        layer.remove()
+        return
+      }
       geometry = { type: 'Point', coordinates: latLngToGeoJsonPoint(layer.getLatLng()) }
+      setCheckpointLocked(true) // Lock checkpoint creation
     } else if (mode === 'draw_route') {
       geometry = { type: 'LineString', coordinates: latLngsToGeoJsonLineString(layer.getLatLngs()) }
     } else if (mode === 'draw_geofence') {
@@ -106,9 +151,9 @@ export default function SpatialManagementPage() {
   }
 
   const handleDrawDeleted = (e) => {
-    // If the pending layer was deleted, clear pending state
     if (pendingFeature && pendingFeature.layer === e.layer) {
       setPendingFeature(null)
+      setCheckpointLocked(false)
     }
   }
 
@@ -138,6 +183,7 @@ export default function SpatialManagementPage() {
       // Cleanup
       pendingFeature.layer.remove()
       setPendingFeature(null)
+      setCheckpointLocked(false)
       setFormData({ name: '', description: '', type: 'restricted', routeId: '', order: 1 })
       setMode('view')
       loadEntities()
@@ -150,8 +196,13 @@ export default function SpatialManagementPage() {
   const cancelDrawing = () => {
     if (pendingFeature) pendingFeature.layer.remove()
     setPendingFeature(null)
+    setCheckpointLocked(false)
     setFormData({ name: '', description: '', type: 'restricted', routeId: '', order: 1 })
     setMode('view')
+  }
+
+  const toggleSection = (key) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
   return (
@@ -165,9 +216,9 @@ export default function SpatialManagementPage() {
           </div>
 
           {error && (
-            <div style={{ padding: '1rem', color: 'var(--color-danger-400)', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-danger-500)', margin: '1rem', borderRadius: 'var(--radius-md)' }}>
+            <div className="spatial-mgmt__error">
               {error}
-              <button onClick={loadEntities} style={{ display: 'block', marginTop: '0.5rem', background: 'transparent', border: 'none', color: 'var(--color-danger-400)', textDecoration: 'underline', cursor: 'pointer' }}>Reintentar</button>
+              <button onClick={loadEntities} className="spatial-mgmt__error-retry">Reintentar</button>
             </div>
           )}
 
@@ -196,7 +247,7 @@ export default function SpatialManagementPage() {
             </button>
           </div>
 
-          {/* Pending Form */}
+          {/* Pending Form — Phase 18.3: CustomSelect instead of native <select> */}
           {pendingFeature && (
             <div className="spatial-mgmt__form">
               <input
@@ -207,16 +258,12 @@ export default function SpatialManagementPage() {
               />
 
               {(mode === 'draw_checkpoint' || mode === 'draw_geofence') && (
-                <select
-                  className="spatial-mgmt__input"
+                <CustomSelect
                   value={formData.routeId}
-                  onChange={(e) => setFormData({...formData, routeId: e.target.value})}
-                >
-                  <option value="">— Asociar a Ruta —</option>
-                  {routes.map((r) => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData({...formData, routeId: val})}
+                  options={routeOptions}
+                  placeholder="— Asociar a Ruta —"
+                />
               )}
 
               {mode === 'draw_checkpoint' && (
@@ -231,84 +278,119 @@ export default function SpatialManagementPage() {
               )}
 
               {mode === 'draw_geofence' && (
-                <select
-                  className="spatial-mgmt__input"
+                <CustomSelect
                   value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value})}
-                >
-                  <option value="restricted">Restringida (Alerta)</option>
-                  <option value="patrol">Zona de Patrullaje</option>
-                  <option value="warning">Advertencia</option>
-                </select>
+                  onChange={(val) => setFormData({...formData, type: val})}
+                  options={geofenceTypeOptions}
+                  placeholder="Tipo de geocerca"
+                />
               )}
 
-              <button
-                className="spatial-mgmt__btn spatial-mgmt__btn--save"
-                onClick={handleSave}
-                disabled={!formData.name || ((mode === 'draw_checkpoint' || mode === 'draw_geofence') && !formData.routeId) || loading}
-              >
-                {loading ? 'Guardando...' : 'Guardar Entidad GeoJSON'}
-              </button>
+              <div className="spatial-mgmt__form-actions">
+                <button
+                  className="spatial-mgmt__btn spatial-mgmt__btn--save"
+                  onClick={handleSave}
+                  disabled={!formData.name || ((mode === 'draw_checkpoint' || mode === 'draw_geofence') && !formData.routeId) || loading}
+                >
+                  {loading ? 'Guardando...' : '✓ Guardar'}
+                </button>
+                <button
+                  className="spatial-mgmt__btn spatial-mgmt__btn--cancel"
+                  onClick={cancelDrawing}
+                >
+                  ✕ Cancelar
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Entities List */}
+          {/* Phase 18.1: Accordion Entities List */}
           <div className="spatial-mgmt__list-container">
             {loading ? (
-              <div style={{ color: 'var(--color-dark-text-muted)', textAlign: 'center', padding: '1rem' }}>Cargando datos espaciales...</div>
+              <div className="spatial-mgmt__loading">Cargando datos espaciales...</div>
             ) : (
               <>
-                <div className="spatial-mgmt__list-title">Geocercas ({geofences.length})</div>
-                {geofences.map(g => {
-                  const pos = geoJsonToLeafletPositions(g.geometry)
-                  const center = Array.isArray(pos) && pos.length > 0 ? pos[0] : null
-                  const parentRoute = routes.find((r) => r.id === g.routeId)
-                  return (
-                    <div
-                      key={g.id}
-                      className="spatial-mgmt__item"
-                      style={{ cursor: center ? 'pointer' : 'default' }}
-                      onClick={() => center && triggerFlyTo(center.lat, center.lng, 16)}
-                    >
-                      <span className="spatial-mgmt__item-name">{g.name}</span>
-                      <span className="spatial-mgmt__item-type">{g.type}{parentRoute ? ` · ${parentRoute.name}` : ''}</span>
-                    </div>
-                  )
-                })}
+                <AccordionSection
+                  title="Geocercas"
+                  count={geofences.length}
+                  icon="⬡"
+                  isOpen={openSections.geofences}
+                  onToggle={() => toggleSection('geofences')}
+                >
+                  {geofences.length === 0 ? (
+                    <div className="spatial-mgmt__empty-section">Sin geocercas</div>
+                  ) : geofences.map(g => {
+                    const pos = geoJsonToLeafletPositions(g.geometry)
+                    const center = Array.isArray(pos) && pos.length > 0 ? pos[0] : null
+                    const parentRoute = routes.find((r) => r.id === g.routeId)
+                    return (
+                      <div
+                        key={g.id}
+                        className="spatial-mgmt__item"
+                        style={{ cursor: center ? 'pointer' : 'default' }}
+                        onClick={() => center && triggerFlyTo(center.lat, center.lng, 16)}
+                      >
+                        <span className="spatial-mgmt__item-name">{g.name}</span>
+                        <span className="spatial-mgmt__item-type">{g.type}{parentRoute ? ` · ${parentRoute.name}` : ''}</span>
+                        <span className="spatial-mgmt__item-id">{g.id}</span>
+                      </div>
+                    )
+                  })}
+                </AccordionSection>
 
-                <div className="spatial-mgmt__list-title" style={{marginTop: '1rem'}}>Rutas ({routes.length})</div>
-                {routes.map(r => {
-                  const waypoints = geoJsonToLeafletPositions(r.geometry)
-                  const center = Array.isArray(waypoints) && waypoints.length > 0 ? waypoints[0] : null
-                  return (
-                    <div
-                      key={r.id}
-                      className="spatial-mgmt__item"
-                      style={{ cursor: center ? 'pointer' : 'default' }}
-                      onClick={() => center && triggerFlyTo(center.lat, center.lng, 16)}
-                    >
-                      <span className="spatial-mgmt__item-name">{r.name}</span>
-                      <span className="spatial-mgmt__item-type">LineString</span>
-                    </div>
-                  )
-                })}
+                <AccordionSection
+                  title="Rutas"
+                  count={routes.length}
+                  icon="〰️"
+                  isOpen={openSections.routes}
+                  onToggle={() => toggleSection('routes')}
+                >
+                  {routes.length === 0 ? (
+                    <div className="spatial-mgmt__empty-section">Sin rutas</div>
+                  ) : routes.map(r => {
+                    const waypoints = geoJsonToLeafletPositions(r.geometry)
+                    const center = Array.isArray(waypoints) && waypoints.length > 0 ? waypoints[0] : null
+                    return (
+                      <div
+                        key={r.id}
+                        className="spatial-mgmt__item"
+                        style={{ cursor: center ? 'pointer' : 'default' }}
+                        onClick={() => center && triggerFlyTo(center.lat, center.lng, 16)}
+                      >
+                        <span className="spatial-mgmt__item-name">{r.name}</span>
+                        <span className="spatial-mgmt__item-type">LineString</span>
+                        <span className="spatial-mgmt__item-id">{r.id}</span>
+                      </div>
+                    )
+                  })}
+                </AccordionSection>
 
-                <div className="spatial-mgmt__list-title" style={{marginTop: '1rem'}}>Checkpoints ({checkpoints.length})</div>
-                {checkpoints.map(c => {
-                  const position = geoJsonToLeafletPositions(c.geometry)
-                  const parentRoute = routes.find((r) => r.id === c.routeId)
-                  return (
-                    <div
-                      key={c.id}
-                      className="spatial-mgmt__item"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => triggerFlyTo(position.lat, position.lng, 16)}
-                    >
-                      <span className="spatial-mgmt__item-name">{c.order ? `#${c.order} ${c.name}` : c.name}</span>
-                      <span className="spatial-mgmt__item-type">{parentRoute ? parentRoute.name : 'Sin ruta'}</span>
-                    </div>
-                  )
-                })}
+                <AccordionSection
+                  title="Checkpoints"
+                  count={checkpoints.length}
+                  icon="📍"
+                  isOpen={openSections.checkpoints}
+                  onToggle={() => toggleSection('checkpoints')}
+                >
+                  {checkpoints.length === 0 ? (
+                    <div className="spatial-mgmt__empty-section">Sin checkpoints</div>
+                  ) : checkpoints.map(c => {
+                    const position = geoJsonToLeafletPositions(c.geometry)
+                    const parentRoute = routes.find((r) => r.id === c.routeId)
+                    return (
+                      <div
+                        key={c.id}
+                        className="spatial-mgmt__item"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => position?.lat && triggerFlyTo(position.lat, position.lng, 18)}
+                      >
+                        <span className="spatial-mgmt__item-name">{c.order ? `#${c.order} ${c.name}` : c.name}</span>
+                        <span className="spatial-mgmt__item-type">{parentRoute ? parentRoute.name : 'Sin ruta'}</span>
+                        <span className="spatial-mgmt__item-id">{c.id}</span>
+                      </div>
+                    )
+                  })}
+                </AccordionSection>
               </>
             )}
           </div>
@@ -320,6 +402,7 @@ export default function SpatialManagementPage() {
             mode={mode}
             onDrawCreated={handleDrawCreated}
             onDrawDeleted={handleDrawDeleted}
+            allowedLayers={['routes', 'geofences', 'checkpoints']}
           >
           {/* Render Saved Entities — conditional on layer visibility */}
           {showRoutes && routes.map(r => {

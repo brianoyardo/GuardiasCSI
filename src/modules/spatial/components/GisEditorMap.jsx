@@ -13,6 +13,7 @@ function GeomanInjector({ mode, onDrawCreated, onDrawEdited, onDrawDeleted }) {
 /**
  * GisEditorMap — Specialized map for spatial editing
  * Wraps BaseMap and injects Geoman controls
+ * Phase 18.2: allowedLayers filters out Tracking/Heatmap
  */
 export default function GisEditorMap({
   center,
@@ -21,15 +22,17 @@ export default function GisEditorMap({
   onDrawCreated,
   onDrawEdited,
   onDrawDeleted,
+  allowedLayers = null,
   children
 }) {
   return (
     <BaseMap
       center={center}
       zoom={zoom}
-      darkMode={true} // Strict tactical dark mode
+      darkMode={true}
       showControls={true}
       showLayerPanel={true}
+      allowedLayers={allowedLayers}
     >
       <GeomanInjector 
         mode={mode}
@@ -41,3 +44,4 @@ export default function GisEditorMap({
     </BaseMap>
   )
 }
+

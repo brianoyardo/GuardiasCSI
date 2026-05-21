@@ -4,6 +4,8 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { COLLECTIONS } from '@/config/constants'
+import { getUserProfile } from '@/modules/users/services/userService'
+import { getGeofences } from '@/modules/spatial/services/spatialService'
 
 /**
  * SentinelOps — Incident Service
@@ -30,6 +32,37 @@ const LOG_PREFIX = '[IncidentService]'
 export async function createIncident(data) {
   try {
     const ref = doc(collection(db, COLLECTIONS.INCIDENTS))
+
+    // ─── Anti-Lookup: Resolve reporter identity at write time ───
+    let guardName = data.guardName || ''
+    let guardCode = data.guardCode || ''
+    let routeName = data.routeName || ''
+    let geofenceName = data.geofenceName || ''
+
+    if ((!guardName || !guardCode) && data.reportedBy) {
+      try {
+        const guardProfile = await getUserProfile(data.reportedBy)
+        if (guardProfile) {
+          guardName = guardProfile.fullName || guardProfile.email || ''
+          guardCode = guardProfile.guardId || data.reportedBy?.slice(0, 6) || ''
+        }
+      } catch (_) { /* Non-blocking */ }
+    }
+
+    if (!geofenceName && data.location) {
+      try {
+        const allGeofences = await getGeofences()
+        // Simple proximity check — use routeId if available
+        if (data.routeId) {
+          const linked = allGeofences.find(g => g.routeId === data.routeId)
+          if (linked) {
+            geofenceName = linked.name || ''
+            routeName = data.routeName || ''
+          }
+        }
+      } catch (_) { /* Non-blocking */ }
+    }
+
     await setDoc(ref, {
       title: data.title,
       description: data.description || '',
@@ -37,6 +70,11 @@ export async function createIncident(data) {
       severity: data.severity,
       status: 'open',
       reportedBy: data.reportedBy,
+      // ─── Denormalized fields (Anti-Lookup) ───
+      guardName,
+      guardCode,
+      routeName,
+      geofenceName,
       assignedTo: null,
       location: data.location || null,
       evidenceIds: data.evidenceIds || [],

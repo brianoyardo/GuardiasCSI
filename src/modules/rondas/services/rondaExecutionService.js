@@ -7,6 +7,8 @@ import { COLLECTIONS, REPORT_STATES, PATROL_TYPES, SHIFT_TYPES } from '@/config/
 import { transition, RONDA_STATES, RONDA_EVENTS } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { updateAssignmentStatus } from './rondaAssignmentService'
 import { logActivity } from '@/modules/auth/services/authService'
+import { getUserProfile } from '@/modules/users/services/userService'
+import { getRoute, getGeofences } from '@/modules/spatial/services/spatialService'
 
 /**
  * SentinelOps — Ronda Execution Service
@@ -49,11 +51,47 @@ export async function startExecution(data) {
     const execRef = doc(collection(db, COLLECTIONS.RONDA_EXECUTIONS))
     const initialState = data.initialState || RONDA_STATES.IN_PROGRESS
 
+    // ─── Anti-Lookup: Resolve denormalized names at write time ───
+    let guardName = data.guardName || ''
+    let guardCode = data.guardCode || ''
+    let routeName = data.routeName || ''
+    let geofenceName = data.geofenceName || ''
+
+    if (!guardName || !guardCode) {
+      try {
+        const guardProfile = await getUserProfile(data.guardId)
+        if (guardProfile) {
+          guardName = guardProfile.fullName || guardProfile.email || ''
+          guardCode = guardProfile.guardId || data.guardId?.slice(0, 6) || ''
+        }
+      } catch (_) { /* Non-blocking */ }
+    }
+
+    if (!routeName && data.routeId) {
+      try {
+        const routeDoc = await getRoute(data.routeId)
+        if (routeDoc) routeName = routeDoc.name || ''
+      } catch (_) { /* Non-blocking */ }
+    }
+
+    if (!geofenceName && data.routeId) {
+      try {
+        const allGeofences = await getGeofences()
+        const linked = allGeofences.find(g => g.routeId === data.routeId)
+        if (linked) geofenceName = linked.name || ''
+      } catch (_) { /* Non-blocking */ }
+    }
+
     const execution = {
       assignmentId: data.assignmentId,
       rondaId: data.rondaId,
       routeId: data.routeId,
       guardId: data.guardId,
+      // ─── Denormalized fields (Anti-Lookup) ───
+      guardName,
+      guardCode,
+      routeName,
+      geofenceName,
       status: initialState,
       checkpointIds: data.checkpointIds,
       completedCheckpoints: [],
