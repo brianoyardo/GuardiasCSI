@@ -4,7 +4,7 @@ import { db } from '@/config/firebase'
 import { BaseMap } from '@/modules/maps'
 import { useMapControlStore } from '@/stores/mapControlStore'
 import { Marker as LeafletMarker, Popup, Polyline } from 'react-leaflet'
-import { L } from 'leaflet'
+import L from 'leaflet'
 import './LiveMonitoringPage.css'
 
 const PRESENCE_COLLECTION = 'guardPresence'
@@ -41,7 +41,6 @@ export default function LiveMonitoringPage() {
   const [guards, setGuards] = useState([])
   const [executions, setExecutions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showStats, setShowStats] = useState(false)
   const triggerFlyTo = useMapControlStore((s) => s.triggerFlyTo)
 
   useEffect(() => {
@@ -105,111 +104,86 @@ export default function LiveMonitoringPage() {
 
   return (
     <div className="live-monitoring" id="live-monitoring-page">
-      {/* Map — Full Screen */}
-      <div className="live-monitoring__map">
-        <BaseMap
-          darkMode
-          showControls
-          showLayerPanel
-          allowedLayers={ALLOWED_LAYERS}
-        >
-          {guards.map(guard => {
-            if (!guard.location || !guard.location.lat) return null
-            const exec = guardExecMap[guard.id]
-            const showTrail = guard.status === 'in_progress' && exec?.gpsTrack && exec.gpsTrack.length > 1
-
-            return (
-              <div key={guard.id}>
-                <GuardMarker
-                  position={[guard.location.lat, guard.location.lng]}
-                  icon={createGuardIcon(guard.status)}
-                  guardName={guard.guardName || guard.guardCode || guard.id.slice(0, 6)}
-                  onClick={() => handleFlyTo(guard.location.lat, guard.location.lng)}
-                />
-                {showTrail && (
-                  <TrailLine trail={exec.gpsTrack} />
-                )}
-              </div>
-            )
-          })}
-        </BaseMap>
-      </div>
-
-      {/* Stats Toggle Button */}
-      <button
-        className="live-monitoring__stats-toggle"
-        onClick={() => setShowStats(!showStats)}
-      >
-        📊 {guards.length}
-      </button>
-
-      {/* Stats Modal */}
-      {showStats && (
-        <div className="live-monitoring__stats-modal" onClick={() => setShowStats(false)}>
-          <div className="live-monitoring__stats-content" onClick={e => e.stopPropagation()}>
-            <h3>Estado Global</h3>
-            <div className="live-monitoring__stats-grid">
-              <div className="live-monitoring__stat-card" style={{ borderColor: STATUS_CONFIG.in_progress.color }}>
-                <span className="live-monitoring__stat-icon">{STATUS_CONFIG.in_progress.icon}</span>
-                <span className="live-monitoring__stat-value">{totalActive}</span>
-                <span className="live-monitoring__stat-label">En Ronda</span>
-              </div>
-              <div className="live-monitoring__stat-card" style={{ borderColor: STATUS_CONFIG.validating_voice.color }}>
-                <span className="live-monitoring__stat-icon">{STATUS_CONFIG.validating_voice.icon}</span>
-                <span className="live-monitoring__stat-value">{totalValidating}</span>
-                <span className="live-monitoring__stat-label">Validando</span>
-              </div>
-              <div className="live-monitoring__stat-card" style={{ borderColor: STATUS_CONFIG.online.color }}>
-                <span className="live-monitoring__stat-icon">{STATUS_CONFIG.online.icon}</span>
-                <span className="live-monitoring__stat-value">{totalOnline}</span>
-                <span className="live-monitoring__stat-label">En Línea</span>
-              </div>
-            </div>
+      {/* ─── Status Strip (Top) ─── */}
+      <div className="lm__status-strip">
+        <div className="lm__status-items">
+          <div className="lm__stat">
+            <span className="lm__stat-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_CONFIG.in_progress.color }} />
+            <span className="lm__stat-value" style={{ color: STATUS_CONFIG.in_progress.color }}>{totalActive}</span>
+            <span className="lm__stat-label">En Ronda</span>
+          </div>
+          <div className="lm__stat">
+            <span className="lm__stat-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_CONFIG.validating_voice.color }} />
+            <span className="lm__stat-value" style={{ color: STATUS_CONFIG.validating_voice.color }}>{totalValidating}</span>
+            <span className="lm__stat-label">Validando</span>
+          </div>
+          <div className="lm__stat">
+            <span className="lm__stat-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_CONFIG.online.color }} />
+            <span className="lm__stat-value" style={{ color: STATUS_CONFIG.online.color }}>{totalOnline}</span>
+            <span className="lm__stat-label">Online</span>
           </div>
         </div>
-      )}
-
-      {/* Bottom Floating Panel */}
-      <div className="live-monitoring__bottom-panel">
-        {loading ? (
-          <div className="live-monitoring__bottom-loading">Conectando al stream...</div>
-        ) : guards.length === 0 ? (
-          <div className="live-monitoring__bottom-empty">No hay guardias activos</div>
-        ) : (
-          guards.map(guard => (
-            <GuardCard
-              key={guard.id}
-              guard={guard}
-              onClick={() => guard.location && handleFlyTo(guard.location.lat, guard.location.lng)}
-            />
-          ))
-        )}
       </div>
-    </div>
-  )
-}
 
-function GuardCard({ guard, onClick }) {
-  const config = STATUS_CONFIG[guard.status] || STATUS_CONFIG.online
-  const guardCode = guard.guardCode || guard.id?.slice(0, 6) || '—'
-  const guardName = guard.guardName || 'Sin nombre'
-  const accuracy = guard.accuracy ? `±${Math.round(guard.accuracy)}m` : ''
+      {/* ─── Main Content (Map + Sidebar) ─── */}
+      <div className="lm__main">
+        <div className="lm__map-section">
+          <BaseMap darkMode showControls showLayerPanel allowedLayers={ALLOWED_LAYERS}>
+            {guards.map(guard => {
+              if (!guard.location || !guard.location.lat) return null
+              const exec = guardExecMap[guard.id]
+              const showTrail = guard.status === 'in_progress' && exec?.gpsTrack && exec.gpsTrack.length > 1
+              return (
+                <div key={`map-guard-${guard.id}`}>
+                  <GuardMarker
+                    position={[guard.location.lat, guard.location.lng]}
+                    icon={createGuardIcon(guard.status)}
+                    guardName={guard.guardName || guard.guardCode || guard.id.slice(0, 6)}
+                    onClick={() => handleFlyTo(guard.location.lat, guard.location.lng)}
+                  />
+                  {showTrail && <TrailLine trail={exec.gpsTrack} />}
+                </div>
+              )
+            })}
+          </BaseMap>
+        </div>
 
-  return (
-    <div className="guard-card" onClick={onClick}>
-      <div className="guard-card__header">
-        <span className="guard-card__code">{guardCode}</span>
-        <span
-          className="guard-card__status-dot"
-          style={{ background: config.color, boxShadow: `0 0 8px ${config.color}` }}
-        />
-      </div>
-      <div className="guard-card__name">{guardName}</div>
-      <div className="guard-card__meta">
-        <span className="guard-card__status-label" style={{ color: config.color }}>
-          {config.label}
-        </span>
-        {accuracy && <span className="guard-card__accuracy">{accuracy}</span>}
+        <div className="lm__sidebar">
+          <div className="lm__sidebar-section">
+            <div className="lm__sidebar-title">
+              <span>Fuerza Activa</span>
+              <span style={{ background: 'var(--color-primary-600)', padding: '2px 8px', borderRadius: 10, color: '#fff' }}>
+                {guards.length}
+              </span>
+            </div>
+
+            {loading ? (
+              <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>Conectando al stream...</div>
+            ) : guards.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>Sin guardias activos</div>
+            ) : (
+              guards.map(guard => {
+                const config = STATUS_CONFIG[guard.status] || STATUS_CONFIG.online
+                return (
+                  <div
+                    key={`sidebar-guard-${guard.id}`}
+                    className="lm__guard-item"
+                    onClick={() => guard.location && handleFlyTo(guard.location.lat, guard.location.lng)}
+                  >
+                    <div className="lm__guard-dot" style={{ background: config.color, boxShadow: `0 0 8px ${config.color}` }} />
+                    <div className="lm__guard-info">
+                      <div className="lm__guard-code">{guard.guardCode || guard.id.slice(0, 6)}</div>
+                      <div className="lm__guard-name">{guard.guardName || 'Sin nombre'}</div>
+                    </div>
+                    <div className="lm__guard-status" style={{ color: config.color }}>
+                      {config.label}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

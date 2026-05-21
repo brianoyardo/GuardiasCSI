@@ -7,10 +7,12 @@ const COLLECTION_NAME = 'guardPresence'
 
 export function useGlobalPresence({ guardId, guardName, guardCode, executionStatus = null }) {
   const watchIdRef = useRef(null)
-  const intervalRef = useRef(null)
+  const heartbeatRef = useRef(null)
   const guardIdRef = useRef(guardId)
+  const statusRef = useRef(executionStatus)
 
   guardIdRef.current = guardId
+  statusRef.current = executionStatus
 
   const updatePresence = useCallback(async (position, status) => {
     if (!guardIdRef.current) return
@@ -21,11 +23,11 @@ export function useGlobalPresence({ guardId, guardName, guardCode, executionStat
           guardId: guardIdRef.current,
           guardName: guardName || '',
           guardCode: guardCode || '',
-          location: {
+          location: position ? {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          },
-          accuracy: position.coords.accuracy || null,
+          } : undefined,
+          accuracy: position?.coords?.accuracy || null,
           status: status || 'online',
           lastUpdate: serverTimestamp(),
         },
@@ -35,6 +37,22 @@ export function useGlobalPresence({ guardId, guardName, guardCode, executionStat
       // Silenced during dev until Firestore rules are deployed
     }
   }, [guardName, guardCode])
+
+  const heartbeat = useCallback(async () => {
+    if (!guardIdRef.current) return
+    try {
+      await setDoc(
+        doc(db, COLLECTION_NAME, guardIdRef.current),
+        {
+          status: statusRef.current || 'online',
+          lastUpdate: serverTimestamp(),
+        },
+        { merge: true }
+      )
+    } catch (err) {
+      // Silenced
+    }
+  }, [])
 
   useEffect(() => {
     if (!guardId) return
@@ -49,9 +67,7 @@ export function useGlobalPresence({ guardId, guardName, guardCode, executionStat
           if (!mounted) return
           updatePresence(position, executionStatus)
         },
-        (err) => {
-          console.error('[useGlobalPresence] watchPosition error:', err)
-        },
+        () => {},
         {
           enableHighAccuracy: true,
           timeout: 10000,
@@ -62,20 +78,9 @@ export function useGlobalPresence({ guardId, guardName, guardCode, executionStat
 
     startTracking()
 
-    intervalRef.current = setInterval(() => {
+    heartbeatRef.current = setInterval(() => {
       if (!mounted) return
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          if (!mounted) return
-          updatePresence(position, executionStatus)
-        },
-        () => {},
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      )
+      heartbeat()
     }, POSITION_SYNC_INTERVAL)
 
     return () => {
@@ -84,12 +89,12 @@ export function useGlobalPresence({ guardId, guardName, guardCode, executionStat
         navigator.geolocation.clearWatch(watchIdRef.current)
         watchIdRef.current = null
       }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current)
+        heartbeatRef.current = null
       }
     }
-  }, [guardId, executionStatus, updatePresence])
+  }, [guardId, executionStatus, updatePresence, heartbeat])
 
   const clearPresence = useCallback(async () => {
     if (!guardId) return
