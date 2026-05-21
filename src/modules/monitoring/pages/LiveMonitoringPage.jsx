@@ -29,8 +29,10 @@ const SEVERITY_CONFIG = {
 const ALLOWED_LAYERS = ['guards', 'checkpoints', 'routes', 'geofences', 'incidents']
 
 /**
- * Guard Marker Icon — L.divIcon with code + name overlay
- * Phase 17.2: Monospaced code, muted name, pulse animation
+ * Guard Marker Icon — Hybrid L.divIcon
+ * Phase 21: Two distinct designs based on operational state
+ *   - in_progress / validating_voice → Minimal crystal pulsing dot
+ *   - online / offline → Floating card with guardCode + guardName
  */
 function createGuardIcon(status, guardCode, guardName) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.online
@@ -38,11 +40,27 @@ function createGuardIcon(status, guardCode, guardName) {
   const code = guardCode || '???'
   const name = guardName || ''
 
+  // ─── ACTIVE states: minimal crystal dot ───
+  if (status === 'in_progress' || status === 'validating_voice') {
+    return L.divIcon({
+      className: 'guard-marker-icon',
+      html: `
+        <div class="guard-marker-crystal" style="--marker-color: ${color}">
+          <div class="guard-marker-crystal-core" style="background: ${color}; box-shadow: 0 0 12px ${color}, 0 0 24px ${color}40"></div>
+          <div class="guard-marker-crystal-pulse" style="border-color: ${color}"></div>
+          <div class="guard-marker-crystal-pulse guard-marker-crystal-pulse--delayed" style="border-color: ${color}"></div>
+        </div>
+      `,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    })
+  }
+
+  // ─── IDLE states: floating card with code + name ───
   return L.divIcon({
     className: 'guard-marker-icon',
     html: `
       <div class="guard-marker-tactical" style="--marker-color: ${color}">
-        <div class="guard-marker-pulse-ring" style="border-color: ${color}"></div>
         <div class="guard-marker-body" style="background: ${color}20; border-color: ${color}">
           <span class="guard-marker-code" style="color: ${color}">${code}</span>
           <span class="guard-marker-name">${name.length > 14 ? name.slice(0, 12) + '…' : name}</span>

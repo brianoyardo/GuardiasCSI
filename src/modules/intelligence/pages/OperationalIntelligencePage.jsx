@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import PlaybackMap from '../components/PlaybackMap'
 import { calculateRouteAdherence } from '../services/patrolCompliance'
 import { calculateOperationalScore } from '../services/operationalScoring'
-import { getHistoricalExecutions, getExecutionTelemetry } from '@/modules/rondas/services/rondaExecutionService'
+import { getHistoricalExecutions } from '@/modules/rondas/services/rondaExecutionService'
 import { getRoute, getGeofences } from '@/modules/spatial/services/spatialService'
 import { getAssignment } from '@/modules/rondas/services/rondaAssignmentService'
 import ActivityDatePicker from '@/components/ui/ActivityDatePicker/ActivityDatePicker'
@@ -130,13 +130,15 @@ export default function OperationalIntelligencePage() {
       const exec = executions.find(e => e.id === selectedExecutionId)
       setActiveExecution(exec)
 
-      const [track, route, assignment] = await Promise.all([
-        getExecutionTelemetry(selectedExecutionId),
+      // Phase 21: Read gpsTrack directly from the execution document
+      const track = exec?.gpsTrack || []
+      setGpsTrack(track)
+
+      const [route, assignment] = await Promise.all([
         exec?.routeId ? getRoute(exec.routeId) : null,
         exec?.assignmentId ? getAssignment(exec.assignmentId) : null,
       ])
 
-      setGpsTrack(track)
       setRouteGeometry(route?.geometry || null)
       setAssignmentData(assignment)
 

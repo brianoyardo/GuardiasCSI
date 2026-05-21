@@ -357,6 +357,50 @@
   flex-shrink: 0;
 }
 
+/* ─── Phase 21: Playback Dot Marker ─── */
+.playback-dot-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.playback-dot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.playback-dot__core {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 10px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4);
+  z-index: 2;
+}
+
+.playback-dot__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #3b82f6;
+  opacity: 0;
+  animation: playbackPulse 1.8s ease-out infinite;
+}
+
+@keyframes playbackPulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 1024px) {
   .intelligence-hub__grid {
