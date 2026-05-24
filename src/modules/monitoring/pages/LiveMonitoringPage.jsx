@@ -13,7 +13,7 @@ const EXECUTIONS_COLLECTION = 'rondaExecutions'
 const ACTIVE_THRESHOLD_MS = 2 * 60 * 1000
 
 const STATUS_CONFIG = {
-  online: { label: 'En línea', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', icon: '🔵' },
+  online: { label: 'En línea', color: '#0055ff', bg: 'rgba(0, 85, 255, 0.15)', icon: '🔵' },
   validating_voice: { label: 'Validando voz', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)', icon: '🟣' },
   in_progress: { label: 'En ronda', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', icon: '🟢' },
   offline: { label: 'Desconectado', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)', icon: '⚫' },
@@ -31,10 +31,8 @@ const ALLOWED_LAYERS = ['guards', 'checkpoints', 'routes', 'geofences', 'inciden
 function createGuardIcon(status, guardCode, guardName) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.online;
   const color = config.color;
-  const code = guardCode || '???';
-  const name = guardName || 'Sin nombre';
 
-  // LOGICA ESTRICHA: Si es ronda, solo punto táctico. Si NO es ronda, solo tarjeta.
+  // Si es ronda: Punto táctico con pulso
   if (status === 'in_progress' || status === 'validating_voice') {
     return L.divIcon({
       className: 'guard-marker-icon',
@@ -43,10 +41,11 @@ function createGuardIcon(status, guardCode, guardName) {
     });
   }
   
+  // Si no es ronda (online / offline / idle): Punto táctico estático (sin pulso)
   return L.divIcon({
     className: 'guard-marker-icon',
-    html: `<div class="guard-marker-tactical"><span class="code">${code}</span><span class="name">${name}</span></div>`,
-    iconSize: [80, 40], iconAnchor: [40, 20]
+    html: `<div class="guard-marker-pin" style="--marker-color: ${color}"><div class="guard-marker-dot"></div></div>`,
+    iconSize: [24, 24], iconAnchor: [12, 12]
   });
 }
 

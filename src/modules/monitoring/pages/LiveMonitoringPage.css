@@ -388,6 +388,7 @@
   height: 12px;
   border-radius: 50%;
   z-index: 2;
+  background: var(--marker-color, #22c55e);
   box-shadow: 0 0 8px var(--marker-color, #22c55e), 0 0 16px rgba(34, 197, 94, 0.3);
 }
 
