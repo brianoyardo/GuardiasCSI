@@ -9,27 +9,33 @@ const COLLECTION_NAME = 'guardPresence'
 /**
  * SentinelOps — useGlobalPresence
  * Phase 21.4: Definitive GPS tracking + user hydration reactive hook.
+ * Stores presence documents keyed by the guard's guardId (e.g. brianPrueba) for easier Firestore inspection.
  */
 export function useGlobalPresence({ guardId: propGuardId, guardName: propGuardName, guardCode: propGuardCode, executionStatus = null } = {}) {
-  const { user } = useAuth()
+  const { user, profile, loading, profileLoading } = useAuth()
 
-  // Dynamic derivation of identity to avoid auth hydration lag
+  // Dynamic derivation of identity from fully hydrated profile
   const guardId = user?.uid || propGuardId
-  const guardName = user?.fullName || user?.email || propGuardName || 'Desconocido'
-  const guardCode = user?.guardId || user?.uid?.slice(0, 6) || propGuardCode || 'N/A'
+  const guardName = profile?.fullName || user?.email || propGuardName || 'Desconocido'
+  const guardCode = profile?.guardId || user?.uid?.slice(0, 6) || propGuardCode || 'N/A'
+
+  // Document ID in guardPresence is the guardId (e.g. brianPrueba) or fallback to UID
+  const presenceDocId = profile?.guardId || propGuardCode || guardId
 
   useEffect(() => {
-    if (!guardId) return
+    // Wait until profile is fully hydrated to avoid writing raw UID
+    if (loading || profileLoading) return
+    if (!presenceDocId) return
 
-    const docRef = doc(db, COLLECTION_NAME, guardId)
+    const docRef = doc(db, COLLECTION_NAME, presenceDocId)
 
     // Write initial presence doc with correct schema and identity
     setDoc(
       docRef,
       {
-        guardId,
-        guardName,
-        guardCode,
+        guardId,      // The UID of the user: CDXYkmCdH5Ml3BYLVVDULLjJZUy1
+        guardName,    // The full name of the user: Brian Ayardo
+        guardCode,    // The guardId of the user: brianPrueba
         status: executionStatus || 'online',
         lastUpdate: serverTimestamp(),
       },
@@ -68,13 +74,13 @@ export function useGlobalPresence({ guardId: propGuardId, guardName: propGuardNa
       }
       clearInterval(heartbeatInterval)
     }
-  }, [guardId, guardName, guardCode, executionStatus])
+  }, [presenceDocId, guardId, guardName, guardCode, executionStatus, loading, profileLoading])
 
   const clearPresence = useCallback(async () => {
-    if (!guardId) return
+    if (!presenceDocId) return
     try {
       await setDoc(
-        doc(db, COLLECTION_NAME, guardId),
+        doc(db, COLLECTION_NAME, presenceDocId),
         {
           status: 'offline',
           lastUpdate: serverTimestamp(),
@@ -84,7 +90,7 @@ export function useGlobalPresence({ guardId: propGuardId, guardName: propGuardNa
     } catch (err) {
       console.error('[useGlobalPresence] Error clearing presence:', err)
     }
-  }, [guardId])
+  }, [presenceDocId])
 
   return { clearPresence }
 }

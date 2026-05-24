@@ -172,7 +172,7 @@ export default function LiveMonitoringPage() {
           <BaseMap darkMode showControls showLayerPanel allowedLayers={ALLOWED_LAYERS}>
             {guards.map(guard => {
               if (!guard.location || !guard.location.lat) return null
-              const exec = guardExecMap[guard.id]
+              const exec = guardExecMap[guard.id] || guardExecMap[guard.guardId]
               
               if (exec) {
                 // Active round guard: BaseMap renders the LiveGuardMarker.
@@ -225,7 +225,7 @@ export default function LiveMonitoringPage() {
                 <div className="lm__guard-list">
                   {guards.map(guard => {
                     const config = STATUS_CONFIG[guard.status] || STATUS_CONFIG.online
-                    const exec = guardExecMap[guard.id]
+                    const exec = guardExecMap[guard.id] || guardExecMap[guard.guardId]
                     return (
                       <div
                         key={`sidebar-guard-${guard.id}`}

@@ -109,13 +109,35 @@ export async function createIncident(data) {
 export async function createPanicIncident(data) {
   try {
     const ref = doc(collection(db, COLLECTIONS.INCIDENTS))
+
+    // Resolve reporter identity at write time (Anti-Lookup)
+    let guardName = data.guardName || ''
+    let guardCode = data.guardCode || ''
+    let routeName = data.routeName || ''
+    let geofenceName = data.geofenceName || ''
+
+    const reporterId = data.guardId || data.reportedBy
+    if (reporterId) {
+      try {
+        const guardProfile = await getUserProfile(reporterId)
+        if (guardProfile) {
+          guardName = guardProfile.fullName || guardProfile.email || ''
+          guardCode = guardProfile.guardId || reporterId.slice(0, 6) || ''
+        }
+      } catch (_) { /* Non-blocking */ }
+    }
+
     await setDoc(ref, {
       title: '🚨 ¡BOTÓN DE PÁNICO ACTIVADO!',
       description: 'El guardia requiere asistencia inmediata. Activación de protocolo de emergencia.',
       type: 'emergency',
       severity: 'critical',
       status: 'open',
-      reportedBy: data.guardId,
+      reportedBy: reporterId,
+      guardName,
+      guardCode,
+      routeName,
+      geofenceName,
       assignedTo: null,
       location: data.location || null,
       evidenceIds: [],

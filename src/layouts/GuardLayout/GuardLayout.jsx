@@ -11,7 +11,7 @@ import PanicModal from '@/components/ui/PanicModal/PanicModal'
 import './GuardLayout.css'
 
 export default function GuardLayout() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
   const [showPanicModal, setShowPanicModal] = useState(false)
   const [isSending, setIsSending] = useState(false)
@@ -53,8 +53,8 @@ export default function GuardLayout() {
 
   const { clearPresence } = useGlobalPresence({
     guardId: user?.uid || null,
-    guardName: user?.fullName || 'Sin nombre',
-    guardCode: user?.guardId || user?.uid?.slice(0, 6) || '',
+    guardName: profile?.fullName || user?.email || 'Sin nombre',
+    guardCode: profile?.guardId || user?.uid?.slice(0, 6) || '',
     executionStatus: presenceStatus,
   })
 
@@ -94,6 +94,8 @@ export default function GuardLayout() {
 
       await createPanicIncident({
         guardId: user.uid,
+        guardName: profile?.fullName || user.email || '',
+        guardCode: profile?.guardId || user.uid.slice(0, 6) || '',
         location: { lat: latitude, lng: longitude },
       })
     } catch (err) {
