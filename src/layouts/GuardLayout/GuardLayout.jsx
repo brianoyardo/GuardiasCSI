@@ -53,8 +53,8 @@ export default function GuardLayout() {
 
   const { clearPresence } = useGlobalPresence({
     guardId: user?.uid || null,
-    guardName: user?.fullName || user?.email || '',
-    guardCode: user?.guardId || '',
+    guardName: user?.fullName || 'Sin nombre',
+    guardCode: user?.guardId || user?.uid?.slice(0, 6) || '',
     executionStatus: presenceStatus,
   })
 
