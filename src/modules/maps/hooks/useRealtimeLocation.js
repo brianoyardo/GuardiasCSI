@@ -35,7 +35,7 @@ export function useRealtimeLocation(guardId, options = {}) {
     // Subscribe to the guard's latest execution document
     // In a full implementation, this would listen to a dedicated
     // "liveLocations" collection updated by the guard's device
-    const executionRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, `live_${guardId}`)
+    const executionRef = doc(db, 'Live', `live_${guardId}`)
 
     unsubRef.current = onSnapshot(
       executionRef,
@@ -100,7 +100,7 @@ export function useMultiGuardTracking(guardIds = [], onUpdate) {
     // Subscribe to new guards
     for (const guardId of guardIds) {
       if (!unsubsRef.current.has(guardId)) {
-        const executionRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, `live_${guardId}`)
+        const executionRef = doc(db, 'Live', `live_${guardId}`)
 
         const unsub = onSnapshot(executionRef, (snapshot) => {
           if (snapshot.exists()) {

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore'
 import { db } from '@/config/firebase'
-import { BaseMap } from '@/modules/maps'
+import { BaseMap, GeofenceLayer } from '@/modules/maps'
 import { useMapControlStore } from '@/stores/mapControlStore'
+import { useMapLayerStore } from '@/stores/mapLayerStore'
 import { subscribeToActiveIncidents } from '@/modules/incidents/services/incidentService'
+import { getGeofences } from '@/modules/spatial/services/spatialService'
 import { Marker as LeafletMarker, Popup, Polyline } from 'react-leaflet'
 import L from 'leaflet'
 import './LiveMonitoringPage.css'
@@ -26,7 +28,7 @@ const SEVERITY_CONFIG = {
   low: { label: 'Bajo', color: '#22c55e', icon: '🟢' },
 }
 
-const ALLOWED_LAYERS = ['guards', 'checkpoints', 'routes', 'geofences', 'incidents']
+const ALLOWED_LAYERS = ['guards', 'geofences', 'incidents']
 
 function createGuardIcon(status, guardCode, guardName) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.online;
@@ -52,11 +54,22 @@ function createGuardIcon(status, guardCode, guardName) {
 export default function LiveMonitoringPage() {
   const [guards, setGuards] = useState([])
   const [executions, setExecutions] = useState([])
+  const [geofencesList, setGeofencesList] = useState([])
   const [incidents, setIncidents] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarTab, setSidebarTab] = useState('guards') // 'guards' | 'incidents'
   const [severityFilter, setSeverityFilter] = useState(null) // null = all
   const triggerFlyTo = useMapControlStore((s) => s.triggerFlyTo)
+  
+  const showGeofences = useMapLayerStore((s) => s.geofences)
+  const showGuards = useMapLayerStore((s) => s.guards)
+
+  // ─── Fetch Geofences ───
+  useEffect(() => {
+    getGeofences(true)
+      .then(setGeofencesList)
+      .catch(err => console.error('Error fetching geofences:', err))
+  }, [])
 
   // ─── Presence Stream ───
   useEffect(() => {
@@ -169,7 +182,17 @@ export default function LiveMonitoringPage() {
       <div className="lm__main">
         <div className="lm__map-section">
           <BaseMap darkMode showControls showLayerPanel allowedLayers={ALLOWED_LAYERS}>
-            {guards.map(guard => {
+            {/* ─── Geofences Layer ─── */}
+            {showGeofences && geofencesList.map(g => {
+              const positions = g.geometry?.coordinates?.[0]?.map(coord => ({ lat: coord[1], lng: coord[0] })) || []
+              if (positions.length === 0) return null
+              return (
+                <GeofenceLayer key={g.id} geofences={[{ id: g.id, name: g.name, type: g.type, polygon: positions }]} />
+              )
+            })}
+
+            {/* ─── Guards & Trails Layer ─── */}
+            {showGuards && guards.map(guard => {
               if (!guard.location || !guard.location.lat) return null
               const exec = guardExecMap[guard.id] || guardExecMap[guard.guardId]
               
