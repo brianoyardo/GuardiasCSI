@@ -34,34 +34,19 @@ function createGuardIcon(status, guardCode, guardName) {
   const code = guardCode || '???';
   const name = guardName || 'Sin nombre';
 
-  // ESTADO TÁCTICO: Solo punto de cristal parpadeante (sin tarjeta)
+  // LOGICA ESTRICHA: Si es ronda, solo punto táctico. Si NO es ronda, solo tarjeta.
   if (status === 'in_progress' || status === 'validating_voice') {
     return L.divIcon({
       className: 'guard-marker-icon',
-      html: `
-        <div class="guard-marker-pin" style="--marker-color: ${color}">
-          <div class="guard-marker-dot" style="background: ${color}"></div>
-          <div class="guard-marker-pulse" style="border-color: ${color}"></div>
-        </div>
-      `,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12],
+      html: `<div class="guard-marker-pin" style="--marker-color: ${color}"><div class="guard-marker-dot"></div><div class="guard-marker-pulse"></div></div>`,
+      iconSize: [24, 24], iconAnchor: [12, 12]
     });
   }
-
-  // ESTADO INACTIVO: Tarjeta flotante completa (sin punto de cristal)
+  
   return L.divIcon({
     className: 'guard-marker-icon',
-    html: `
-      <div class="guard-marker-tactical" style="--marker-color: ${color}">
-        <div class="guard-marker-body" style="background: ${color}20; border-color: ${color}">
-          <span class="guard-marker-code" style="color: ${color}">${code}</span>
-          <span class="guard-marker-name">${name.length > 14 ? name.slice(0, 12) + '…' : name}</span>
-        </div>
-      </div>
-    `,
-    iconSize: [88, 44],
-    iconAnchor: [44, 22],
+    html: `<div class="guard-marker-tactical"><span class="code">${code}</span><span class="name">${name}</span></div>`,
+    iconSize: [80, 40], iconAnchor: [40, 20]
   });
 }
 
@@ -188,7 +173,14 @@ export default function LiveMonitoringPage() {
             {guards.map(guard => {
               if (!guard.location || !guard.location.lat) return null
               const exec = guardExecMap[guard.id]
-              const showTrail = guard.status === 'in_progress' && exec?.gpsTrack && exec.gpsTrack.length > 1
+              
+              if (exec) {
+                // Active round guard: BaseMap renders the LiveGuardMarker.
+                // We only need to render their progressive path trail here.
+                const showTrail = exec.gpsTrack && exec.gpsTrack.length > 1
+                return showTrail ? <TrailLine key={`trail-${guard.id}`} trail={exec.gpsTrack} /> : null
+              }
+
               return (
                 <div key={`map-guard-${guard.id}`}>
                   <GuardMarker
@@ -199,7 +191,6 @@ export default function LiveMonitoringPage() {
                     guardStatus={STATUS_CONFIG[guard.status]?.label || guard.status}
                     onClick={() => handleFlyTo(guard.location.lat, guard.location.lng)}
                   />
-                  {showTrail && <TrailLine trail={exec.gpsTrack} />}
                 </div>
               )
             })}

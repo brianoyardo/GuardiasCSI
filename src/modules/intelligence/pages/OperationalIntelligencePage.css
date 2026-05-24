@@ -414,3 +414,15 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 }
+
+/* Corrección Nuclear para Z-Index */
+.intelligence-card, .intelligence-hub__grid, .intelligence-hub__map-card {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+.activity-datepicker__popover, .custom-select__dropdown {
+    position: absolute !important;
+    z-index: 9999999 !important;
+    display: block !important;
+}

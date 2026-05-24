@@ -341,13 +341,6 @@
 
 /* ─── IDLE state: Floating card ─── */
 .guard-marker-tactical {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.guard-marker-body {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -355,21 +348,24 @@
   padding: 3px 8px;
   border-radius: 8px;
   border: 1.5px solid var(--marker-color, #3b82f6);
+  background: color-mix(in srgb, var(--marker-color, #3b82f6) 12%, rgba(25, 25, 45, 0.85));
   backdrop-filter: blur(8px);
-  min-width: 50px;
+  min-width: 60px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.guard-marker-code {
+.guard-marker-tactical .code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.8px;
   line-height: 1.2;
+  color: var(--marker-color, #3b82f6);
 }
 
-.guard-marker-name {
+.guard-marker-tactical .name {
   font-size: 8px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.7);
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
