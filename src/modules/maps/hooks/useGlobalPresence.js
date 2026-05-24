@@ -1,83 +1,59 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { COLLECTIONS, POSITION_SYNC_INTERVAL } from '@/config/constants'
 
 const COLLECTION_NAME = 'guardPresence'
 
 /**
- * Minimum distance in meters before a new position update is sent to Firestore.
- * Prevents NoSQL saturation while ensuring fluid real-time tracking.
- * Phase 21.2: Distance-based throttle for true real-time movement.
+ * SentinelOps — useGlobalPresence
+ * Phase 21.3: Direct updateDoc on watchPosition for true real-time movement.
+ * 
+ * - Creates the initial presence document with full identity fields via setDoc.
+ * - Updates location in real-time via updateDoc on each GPS fix (distanceFilter: 3m native).
+ * - Heartbeat keeps status + lastUpdate alive for the ACTIVE_THRESHOLD check.
  */
-const MIN_DISTANCE_METERS = 3
-
-/**
- * Haversine distance between two lat/lng points (in meters)
- */
-function getDistanceMeters(lat1, lng1, lat2, lng2) {
-  const R = 6371000 // Earth radius in meters
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLng = ((lng2 - lng1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
-}
-
 export function useGlobalPresence({ guardId, guardName, guardCode, executionStatus = null }) {
   const watchIdRef = useRef(null)
   const heartbeatRef = useRef(null)
   const guardIdRef = useRef(guardId)
   const statusRef = useRef(executionStatus)
-  const lastSentRef = useRef({ lat: null, lng: null })
 
   guardIdRef.current = guardId
   statusRef.current = executionStatus
 
-  const updatePresence = useCallback(async (position, status) => {
+  // ─── Initial presence document (full identity) ───
+  const ensurePresenceDoc = useCallback(async (position) => {
     if (!guardIdRef.current) return
-
-    const lat = position?.coords?.latitude
-    const lng = position?.coords?.longitude
-
-    // Phase 21.2: Distance-based throttle — skip if guard hasn't moved enough
-    if (lat != null && lng != null && lastSentRef.current.lat != null) {
-      const dist = getDistanceMeters(
-        lastSentRef.current.lat, lastSentRef.current.lng,
-        lat, lng
-      )
-      if (dist < MIN_DISTANCE_METERS) return
-    }
-
-    // Update last sent position
-    if (lat != null && lng != null) {
-      lastSentRef.current = { lat, lng }
-    }
-
     try {
+      const payload = {
+        guardId: guardIdRef.current,
+        guardName: guardName || 'Desconocido',
+        guardCode: guardCode || '',
+        status: statusRef.current || 'online',
+        lastUpdate: serverTimestamp(),
+      }
+
+      // Include location if available
+      if (position?.coords) {
+        payload.location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }
+        payload.accuracy = position.coords.accuracy || null
+      }
+
       await setDoc(
         doc(db, COLLECTION_NAME, guardIdRef.current),
-        {
-          guardId: guardIdRef.current,
-          guardName: guardName || 'Sin nombre',
-          guardCode: guardCode || '',
-          location: (lat != null && lng != null) ? { lat, lng } : undefined,
-          accuracy: position?.coords?.accuracy || null,
-          status: status || 'online',
-          lastUpdate: serverTimestamp(),
-        },
+        payload,
         { merge: true }
       )
     } catch (err) {
-      // Silenced during dev until Firestore rules are deployed
+      console.error('[useGlobalPresence] Error creating presence:', err)
     }
   }, [guardName, guardCode])
 
+  // ─── Heartbeat (keeps lastUpdate fresh for threshold detection) ───
   const heartbeat = useCallback(async () => {
     if (!guardIdRef.current) return
     try {
@@ -98,21 +74,36 @@ export function useGlobalPresence({ guardId, guardName, guardCode, executionStat
     if (!guardId) return
 
     let mounted = true
+    let initialDocCreated = false
 
     const startTracking = () => {
       if (watchIdRef.current !== null) return
 
       watchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => {
+        (pos) => {
           if (!mounted) return
-          updatePresence(position, executionStatus)
+
+          const { latitude, longitude } = pos.coords
+
+          // First fix: create the full document with identity
+          if (!initialDocCreated) {
+            initialDocCreated = true
+            ensurePresenceDoc(pos)
+            return
+          }
+
+          // Subsequent fixes: direct updateDoc for real-time location
+          if (guardIdRef.current) {
+            const docRef = doc(db, COLLECTION_NAME, guardIdRef.current)
+            updateDoc(docRef, {
+              'location.lat': latitude,
+              'location.lng': longitude,
+              lastUpdate: serverTimestamp()
+            }).catch(err => console.error('Error actualizando ubicación en vivo:', err))
+          }
         },
-        () => {},
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0, // Phase 21.2: No cache — always fresh GPS position
-        }
+        (err) => console.error('Error GPS:', err),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
       )
     }
 
@@ -134,7 +125,7 @@ export function useGlobalPresence({ guardId, guardName, guardCode, executionStat
         heartbeatRef.current = null
       }
     }
-  }, [guardId, executionStatus, updatePresence, heartbeat])
+  }, [guardId, executionStatus, ensurePresenceDoc, heartbeat])
 
   const clearPresence = useCallback(async () => {
     if (!guardId) return

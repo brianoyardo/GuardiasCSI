@@ -28,35 +28,28 @@ const SEVERITY_CONFIG = {
 
 const ALLOWED_LAYERS = ['guards', 'checkpoints', 'routes', 'geofences', 'incidents']
 
-/**
- * Guard Marker Icon — Hybrid L.divIcon
- * Phase 21: Two distinct designs based on operational state
- *   - in_progress / validating_voice → Minimal crystal pulsing dot
- *   - online / offline → Floating card with guardCode + guardName
- */
 function createGuardIcon(status, guardCode, guardName) {
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.online
-  const color = config.color
-  const code = guardCode || '???'
-  const name = guardName || ''
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.online;
+  const color = config.color;
+  const code = guardCode || '???';
+  const name = guardName || 'Sin nombre';
 
-  // ─── ACTIVE states: minimal crystal dot ───
+  // ESTADO TÁCTICO: Solo punto de cristal parpadeante (sin tarjeta)
   if (status === 'in_progress' || status === 'validating_voice') {
     return L.divIcon({
       className: 'guard-marker-icon',
       html: `
-        <div class="guard-marker-crystal" style="--marker-color: ${color}">
-          <div class="guard-marker-crystal-core" style="background: ${color}; box-shadow: 0 0 12px ${color}, 0 0 24px ${color}40"></div>
-          <div class="guard-marker-crystal-pulse" style="border-color: ${color}"></div>
-          <div class="guard-marker-crystal-pulse guard-marker-crystal-pulse--delayed" style="border-color: ${color}"></div>
+        <div class="guard-marker-pin" style="--marker-color: ${color}">
+          <div class="guard-marker-dot" style="background: ${color}"></div>
+          <div class="guard-marker-pulse" style="border-color: ${color}"></div>
         </div>
       `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-    })
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
   }
 
-  // ─── IDLE states: floating card with code + name ───
+  // ESTADO INACTIVO: Tarjeta flotante completa (sin punto de cristal)
   return L.divIcon({
     className: 'guard-marker-icon',
     html: `
@@ -69,7 +62,7 @@ function createGuardIcon(status, guardCode, guardName) {
     `,
     iconSize: [88, 44],
     iconAnchor: [44, 22],
-  })
+  });
 }
 
 export default function LiveMonitoringPage() {

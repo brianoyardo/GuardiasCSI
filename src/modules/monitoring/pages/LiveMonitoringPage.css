@@ -377,37 +377,34 @@
   max-width: 72px;
 }
 
-/* ─── ACTIVE state: Crystal pulsing dot ─── */
-.guard-marker-crystal {
+/* ─── ACTIVE state: Pulsing pin dot ─── */
+.guard-marker-pin {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
-.guard-marker-crystal-core {
+.guard-marker-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   z-index: 2;
+  box-shadow: 0 0 8px var(--marker-color, #22c55e), 0 0 16px rgba(34, 197, 94, 0.3);
 }
 
-.guard-marker-crystal-pulse {
+.guard-marker-pulse {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   border: 2px solid var(--marker-color, #22c55e);
   opacity: 0;
-  animation: crystalPulse 2s ease-out infinite;
+  animation: guardPinPulse 2s ease-out infinite;
 }
 
-.guard-marker-crystal-pulse--delayed {
-  animation-delay: 0.8s;
-}
-
-@keyframes crystalPulse {
+@keyframes guardPinPulse {
   0% {
     transform: scale(0.5);
     opacity: 0.8;
