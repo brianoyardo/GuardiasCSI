@@ -43,8 +43,15 @@ export function useGlobalPresence({ guardId: propGuardId, guardName: propGuardNa
     ).catch((err) => console.error('Error al crear presencia inicial:', err))
 
     // Realtime watchPosition for fluid green dot rendering
+    let lastUpdateTimestamp = 0;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
+        const now = Date.now();
+        if (now - lastUpdateTimestamp < 5000) {
+          return; // Skip database write to avoid excessive writes
+        }
+        lastUpdateTimestamp = now;
+
         const { latitude, longitude } = pos.coords
         updateDoc(docRef, {
           'location.lat': latitude,
@@ -56,7 +63,7 @@ export function useGlobalPresence({ guardId: propGuardId, guardName: propGuardNa
       { enableHighAccuracy: true, maximumAge: 0, distanceFilter: 3 }
     )
 
-    // Setup heartbeat
+    // Setup heartbeat (run every 15 seconds to save resources)
     const heartbeatInterval = setInterval(() => {
       setDoc(
         docRef,
@@ -66,7 +73,7 @@ export function useGlobalPresence({ guardId: propGuardId, guardName: propGuardNa
         },
         { merge: true }
       ).catch((err) => console.error('Error latido de presencia:', err))
-    }, POSITION_SYNC_INTERVAL)
+    }, 5000)
 
     return () => {
       if (watchId !== null) {

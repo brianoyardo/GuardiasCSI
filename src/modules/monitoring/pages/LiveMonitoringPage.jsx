@@ -74,8 +74,7 @@ export default function LiveMonitoringPage() {
   // ─── Presence Stream ───
   useEffect(() => {
     const presenceQuery = query(
-      collection(db, PRESENCE_COLLECTION),
-      orderBy('lastUpdate', 'desc')
+      collection(db, PRESENCE_COLLECTION)
     )
 
     const unsubPresence = onSnapshot(presenceQuery, (snapshot) => {
@@ -89,7 +88,14 @@ export default function LiveMonitoringPage() {
         })
         .sort((a, b) => {
           const statusOrder = { in_progress: 0, validating_voice: 1, online: 2, offline: 3 }
-          return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3)
+          const orderA = statusOrder[a.status] ?? 3
+          const orderB = statusOrder[b.status] ?? 3
+          if (orderA !== orderB) {
+            return orderA - orderB
+          }
+          const nameA = a.guardName || ''
+          const nameB = b.guardName || ''
+          return nameA.localeCompare(nameB)
         })
 
       setGuards(activeGuards)
