@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
           setError(null)
         }
       } catch (err) {
-        console.error(`${LOG_PREFIX} ❌ Error in auth state handler:`, err)
+        //console.error(`${LOG_PREFIX} ❌ Error in auth state handler:`, err)
         setError(
           err.code === 'permission-denied'
             ? 'Sin permisos para acceder al sistema. Contacta al administrador.'

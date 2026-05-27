@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { BaseMap, RouteLayer } from '@/modules/maps'
+import { BaseMap, RouteLayer, GeofenceLayer } from '@/modules/maps'
 import { Polyline, Marker as LeafletMarker } from 'react-leaflet'
 import L from 'leaflet'
 
@@ -9,6 +9,7 @@ import L from 'leaflet'
  * 
  * @param {Array<{lat, lng, timestamp}>} props.track - Array of GPS points
  * @param {object} [props.routeGeometry] - Official route GeoJSON
+ * @param {object} [props.geofence] - Official geofence boundary data
  * @param {number} props.currentIndex - Current playback index
  */
 
@@ -30,7 +31,7 @@ function createPlaybackDotIcon() {
 
 const playbackDot = createPlaybackDotIcon()
 
-export default function PlaybackMap({ track = [], routeGeometry, currentIndex = 0 }) {
+export default function PlaybackMap({ track = [], routeGeometry, geofence, currentIndex = 0 }) {
   if (!track || track.length === 0) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-dark-surface, #1a1a2e)' }}>
@@ -73,7 +74,16 @@ export default function PlaybackMap({ track = [], routeGeometry, currentIndex = 
       zoom={16} 
       darkMode={true}
       showControls={false}
+      showLiveMarkers={false}
+      showLiveIncidents={false}
     >
+      {/* Official Geofence (Background) */}
+      {geofence && (
+        <GeofenceLayer 
+          geofences={[geofence]} 
+        />
+      )}
+
       {/* Official Route (Background — muted) */}
       {routeGeometry && (
         <RouteLayer 

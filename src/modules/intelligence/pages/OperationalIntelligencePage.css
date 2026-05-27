@@ -416,13 +416,36 @@
 }
 
 /* Corrección Nuclear para Z-Index */
-.intelligence-card, .intelligence-hub__grid, .intelligence-hub__map-card {
-    position: relative !important;
-    overflow: visible !important;
+.intelligence-hub__sidebar {
+  position: relative !important;
+  z-index: 1002 !important;
+  overflow-y: auto !important;
+  overflow-x: visible !important;
 }
 
-.activity-datepicker__popover, .custom-select__dropdown {
-    position: absolute !important;
-    z-index: 9999999 !important;
-    display: block !important;
+.playback-controls {
+  position: relative !important;
+  z-index: 1001 !important;
+}
+
+.intelligence-card, .intelligence-hub__grid, .intelligence-hub__map-card {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Decreasing z-index on sidebar children to stack correctly when open */
+.intelligence-hub__sidebar > .intelligence-card:nth-child(1) { z-index: 50 !important; }
+.intelligence-hub__sidebar > .intelligence-card:nth-child(2) { z-index: 40 !important; }
+.intelligence-hub__sidebar > .intelligence-card:nth-child(3) { z-index: 30 !important; }
+.intelligence-hub__sidebar > .intelligence-card:nth-child(4) { z-index: 20 !important; }
+.intelligence-hub__sidebar > .intelligence-card:nth-child(5) { z-index: 10 !important; }
+
+.intelligence-card:focus-within {
+  z-index: 60 !important;
+}
+
+.activity-date-picker__popover, .custom-select__dropdown {
+  position: absolute !important;
+  z-index: 9999999 !important;
+  display: block !important;
 }

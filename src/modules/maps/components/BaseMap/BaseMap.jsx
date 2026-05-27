@@ -118,6 +118,8 @@ export default function BaseMap({
   onMapReady,
   currentExecutionId = null,
   allowedLayers = null,
+  showLiveMarkers = true,
+  showLiveIncidents = true,
   children,
 }) {
   const [isFullscreen, setIsFullscreen] = useState(fullscreen)
@@ -125,17 +127,19 @@ export default function BaseMap({
 
   // ─── Realtime Subscription (mount once, cleanup on unmount) ───
   useEffect(() => {
+    if (!showLiveMarkers) return
     const unsubscribe = subscribeToActiveExecutions()
     return () => unsubscribe()
-  }, [])
+  }, [showLiveMarkers])
 
   // ─── Active Incidents Subscription ───
   const [activeIncidents, setActiveIncidents] = useState([])
 
   useEffect(() => {
+    if (!showLiveIncidents) return
     const unsubscribe = subscribeToActiveIncidents(setActiveIncidents)
     return () => unsubscribe()
-  }, [])
+  }, [showLiveIncidents])
 
   // ─── Layer visibility: incidents ───
   const showIncidents = useMapLayerStore((s) => s.incidents)
@@ -199,14 +203,14 @@ export default function BaseMap({
         <MapFlyToListener />
 
         {/* ─── Live Guard Markers (Zero-Render Thrashing) ─── */}
-        {showGuards && activeExecutionIds
+        {showLiveMarkers && showGuards && activeExecutionIds
           .filter((id) => id !== currentExecutionId)
           .map((id) => (
             <LiveGuardMarker key={id} executionId={id} />
           ))}
 
         {/* ─── Active Incident Markers ─── */}
-        {showIncidents && activeIncidents.map((inc) => (
+        {showLiveIncidents && showIncidents && activeIncidents.map((inc) => (
           <IncidentMarker key={inc.id} incident={inc} />
         ))}
 

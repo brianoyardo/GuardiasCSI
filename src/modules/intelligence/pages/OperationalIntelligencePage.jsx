@@ -212,6 +212,20 @@ export default function OperationalIntelligencePage() {
     return Math.round((completed / total) * 100)
   }, [activeExecution])
 
+  const selectedGeofence = useMemo(() => {
+    if (!activeExecution || !geofences || geofences.length === 0) return null
+    const fence = geofences.find(g => g.id === activeExecution.geofenceId || g.name === activeExecution.geofenceName)
+    if (!fence) return null
+    const positions = fence.geometry?.coordinates?.[0]?.map(coord => ({ lat: coord[1], lng: coord[0] })) || []
+    if (positions.length === 0) return null
+    return {
+      id: fence.id,
+      name: fence.name,
+      type: fence.type,
+      polygon: positions
+    }
+  }, [activeExecution, geofences])
+
   const progressPercent = gpsTrack.length > 1
     ? Math.round((currentIndex / (gpsTrack.length - 1)) * 100)
     : 0
@@ -377,6 +391,7 @@ export default function OperationalIntelligencePage() {
             <PlaybackMap
               track={gpsTrack}
               routeGeometry={routeGeometry}
+              geofence={selectedGeofence}
               currentIndex={currentIndex}
             />
           </div>
