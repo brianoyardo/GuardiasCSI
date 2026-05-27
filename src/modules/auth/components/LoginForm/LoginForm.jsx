@@ -26,7 +26,7 @@ export default function LoginForm() {
       // Navigation handled by auth state change → AuthContext → role routing
       navigate('/', { replace: true })
     } catch (err) {
-      console.error('Login error:', err.code, err.message)
+      //console.error('Login error:', err.code, err.message)
       // authService throws enhanced errors with user-friendly messages
       setError(err.message || t('auth.errorGeneric'))
     } finally {
