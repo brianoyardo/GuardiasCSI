@@ -8,6 +8,7 @@ import { subscribeToActiveIncidents } from '@/modules/incidents/services/inciden
 import { getGeofences } from '@/modules/spatial/services/spatialService'
 import { Marker as LeafletMarker, Popup, Polyline } from 'react-leaflet'
 import L from 'leaflet'
+import { PATROL_TYPES, SHIFT_TYPES } from '@/config/constants'
 import './LiveMonitoringPage.css'
 
 const PRESENCE_COLLECTION = 'guardPresence'
@@ -200,6 +201,7 @@ export default function LiveMonitoringPage() {
             {/* ─── Guards Layer (Position from guardPresence, No Trails) ─── */}
             {showGuards && guards.map(guard => {
               if (!guard.location || !guard.location.lat) return null
+              const exec = guardExecMap[guard.id] || guardExecMap[guard.guardId]
 
               return (
                 <div key={`map-guard-${guard.id}`}>
@@ -209,7 +211,7 @@ export default function LiveMonitoringPage() {
                     guardCode={guard.guardCode || guard.id.slice(0, 6)}
                     guardName={guard.guardName || 'Sin nombre'}
                     guardStatus={STATUS_CONFIG[guard.status]?.label || guard.status}
-                    onClick={() => handleFlyTo(guard.location.lat, guard.location.lng)}
+                    activeExecution={exec}
                   />
                 </div>
               )
@@ -333,13 +335,64 @@ export default function LiveMonitoringPage() {
   )
 }
 
-function GuardMarker({ position, icon, guardCode, guardName, guardStatus, onClick }) {
+function GuardMarker({ position, icon, guardCode, guardName, guardStatus, activeExecution }) {
+  const hasExec = activeExecution != null;
+
   return (
-    <LeafletMarker position={position} icon={icon} eventHandlers={{ click: onClick }}>
-      <Popup>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '14px', color: '#e0e0e0' }}>{guardCode}</div>
-        <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{guardName}</div>
-        <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>{guardStatus}</div>
+    <LeafletMarker position={position} icon={icon}>
+      <Popup className="sentinel-popup">
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: '14px', color: '#e0e0e0' }}>
+          {guardCode}
+        </div>
+        <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+          {guardName}
+        </div>
+        <div style={{ fontSize: '11px', color: '#666', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{
+            display: 'inline-block',
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: activeExecution ? (activeExecution.status === 'validating_voice' ? '#a855f7' : '#22c55e') : '#0055ff'
+          }} />
+          {guardStatus}
+        </div>
+        {hasExec && (
+          <div style={{
+            marginTop: '8px',
+            paddingTop: '8px',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            fontSize: '11px',
+            color: '#aaa',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            {activeExecution.routeName && (
+              <div>
+                <span style={{ color: '#666' }}>Ruta:</span> <strong style={{ color: '#fff' }}>{activeExecution.routeName}</strong>
+              </div>
+            )}
+            {activeExecution.patrolType && (
+              <div>
+                <span style={{ color: '#666' }}>Patrullaje:</span> <span style={{ color: '#fff' }}>{(PATROL_TYPES[activeExecution.patrolType] || activeExecution.patrolType).replace('_', ' ')}</span>
+              </div>
+            )}
+            {activeExecution.shift && (
+              <div>
+                <span style={{ color: '#666' }}>Turno:</span> <span style={{ color: '#fff' }}>{(SHIFT_TYPES[activeExecution.shift] || activeExecution.shift).replace('_', ' ')}</span>
+              </div>
+            )}
+            {activeExecution.completedCheckpoints && activeExecution.checkpointIds && (
+              <div style={{ marginTop: '2px' }}>
+                <span style={{ color: '#666' }}>Progreso:</span>{' '}
+                <strong style={{ color: '#22c55e' }}>
+                  {activeExecution.completedCheckpoints.length} / {activeExecution.checkpointIds.length} CPs
+                </strong>
+              </div>
+            )}
+          </div>
+        )}
       </Popup>
     </LeafletMarker>
   )

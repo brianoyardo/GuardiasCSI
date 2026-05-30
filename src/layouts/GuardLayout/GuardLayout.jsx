@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { logout } from '@/modules/auth/services/authService'
 import { createPanicIncident } from '@/modules/incidents/services/incidentService'
 import { useGlobalPresence } from '@/modules/maps/hooks/useGlobalPresence'
-import { subscribeToGuardAssignments } from '@/modules/rondas/services/rondaAssignmentService'
-import { subscribeToActiveExecutions } from '@/modules/monitoring/services/realtimeMonitoringService'
 import { RONDA_STATES } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import PanicModal from '@/components/ui/PanicModal/PanicModal'
 import './GuardLayout.css'
@@ -20,29 +20,24 @@ export default function GuardLayout() {
   useEffect(() => {
     if (!user?.uid) return
 
-    const unsubAssign = subscribeToGuardAssignments(user.uid, (assignments) => {
-      const activeIds = assignments
-        .filter(a => ['in_progress', 'paused', 'validating_voice'].includes(a.status))
-        .map(a => a.executionId || a.id)
+    const q = query(
+      collection(db, 'rondaExecutions'),
+      where('guardId', '==', user.uid),
+      where('status', 'in', ['in_progress', 'paused', 'validating_voice'])
+    )
 
-      if (activeIds.length === 0) {
+    const unsubExec = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const activeDoc = snapshot.docs[0].data()
+        setExecutionStatus(activeDoc.status)
+      } else {
         setExecutionStatus(null)
-        return
       }
-
-      const unsubExec = subscribeToActiveExecutions((executions) => {
-        const myExec = executions.find(e => activeIds.includes(e.id) || e.assignmentId === activeIds[0])
-        if (myExec) {
-          setExecutionStatus(myExec.status)
-        } else {
-          setExecutionStatus(null)
-        }
-      })
-
-      return () => unsubExec()
+    }, (err) => {
+      console.error('[GuardLayout] Error listening to active executions:', err)
     })
 
-    return () => unsubAssign()
+    return () => unsubExec()
   }, [user?.uid])
 
   const presenceStatus = executionStatus === RONDA_STATES.IN_PROGRESS
