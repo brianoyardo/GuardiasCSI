@@ -187,7 +187,7 @@ export default function LiveMonitoringPage() {
       {/* ─── Main Content (Map + Sidebar) ─── */}
       <div className="lm__main">
         <div className="lm__map-section">
-          <BaseMap darkMode showControls showLayerPanel allowedLayers={ALLOWED_LAYERS}>
+          <BaseMap darkMode showControls showLayerPanel allowedLayers={ALLOWED_LAYERS} showLiveMarkers={false}>
             {/* ─── Geofences Layer ─── */}
             {showGeofences && geofencesList.map(g => {
               const positions = g.geometry?.coordinates?.[0]?.map(coord => ({ lat: coord[1], lng: coord[0] })) || []
@@ -197,17 +197,9 @@ export default function LiveMonitoringPage() {
               )
             })}
 
-            {/* ─── Guards & Trails Layer ─── */}
+            {/* ─── Guards Layer (Position from guardPresence, No Trails) ─── */}
             {showGuards && guards.map(guard => {
               if (!guard.location || !guard.location.lat) return null
-              const exec = guardExecMap[guard.id] || guardExecMap[guard.guardId]
-              
-              if (exec) {
-                // Active round guard: BaseMap renders the LiveGuardMarker.
-                // We only need to render their progressive path trail here.
-                const showTrail = exec.gpsTrack && exec.gpsTrack.length > 1
-                return showTrail ? <TrailLine key={`trail-${guard.id}`} trail={exec.gpsTrack} /> : null
-              }
 
               return (
                 <div key={`map-guard-${guard.id}`}>

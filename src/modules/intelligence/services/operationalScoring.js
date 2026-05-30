@@ -75,7 +75,7 @@ export function calculateOperationalScore(execution, complianceResults) {
       }
     }
   } catch (error) {
-    console.error(`${LOG_PREFIX} Scoring failed:`, error)
+//console.error(`${LOG_PREFIX} Scoring failed:`, error)
     return { score: 0, breakdown: null }
   }
 }

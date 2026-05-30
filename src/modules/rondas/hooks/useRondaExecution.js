@@ -248,34 +248,46 @@ export function useRondaExecution(options) {
   }, [executionId, status, geo, tracking])
 
   // ─── Sync GPS position to Firestore periodically ───
+  const latestGeoRef = useRef({ position: null, accuracy: null, heading: null, speed: null })
+
+  // Keep latest coordinates synchronized in Ref without triggering effect re-runs
   useEffect(() => {
-    if (status === RONDA_STATES.IN_PROGRESS && geo.position && executionId) {
-      // Feed position to tracking hook
+    latestGeoRef.current = {
+      position: geo.position,
+      accuracy: geo.accuracy,
+      heading: geo.heading,
+      speed: geo.speed,
+    }
+  }, [geo.position, geo.accuracy, geo.heading, geo.speed])
+
+  // Feed positions to tracking hook for local state rendering
+  useEffect(() => {
+    if (status === RONDA_STATES.IN_PROGRESS && geo.position) {
       tracking.addPosition(geo.position)
+    }
+  }, [status, geo.position])
 
-      // Sync to Firestore
-      if (!syncIntervalRef.current) {
-        syncIntervalRef.current = setInterval(() => {
-          if (geo.position) {
-            updateLivePosition(guardId, geo.position, {
-              accuracy: geo.accuracy,
-              heading: geo.heading,
-              speed: geo.speed,
-            })
-            appendTrackPoint(executionId, geo.position, geo.accuracy)
-            updateExecutionPosition(executionId, geo.position, geo.accuracy)
-          }
-        }, POSITION_SYNC_INTERVAL)
+  // Setup periodic sync interval (5 seconds to optimize Firestore writes)
+  useEffect(() => {
+    if (status === RONDA_STATES.IN_PROGRESS && executionId) {
+      const intervalId = setInterval(() => {
+        const { position, accuracy, heading, speed } = latestGeoRef.current
+        if (position) {
+          updateLivePosition(guardId, position, {
+            accuracy,
+            heading,
+            speed,
+          })
+          appendTrackPoint(executionId, position, accuracy)
+          updateExecutionPosition(executionId, position, accuracy)
+        }
+      }, 5000)
+
+      return () => {
+        clearInterval(intervalId)
       }
     }
-
-    return () => {
-      if (syncIntervalRef.current) {
-        clearInterval(syncIntervalRef.current)
-        syncIntervalRef.current = null
-      }
-    }
-  }, [status, geo.position, executionId, guardId])
+  }, [status, executionId, guardId])
 
   return {
     // State

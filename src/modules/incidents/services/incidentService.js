@@ -90,7 +90,7 @@ export async function createIncident(data) {
     // console.log(`${LOG_PREFIX} ✅ Incident created: ${ref.id}`)
     return ref.id
   } catch (error) {
-    console.error(`${LOG_PREFIX} Error creating incident:`, error)
+    //console.error(`${LOG_PREFIX} Error creating incident:`, error)
     throw error
   }
 }
