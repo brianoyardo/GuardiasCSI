@@ -6,6 +6,7 @@ import { db } from '@/config/firebase'
 import { COLLECTIONS } from '@/config/constants'
 import { getUserProfile } from '@/modules/users/services/userService'
 import { getGeofences } from '@/modules/spatial/services/spatialService'
+import { isPointInPolygon } from '@/modules/maps/utils/geoUtils'
 
 /**
  * SentinelOps — Incident Service
@@ -52,12 +53,27 @@ export async function createIncident(data) {
     if (!geofenceName && data.location) {
       try {
         const allGeofences = await getGeofences()
-        // Simple proximity check — use routeId if available
-        if (data.routeId) {
-          const linked = allGeofences.find(g => g.routeId === data.routeId)
-          if (linked) {
-            geofenceName = linked.name || ''
-            routeName = data.routeName || ''
+        
+        // 1. Try finding by point-in-polygon spatial containment
+        const containingGeofence = allGeofences.find(g => {
+          const coords = g.geometry?.coordinates?.[0]
+          if (!coords || coords.length === 0) return false
+          const poly = coords.map(c => ({ lat: c[1], lng: c[0] }))
+          return isPointInPolygon(data.location, poly)
+        })
+
+        if (containingGeofence) {
+          geofenceName = containingGeofence.name || ''
+          routeName = containingGeofence.routeName || containingGeofence.routeNameFallback || ''
+        } else {
+          // 2. Fallback to routeId proximity
+          const routeId = data.routeId || data.rondaId
+          if (routeId) {
+            const linked = allGeofences.find(g => g.routeId === routeId)
+            if (linked) {
+              geofenceName = linked.name || ''
+              routeName = data.routeName || ''
+            }
           }
         }
       } catch (_) { /* Non-blocking */ }

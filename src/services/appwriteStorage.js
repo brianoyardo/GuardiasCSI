@@ -1,4 +1,5 @@
 import { storage, appwriteId, BUCKETS } from '@/config/appwrite'
+import { Permission, Role } from 'appwrite'
 
 /**
  * Appwrite Storage Service — decoupled multimedia handling
@@ -18,7 +19,10 @@ export async function uploadEvidence(file, bucketId = BUCKETS.EVIDENCE) {
   const response = await storage.createFile(
     bucketId,
     fileId,
-    file
+    file,
+    [
+      Permission.read(Role.any())
+    ]
   )
 
   const url = getEvidencePreviewUrl(response.$id, bucketId)
@@ -38,7 +42,7 @@ export async function uploadEvidence(file, bucketId = BUCKETS.EVIDENCE) {
  * @returns {string}
  */
 export function getEvidencePreviewUrl(fileId, bucketId = BUCKETS.EVIDENCE) {
-  return storage.getFilePreview(bucketId, fileId).toString()
+  return storage.getFileView(bucketId, fileId).toString()
 }
 
 /**

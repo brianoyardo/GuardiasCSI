@@ -177,6 +177,9 @@ export function useIncidentReporting() {
         evidenceIds,
         rondaId: data.rondaId,
         executionId: data.executionId,
+        routeId: data.routeId || data.rondaId,
+        routeName: data.routeName,
+        geofenceName: data.geofenceName,
       })
 
       //console.log(`${LOG_PREFIX} ✅ Incident successfully reported: ${incidentId}`)

@@ -1,5 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { useIncidentReporting } from '@/modules/incidents/hooks/useIncidentReporting'
 import { INCIDENT_TYPES, INCIDENT_SEVERITY } from '@/config/constants'
@@ -19,8 +21,26 @@ export default function IncidentReportPage() {
   const [description, setDescription] = useState('')
   const [images, setImages] = useState([])
   const [previewUrls, setPreviewUrls] = useState([])
+  const [activeExec, setActiveExec] = useState(null)
   
   const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    if (!user?.uid) return
+    const q = query(
+      collection(db, 'rondaExecutions'),
+      where('guardId', '==', user.uid),
+      where('status', 'in', ['in_progress', 'paused', 'validating_voice'])
+    )
+    const unsub = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        setActiveExec({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() })
+      } else {
+        setActiveExec(null)
+      }
+    })
+    return () => unsub()
+  }, [user?.uid])
 
   const handlePhotoSelect = (e) => {
     const files = Array.from(e.target.files)
@@ -50,6 +70,11 @@ export default function IncidentReportPage() {
       severity,
       images,
       reportedBy: user.uid,
+      rondaId: activeExec?.rondaId || activeExec?.routeId || null,
+      executionId: activeExec?.id || null,
+      routeId: activeExec?.routeId || activeExec?.rondaId || null,
+      routeName: activeExec?.routeName || null,
+      geofenceName: activeExec?.geofenceName || null,
     })
 
     if (result.success) {
