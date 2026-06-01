@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getIncidents, updateIncidentStatus } from '@/modules/incidents/services/incidentService'
 import { getEvidencePreviewUrl } from '@/services/appwriteStorage'
 import { useAuth } from '@/modules/auth/context/AuthContext'
@@ -39,6 +39,14 @@ export default function IncidentManagementPage() {
   const [mediaModal, setMediaModal] = useState(null) // { url, name } or null
   const [zoomLevel, setZoomLevel] = useState(1)
   const [imgErrors, setImgErrors] = useState({})
+
+  const detailRef = useRef(null)
+
+  useEffect(() => {
+    if (detailRef.current) {
+      detailRef.current.scrollTop = 0
+    }
+  }, [activeIncidentId])
 
   useEffect(() => {
     loadIncidents()
@@ -135,7 +143,7 @@ export default function IncidentManagementPage() {
 
       <div className="inc-mgmt__content">
         {/* Sidebar List */}
-        <div className="inc-mgmt__sidebar">
+        <div className={`inc-mgmt__sidebar ${activeIncidentId ? 'inc-mgmt__sidebar--hidden-mobile' : ''}`}>
           <div className="inc-mgmt__filters">
             <button 
               className={`inc-mgmt__filter-btn ${filter === 'open' ? 'inc-mgmt__filter-btn--active' : ''}`}
@@ -222,11 +230,19 @@ export default function IncidentManagementPage() {
         </div>
 
         {/* Detail View */}
-        <div className="inc-mgmt__detail">
+        <div className={`inc-mgmt__detail ${!activeIncident ? 'inc-mgmt__detail--hidden-mobile' : ''}`} ref={detailRef}>
           {!activeIncident ? (
             <div className="inc-mgmt__empty">Selecciona un incidente para ver detalles</div>
           ) : (
             <>
+              <div className="inc-mgmt__back-mobile">
+                <button 
+                  className="inc-mgmt__back-btn"
+                  onClick={() => setActiveIncidentId(null)}
+                >
+                  ← Volver a la Lista
+                </button>
+              </div>
               <div className="inc-mgmt__detail-header">
                 <div>
                   <h2 className="inc-mgmt__detail-title">

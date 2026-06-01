@@ -163,6 +163,7 @@
 .inc-mgmt__card-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   font-size: 0.72rem;
   color: #94a3b8;
@@ -246,6 +247,7 @@
 .inc-mgmt__detail-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   padding-bottom: 1.25rem;
+  flex-shrink: 0;
 }
 
 .inc-mgmt__detail-title {
@@ -277,6 +279,7 @@
   padding: 1rem 1.25rem;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .inc-mgmt__reporter::before {
@@ -327,6 +330,7 @@
 .inc-mgmt__detail-desc {
   font-size: 0.92rem;
   color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .inc-mgmt__detail-desc strong {
@@ -357,6 +361,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .inc-mgmt__evidence-title {
@@ -451,6 +456,7 @@
   display: flex;
   gap: 0.75rem;
   margin-top: 0.5rem;
+  flex-shrink: 0;
 }
 
 .inc-mgmt__btn {
@@ -603,15 +609,81 @@
   to { opacity: 1; }
 }
 
+/* ─── Mobile Back Button ─── */
+.inc-mgmt__back-mobile {
+  display: none;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.inc-mgmt__back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.6rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.inc-mgmt__back-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  transform: translateX(-2px);
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 1024px) {
   .inc-mgmt__content {
     grid-template-columns: 1fr;
-    grid-template-rows: 350px 1fr;
+    grid-template-rows: 1fr; /* Only show active view */
   }
 
   .inc-mgmt__sidebar {
     border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+    height: 100%;
+  }
+
+  .inc-mgmt__sidebar--hidden-mobile {
+    display: none !important;
+  }
+
+  .inc-mgmt__detail {
+    width: 100%;
+    height: 100%;
+    padding: 1.25rem 1.25rem 2.5rem; /* Extra bottom padding for mobile browsers */
+  }
+
+  .inc-mgmt__detail--hidden-mobile {
+    display: none !important;
+  }
+
+  .inc-mgmt__back-mobile {
+    display: block; /* Show back button on mobile */
+  }
+
+  .inc-mgmt__detail-title {
+    font-size: 1.15rem; /* Slightly smaller for mobile screens */
+    line-height: 1.4;
+  }
+
+  .inc-mgmt__evidence-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Adaptive thumbnails on mobile */
+  }
+
+  .inc-mgmt__actions {
+    flex-direction: column; /* Stack action buttons vertically on phones */
+    gap: 0.6rem;
+  }
+
+  .inc-mgmt__btn {
+    width: 100%;
+    justify-content: center;
   }
 }
