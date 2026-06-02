@@ -10,6 +10,7 @@ import {
   where,
   onSnapshot,
   orderBy,
+  deleteDoc,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { COLLECTIONS, USER_STATUS } from '@/config/constants'
@@ -79,6 +80,8 @@ export async function createUserProfile(firebaseUser, overrides = {}) {
     voiceProfileId: null,     // Azure Speech / IA voice profile ID
     biometricEnrolled: false, // Whether guard has completed voice enrollment
     voicePassphrase: null,    // Assigned passphrase for voice verification
+    shiftStart: null,
+    shiftEnd: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     lastLogin: serverTimestamp(),
@@ -167,6 +170,8 @@ function validateProfile(profile) {
     voiceProfileId: null,
     biometricEnrolled: false,
     voicePassphrase: null,
+    shiftStart: null,
+    shiftEnd: null,
   }
 
   const validated = { ...defaults, ...profile }
@@ -318,7 +323,7 @@ export async function getVoiceEnrolledGuards() {
  * @returns {Promise<object>} Created user profile
  */
 export async function adminCreateUser(data) {
-  const { email, password, fullName, role = ROLES.GUARD, phone = '', guardId = '' } = data
+  const { email, password, fullName, role = ROLES.GUARD, phone = '', guardId = '', shiftStart = null, shiftEnd = null } = data
 
   // Dynamic import to avoid SSR issues
   const { initializeApp: initApp, deleteApp } = await import('firebase/app')
@@ -364,6 +369,8 @@ export async function adminCreateUser(data) {
       biometricEnrolled: false,
       voicePassphrase: null,
       guardId: guardId || null,
+      shiftStart: shiftStart || null,
+      shiftEnd: shiftEnd || null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastLogin: null,
@@ -425,7 +432,26 @@ export async function toggleUserStatus(uid, currentStatus) {
     status: newStatus,
     updatedAt: serverTimestamp(),
   })
-  // console.log(`${LOG_PREFIX} Status toggled for ${uid} → ${newStatus}`)
+  
+  if (newStatus === USER_STATUS.INACTIVE) {
+    try {
+      const assignmentsRef = collection(db, COLLECTIONS.RONDA_ASSIGNMENTS)
+      const incompleteStates = ['pending', 'available', 'in_progress', 'paused', 'validating_voice']
+      const q = query(
+        assignmentsRef,
+        where('guardId', '==', uid),
+        where('status', 'in', incompleteStates)
+      )
+      const snap = await getDocs(q)
+      if (!snap.empty) {
+        const deletePromises = snap.docs.map((doc) => deleteDoc(doc.ref))
+        await Promise.all(deletePromises)
+      }
+    } catch (err) {
+      console.error(`${LOG_PREFIX} Error clearing assignments:`, err)
+    }
+  }
+
   return newStatus
 }
 

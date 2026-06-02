@@ -119,7 +119,7 @@ export function getNavigationForRole(role) {
     [ROLES.OPERATIONS_CHIEF]: [
       { id: 'monitoring', label: 'Monitoreo', icon: 'radar', path: '/ops/monitoring' },
       { id: 'rondas', label: 'Rondas', icon: 'route', path: '/ops/rondas' },
-      { id: 'guards', label: 'Guardias', icon: 'users', path: '/ops/guards' },
+      { id: 'users', label: 'Usuarios', icon: 'users', path: '/ops/users' },
       { id: 'incidents', label: 'Incidentes', icon: 'alert', path: '/ops/incidents' },
       { id: 'analytics', label: 'Analítica', icon: 'chart', path: '/ops/analytics' },
       { id: 'simulator', label: 'Simulador', icon: 'radar', path: '/ops/simulator' },

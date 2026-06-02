@@ -104,7 +104,7 @@ export default function AppRouter() {
         <Route index element={<Navigate to="monitoring" replace />} />
         <Route path="monitoring" element={<LiveMonitoringPage />} />
         <Route path="rondas" element={<RondasAdminPage />} />
-        <Route path="guards" element={<PlaceholderPage title="Guardias" />} />
+        <Route path="users" element={<UsersPage />} />
         <Route path="incidents" element={<IncidentManagementPage />} />
         <Route path="analytics" element={<OperationalIntelligencePage />} />
         <Route path="simulator" element={<SimulatorPage />} />
