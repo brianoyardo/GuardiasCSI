@@ -18,6 +18,7 @@ const ICON_MAP = {
   alert: '⚠',
   chart: '📊',
   clock: '🕐',
+  reports: '📄',
 }
 
 /**

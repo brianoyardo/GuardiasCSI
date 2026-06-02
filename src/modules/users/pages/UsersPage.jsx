@@ -26,6 +26,7 @@ export default function UsersPage() {
   // Default tab is Guards
   const [filterRole, setFilterRole] = useState(ROLES.GUARD)
   const [searchQuery, setSearchQuery] = useState('')
+  const [tempSearchQuery, setTempSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const usersPerPage = 10
 
@@ -219,25 +220,25 @@ export default function UsersPage() {
         <div className="users-page__tabs">
           <button
             className={`users-page__tab-btn ${filterRole === ROLES.GUARD ? 'users-page__tab-btn--active' : ''}`}
-            onClick={() => setFilterRole(ROLES.GUARD)}
+            onClick={() => { setFilterRole(ROLES.GUARD); setSearchQuery(''); setTempSearchQuery(''); }}
           >
             Guardias
           </button>
           <button
             className={`users-page__tab-btn ${filterRole === ROLES.SUPERVISOR ? 'users-page__tab-btn--active' : ''}`}
-            onClick={() => setFilterRole(ROLES.SUPERVISOR)}
+            onClick={() => { setFilterRole(ROLES.SUPERVISOR); setSearchQuery(''); setTempSearchQuery(''); }}
           >
             Supervisores
           </button>
           <button
             className={`users-page__tab-btn ${filterRole === ROLES.OPERATIONS_CHIEF ? 'users-page__tab-btn--active' : ''}`}
-            onClick={() => setFilterRole(ROLES.OPERATIONS_CHIEF)}
+            onClick={() => { setFilterRole(ROLES.OPERATIONS_CHIEF); setSearchQuery(''); setTempSearchQuery(''); }}
           >
             Jefes de Operaciones
           </button>
           <button
             className={`users-page__tab-btn ${filterRole === ROLES.ADMIN ? 'users-page__tab-btn--active' : ''}`}
-            onClick={() => setFilterRole(ROLES.ADMIN)}
+            onClick={() => { setFilterRole(ROLES.ADMIN); setSearchQuery(''); setTempSearchQuery(''); }}
           >
             Administradores
           </button>
@@ -246,15 +247,29 @@ export default function UsersPage() {
         {/* Toolbar with reactive Search query */}
         <div className="users-page__toolbar">
           {(filterRole === ROLES.GUARD || filterRole === ROLES.SUPERVISOR) ? (
-            <div className="users-page__search-wrapper">
-              <span className="users-page__search-icon">🔍</span>
-              <input
-                type="text"
-                placeholder="Buscar por nombre, correo o ID de guardia..."
-                className="users-page__search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="users-page__search-wrapper" style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '500px' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <span className="users-page__search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, correo o ID de guardia..."
+                  className="users-page__search-input"
+                  value={tempSearchQuery}
+                  onChange={(e) => setTempSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearchQuery(tempSearchQuery)
+                    }
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                className="users-page__btn-search"
+                onClick={() => setSearchQuery(tempSearchQuery)}
+              >
+                Buscar
+              </button>
             </div>
           ) : (
             <div className="users-page__search-placeholder">

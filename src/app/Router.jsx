@@ -22,11 +22,10 @@ import LiveMonitoringPage from '@/modules/monitoring/pages/LiveMonitoringPage'
 
 /* Operational Pages */
 import { IncidentManagementPage, IncidentReportPage } from '@/modules/incidents'
-import { AttendancePage } from '@/modules/attendance'
 import { UsersPage } from '@/modules/users'
 import { SpatialManagementPage } from '@/modules/spatial'
 import { OperationalIntelligencePage } from '@/modules/intelligence'
-import SimulatorPage from '@/modules/guard-simulator/pages/SimulatorPage'
+import ReportsPage from '@/modules/reports/pages/ReportsPage'
 
 /* Placeholder pages (to be replaced with real modules) */
 function PlaceholderPage({ title }) {
@@ -91,8 +90,7 @@ export default function AppRouter() {
         <Route path="geofences" element={<Navigate to="../spatial" replace />} />
         <Route path="incidents" element={<IncidentManagementPage />} />
         <Route path="analytics" element={<OperationalIntelligencePage />} />
-        <Route path="attendance" element={<AttendancePage />} />
-        <Route path="simulator" element={<SimulatorPage />} />
+        <Route path="reports" element={<ReportsPage />} />
       </Route>
 
       {/* ─── Operations Chief Routes ─── */}
@@ -107,7 +105,7 @@ export default function AppRouter() {
         <Route path="users" element={<UsersPage />} />
         <Route path="incidents" element={<IncidentManagementPage />} />
         <Route path="analytics" element={<OperationalIntelligencePage />} />
-        <Route path="simulator" element={<SimulatorPage />} />
+        <Route path="reports" element={<ReportsPage />} />
       </Route>
 
       {/* ─── Supervisor Routes ─── */}

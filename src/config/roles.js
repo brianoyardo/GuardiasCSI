@@ -113,8 +113,7 @@ export function getNavigationForRole(role) {
       { id: 'spatial', label: 'Editor GIS', icon: 'map', path: '/admin/spatial' },
       { id: 'incidents', label: 'Incidentes', icon: 'alert', path: '/admin/incidents' },
       { id: 'analytics', label: 'Analítica', icon: 'chart', path: '/admin/analytics' },
-      { id: 'attendance', label: 'Asistencia', icon: 'clock', path: '/admin/attendance' },
-      { id: 'simulator', label: 'Simulador (Ops)', icon: 'radar', path: '/admin/simulator' },
+      { id: 'reports', label: 'Reportes', icon: 'reports', path: '/admin/reports' },
     ],
     [ROLES.OPERATIONS_CHIEF]: [
       { id: 'monitoring', label: 'Monitoreo', icon: 'radar', path: '/ops/monitoring' },
@@ -122,7 +121,7 @@ export function getNavigationForRole(role) {
       { id: 'users', label: 'Usuarios', icon: 'users', path: '/ops/users' },
       { id: 'incidents', label: 'Incidentes', icon: 'alert', path: '/ops/incidents' },
       { id: 'analytics', label: 'Analítica', icon: 'chart', path: '/ops/analytics' },
-      { id: 'simulator', label: 'Simulador', icon: 'radar', path: '/ops/simulator' },
+      { id: 'reports', label: 'Reportes', icon: 'reports', path: '/ops/reports' },
     ],
     [ROLES.SUPERVISOR]: [
       { id: 'monitoring', label: 'Monitoreo', icon: 'radar', path: '/supervisor/monitoring' },

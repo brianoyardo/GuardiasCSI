@@ -701,6 +701,30 @@
   }
 }
 
+.users-page__btn-search {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+  padding: 0.625rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.users-page__btn-search:hover {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: #818cf8;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+}
+
+.users-page__btn-search:active {
+  transform: translateY(1px);
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .users-page {
