@@ -48,7 +48,6 @@ const LOG_PREFIX = '[ExecutionService]'
  */
 export async function startExecution(data) {
   try {
-    const execRef = doc(collection(db, COLLECTIONS.RONDA_EXECUTIONS))
     const initialState = data.initialState || RONDA_STATES.IN_PROGRESS
 
     // ─── Anti-Lookup: Resolve denormalized names at write time ───
@@ -81,6 +80,11 @@ export async function startExecution(data) {
         if (linked) geofenceName = linked.name || ''
       } catch (_) { /* Non-blocking */ }
     }
+
+    // Generate structured custom ID
+    const guardCodeClean = guardCode || data.guardCode || 'guard'
+    const execId = `execution_${guardCodeClean}_${Date.now()}`
+    const execRef = doc(db, COLLECTIONS.RONDA_EXECUTIONS, execId)
 
     const execution = {
       assignmentId: data.assignmentId,
@@ -184,7 +188,8 @@ export async function registerCheckpoint(executionId, checkpointId, position, di
       updatedAt: serverTimestamp(),
     })
 
-    const logRef = doc(collection(db, COLLECTIONS.CHECKPOINT_LOGS))
+    const logId = `log_${executionId}_${checkpointId}_${Date.now()}`
+    const logRef = doc(db, COLLECTIONS.CHECKPOINT_LOGS, logId)
     await setDoc(logRef, {
       executionId,
       ...checkpointLog,

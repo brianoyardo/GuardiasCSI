@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '@/config/firebase'
-import { subscribeToUsers, adminCreateUser, updateUserRole, toggleUserStatus } from '@/modules/users/services/userService'
+import { subscribeToUsers, adminCreateUser, updateUserRole, toggleUserStatus, updateFullUserProfile } from '@/modules/users/services/userService'
 import { ROLES } from '@/config/roles'
 import { USER_STATUS } from '@/config/constants'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import CustomSelect from '../components/CustomSelect'
+import CustomTimePicker from '../components/CustomTimePicker'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import { createGuardIcon } from '@/modules/maps/utils/mapIcons'
 import './UsersPage.css'
@@ -49,6 +50,27 @@ export default function UsersPage() {
     shiftStart: '',
     shiftEnd: '',
   })
+
+  // Edit / Shift / Cancellation warning states
+  const [editingUser, setEditingUser] = useState(null)
+  const [enableShift, setEnableShift] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+
+  const resetForm = useCallback(() => {
+    setForm({
+      fullName: '',
+      email: '',
+      password: '',
+      role: ROLES.GUARD,
+      phone: '',
+      guardId: '',
+      shiftStart: '',
+      shiftEnd: '',
+    })
+    setEnableShift(false)
+    setModalError(null)
+  }, [])
+
 
   // Real-time users subscription
   useEffect(() => {
@@ -97,10 +119,84 @@ export default function UsersPage() {
     }
   }, [])
 
-  const handleCreateSubmit = useCallback(async (e) => {
+  const handleEditClick = useCallback((user) => {
+    setEditingUser(user)
+    setForm({
+      fullName: user.fullName || '',
+      email: user.email || '',
+      password: '',
+      role: user.role || ROLES.GUARD,
+      phone: user.phone || '',
+      guardId: user.guardId || '',
+      shiftStart: user.shiftStart || '',
+      shiftEnd: user.shiftEnd || '',
+    })
+    setEnableShift(!!(user.shiftStart && user.shiftEnd))
+    setShowCreateModal(true)
+  }, [])
+
+  const isFormDirty = useMemo(() => {
+    if (editingUser) {
+      const startOrig = editingUser.shiftStart || ''
+      const endOrig = editingUser.shiftEnd || ''
+      const shiftChanged = enableShift
+        ? (form.shiftStart !== startOrig || form.shiftEnd !== endOrig)
+        : (startOrig || endOrig)
+
+      return (
+        form.fullName !== (editingUser.fullName || '') ||
+        form.phone !== (editingUser.phone || '') ||
+        form.guardId !== (editingUser.guardId || '') ||
+        form.role !== (editingUser.role || ROLES.GUARD) ||
+        shiftChanged
+      )
+    }
+    return !!(
+      form.fullName ||
+      form.email ||
+      form.password ||
+      form.phone ||
+      form.guardId ||
+      form.shiftStart ||
+      form.shiftEnd
+    )
+  }, [form, editingUser, enableShift])
+
+  const handleConfirmCancel = useCallback(() => {
+    setShowCancelConfirm(false)
+    setShowCreateModal(false)
+    setEditingUser(null)
+    resetForm()
+  }, [resetForm])
+
+  const handleCloseModal = useCallback(() => {
+    if (isFormDirty) {
+      setShowCancelConfirm(true)
+    } else {
+      setShowCreateModal(false)
+      setEditingUser(null)
+      resetForm()
+    }
+  }, [isFormDirty, resetForm])
+
+  const handleFormSubmit = useCallback(async (e) => {
     e.preventDefault()
-    if (!form.fullName || !form.email || !form.password) {
-      setModalError('Nombre, correo y contraseña son obligatorios')
+
+    // Strict validation
+    if (!form.fullName) {
+      setModalError('El Nombre Completo es obligatorio.')
+      return
+    }
+    if (!form.phone) {
+      setModalError('El Teléfono es obligatorio.')
+      return
+    }
+    if (!form.guardId) {
+      setModalError('El Guard ID (Código) es obligatorio.')
+      return
+    }
+    if (enableShift && (!form.shiftStart || !form.shiftEnd)) {
+      setModalError('Debe especificar tanto el inicio como el fin de turno.')
       return
     }
 
@@ -108,30 +204,46 @@ export default function UsersPage() {
     setModalError(null)
 
     try {
-      await adminCreateUser(form)
-      setShowCreateModal(false)
-      setForm({ 
-        fullName: '', 
-        email: '', 
-        password: '', 
-        role: ROLES.GUARD, 
-        phone: '', 
-        guardId: '',
-        shiftStart: '',
-        shiftEnd: '' 
-      })
+      if (editingUser) {
+        // Edit flow
+        const updateData = {
+          fullName: form.fullName,
+          phone: form.phone,
+          role: form.role,
+          shiftEnabled: enableShift,
+          shiftStart: enableShift ? form.shiftStart : null,
+          shiftEnd: enableShift ? form.shiftEnd : null,
+          uid: editingUser.uid || editingUser.id
+        }
+        await updateFullUserProfile(editingUser.id, form.guardId, updateData)
+        setShowCreateModal(false)
+        setEditingUser(null)
+        resetForm()
+      } else {
+        // Create flow
+        if (!form.email || !form.password) {
+          setModalError('Nombre, correo y contraseña son obligatorios')
+          setCreating(false)
+          return
+        }
+        const createData = {
+          ...form,
+          shiftEnabled: enableShift,
+          shiftStart: enableShift ? form.shiftStart : null,
+          shiftEnd: enableShift ? form.shiftEnd : null,
+        }
+        await adminCreateUser(createData)
+        setShowCreateModal(false)
+        resetForm()
+      }
     } catch (err) {
-      console.error('Create user error:', err)
-      const msg = err.code === 'auth/email-already-in-use'
-        ? 'El correo ya está registrado'
-        : err.code === 'auth/weak-password'
-        ? 'La contraseña debe tener al menos 6 caracteres'
-        : 'Error al crear usuario'
+      console.error('Submit user form error:', err)
+      const msg = err.message || 'Error al guardar los datos del usuario.'
       setModalError(msg)
     } finally {
       setCreating(false)
     }
-  }, [form])
+  }, [form, editingUser, enableShift, resetForm])
 
   // Filter creation roles for Operations Chief
   const availableRoleOptions = useMemo(() => {
@@ -340,7 +452,7 @@ export default function UsersPage() {
                       </td>
                       <td>
                         <span className="users-page__shift-hours">
-                          {user.shiftStart && user.shiftEnd 
+                          {user.shiftEnabled && user.shiftStart && user.shiftEnd 
                             ? `${user.shiftStart} - ${user.shiftEnd}`
                             : 'No Asignado'
                           }
@@ -364,6 +476,13 @@ export default function UsersPage() {
                       </td>
                       <td>
                         <div className="users-page__actions">
+                          <button
+                            className="users-page__btn-action users-page__btn-action--edit"
+                            onClick={() => handleEditClick(user)}
+                            disabled={isRestrictedAdminRow}
+                          >
+                            Editar
+                          </button>
                           <button
                             className={`users-page__btn-action users-page__btn-action--${user.status === USER_STATUS.ACTIVE ? 'deactivate' : 'activate'}`}
                             onClick={() => handleStatusToggle(user.id, user.status)}
@@ -408,111 +527,131 @@ export default function UsersPage() {
         )}
       </div>
 
-      {/* ─── Create User Modal ─── */}
+      {/* ─── Create / Edit User Modal ─── */}
       {showCreateModal && (
-        <div className="users-page__modal-overlay" onClick={() => setShowCreateModal(false)}>
+        <div className="users-page__modal-overlay" onClick={handleCloseModal}>
           <div className="users-page__modal" onClick={(e) => e.stopPropagation()}>
             <div className="users-page__modal-header">
-              <h2>Crear Nuevo Usuario</h2>
-              <button className="users-page__modal-close" onClick={() => { setShowCreateModal(false); setModalError(null) }}>✕</button>
+              <h2>{editingUser ? 'Modificar Usuario' : 'Crear Nuevo Usuario'}</h2>
+              <button className="users-page__modal-close" onClick={handleCloseModal}>✕</button>
             </div>
 
             {modalError && (
               <div className="users-page__modal-error">{modalError}</div>
             )}
 
-            <form onSubmit={handleCreateSubmit} className="users-page__modal-form">
-              <div className="users-page__modal-field">
-                <label>Nombre Completo *</label>
-                <input
-                  type="text"
-                  placeholder="Ej: Juan Pérez"
-                  value={form.fullName}
-                  onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="users-page__modal-field">
-                <label>Correo Electrónico *</label>
-                <input
-                  type="email"
-                  placeholder="guardia@catarseguridad.com"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="users-page__modal-field">
-                <label>Contraseña *</label>
-                <input
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              <div className="users-page__modal-row">
+            <form onSubmit={handleFormSubmit} className="users-page__modal-form">
+              <div className="users-page__modal-scrollable-content">
                 <div className="users-page__modal-field">
-                  <label>Rol</label>
-                  <CustomSelect
-                    value={form.role}
-                    onChange={(val) => setForm({ ...form, role: val })}
-                    options={availableRoleOptions}
-                  />
-                </div>
-
-                <div className="users-page__modal-field">
-                  <label>Guard ID (Código)</label>
+                  <label>Nombre Completo *</label>
                   <input
                     type="text"
-                    placeholder="Ej: G-006"
-                    value={form.guardId}
-                    onChange={(e) => setForm({ ...form, guardId: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Shift Hours inputs */}
-              <div className="users-page__modal-row">
-                <div className="users-page__modal-field">
-                  <label>Inicio de Turno</label>
-                  <input
-                    type="time"
-                    value={form.shiftStart}
-                    onChange={(e) => setForm({ ...form, shiftStart: e.target.value })}
+                    placeholder="Ej: Juan Pérez"
+                    value={form.fullName}
+                    onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                    required
                   />
                 </div>
 
                 <div className="users-page__modal-field">
-                  <label>Fin de Turno</label>
+                  <label>Correo Electrónico {!editingUser && '*'}</label>
                   <input
-                    type="time"
-                    value={form.shiftEnd}
-                    onChange={(e) => setForm({ ...form, shiftEnd: e.target.value })}
+                    type="email"
+                    placeholder="guardia@catarseguridad.com"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    disabled={!!editingUser}
+                    required={!editingUser}
                   />
                 </div>
-              </div>
 
-              <div className="users-page__modal-field">
-                <label>Teléfono</label>
-                <input
-                  type="tel"
-                  placeholder="+591 70000000"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
+                {!editingUser && (
+                  <div className="users-page__modal-field">
+                    <label>Contraseña *</label>
+                    <input
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                )}
+
+                <div className="users-page__modal-row">
+                  <div className="users-page__modal-field">
+                    <label>Rol</label>
+                    <CustomSelect
+                      value={form.role}
+                      onChange={(val) => setForm({ ...form, role: val })}
+                      options={availableRoleOptions}
+                    />
+                  </div>
+
+                  <div className="users-page__modal-field">
+                    <label>Guard ID (Código) *</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: G-006"
+                      value={form.guardId}
+                      onChange={(e) => setForm({ ...form, guardId: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Shift Hours inputs */}
+                <div className="users-page__modal-field-checkbox">
+                  <label className="users-page__checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={enableShift}
+                      onChange={(e) => setEnableShift(e.target.checked)}
+                    />
+                    <span>Habilitar Horario de Turno</span>
+                  </label>
+                </div>
+
+                <div className={`users-page__modal-row ${!enableShift ? 'users-page__modal-row--disabled' : ''}`}>
+                  <div className="users-page__modal-field">
+                    <label>Inicio de Turno {enableShift && '*'}</label>
+                    <CustomTimePicker
+                      value={form.shiftStart}
+                      onChange={(val) => setForm({ ...form, shiftStart: val })}
+                      disabled={!enableShift}
+                      placeholder="08:00"
+                    />
+                  </div>
+
+                  <div className="users-page__modal-field">
+                    <label>Fin de Turno {enableShift && '*'}</label>
+                    <CustomTimePicker
+                      value={form.shiftEnd}
+                      onChange={(val) => setForm({ ...form, shiftEnd: val })}
+                      disabled={!enableShift}
+                      placeholder="18:00"
+                    />
+                  </div>
+                </div>
+
+                <div className="users-page__modal-field">
+                  <label>Teléfono *</label>
+                  <input
+                    type="tel"
+                    placeholder="+591 70000000"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
 
               <div className="users-page__modal-actions">
                 <button
                   type="button"
                   className="users-page__modal-btn users-page__modal-btn--cancel"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCloseModal}
                 >
                   Cancelar
                 </button>
@@ -521,10 +660,36 @@ export default function UsersPage() {
                   className="users-page__modal-btn users-page__modal-btn--create"
                   disabled={creating}
                 >
-                  {creating ? 'Creando...' : 'Crear Usuario'}
+                  {creating ? 'Guardando...' : (editingUser ? 'Guardar Cambios' : 'Crear Usuario')}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Cancel Confirmation Sub-Modal ─── */}
+      {showCancelConfirm && (
+        <div className="users-page__sub-modal-overlay">
+          <div className="users-page__sub-modal">
+            <h3>¿Descartar cambios?</h3>
+            <p>Hay cambios sin guardar en el formulario. Si sale ahora, se perderán todos los datos ingresados.</p>
+            <div className="users-page__sub-modal-actions">
+              <button
+                type="button"
+                className="users-page__sub-modal-btn users-page__sub-modal-btn--cancel"
+                onClick={() => setShowCancelConfirm(false)}
+              >
+                Seguir Editando
+              </button>
+              <button
+                type="button"
+                className="users-page__sub-modal-btn users-page__sub-modal-btn--confirm"
+                onClick={handleConfirmCancel}
+              >
+                Sí, Descartar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -469,6 +469,9 @@
 .users-page__modal {
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   background: #0d0e16;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
@@ -510,10 +513,34 @@
 }
 
 .users-page__modal-form {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  gap: 0;
+}
+
+.users-page__modal-scrollable-content {
   padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.users-page__modal-scrollable-content::-webkit-scrollbar {
+  width: 6px;
+}
+.users-page__modal-scrollable-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.users-page__modal-scrollable-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+.users-page__modal-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .users-page__modal-field {
@@ -555,7 +582,9 @@
 .users-page__modal-actions {
   display: flex;
   gap: 0.75rem;
-  margin-top: 0.75rem;
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 14, 22, 0.95);
 }
 
 .users-page__modal-btn {
@@ -761,3 +790,153 @@
     max-width: 100%;
   }
 }
+
+/* ─── Premium Action Edit Button ─── */
+.users-page__btn-action--edit {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+}
+
+.users-page__btn-action--edit:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+}
+
+/* ─── Premium Checkbox & Toggles ─── */
+.users-page__modal-field-checkbox {
+  display: flex;
+  align-items: center;
+  margin: 0.25rem 0;
+}
+
+.users-page__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  user-select: none;
+}
+
+.users-page__checkbox-label input[type="checkbox"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: rgba(18, 18, 28, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.users-page__checkbox-label input[type="checkbox"]:checked {
+  background: #6366f1;
+  border-color: #818cf8;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+
+.users-page__checkbox-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ─── Disabled Row State ─── */
+.users-page__modal-row--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+/* ─── Confirmation Sub-Modal (Premium Glassmorphic Dialog) ─── */
+.users-page__sub-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(4, 4, 8, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+}
+
+.users-page__sub-modal {
+  width: 90%;
+  max-width: 400px;
+  background: rgba(15, 15, 25, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  animation: ctp-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.users-page__sub-modal h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.75rem 0;
+}
+
+.users-page__sub-modal p {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0 0 1.5rem 0;
+}
+
+.users-page__sub-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.users-page__sub-modal-btn {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.users-page__sub-modal-btn--cancel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.users-page__sub-modal-btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.users-page__sub-modal-btn--confirm {
+  background: #ef4444;
+  border: 1px solid #f87171;
+  color: #fff;
+}
+
+.users-page__sub-modal-btn--confirm:hover {
+  background: #dc2626;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+

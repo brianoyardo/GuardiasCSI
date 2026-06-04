@@ -30,22 +30,55 @@ const LOG_PREFIX = '[UserService]'
  */
 export async function getUserProfile(uid) {
   try {
-    // console.log(`${LOG_PREFIX} Fetching profile for uid: ${uid}`)
+    // 1. Try direct lookup (Admin/Supervisor/Ops Chief, or Guard Pointer)
     const userRef = doc(db, COLLECTIONS.USERS, uid)
     const userSnap = await getDoc(userRef)
 
     if (userSnap.exists()) {
-      const profile = { id: userSnap.id, ...userSnap.data() }
-      // console.log(`${LOG_PREFIX} Profile found:`, {
-      //   uid: profile.id,
-      //   email: profile.email,
-      //   role: profile.role,
-      //   status: profile.status,
-      // })
-      return profile
+      const data = userSnap.data()
+      if (data.isPointer && data.guardId) {
+        // Fetch the actual guard profile
+        const guardRef = doc(db, COLLECTIONS.USERS, data.guardId)
+        const guardSnap = await getDoc(guardRef)
+        if (guardSnap.exists()) {
+          return { id: guardSnap.id, ...guardSnap.data() }
+        }
+      }
+      return { id: userSnap.id, ...data }
     }
 
-    // console.log(`${LOG_PREFIX} No profile found for uid: ${uid}`)
+    // 2. Query fallback (Guards with guardId doc IDs, or self-healing missing pointer)
+    const q = query(collection(db, COLLECTIONS.USERS), where('uid', '==', uid))
+    const querySnap = await getDocs(q)
+    if (!querySnap.empty) {
+      // Find the first document that is not a pointer
+      const nonPointer = querySnap.docs.find(d => !d.data().isPointer)
+      if (nonPointer) {
+        const docData = nonPointer.data()
+        // Self-healing: if the user does not have a pointer doc under their uid, write it now!
+        if (docData.guardId) {
+          const pointerRef = doc(db, COLLECTIONS.USERS, uid)
+          const pointerProfile = {
+            uid,
+            email: docData.email || '',
+            fullName: docData.fullName || '',
+            role: docData.role || ROLES.GUARD,
+            status: docData.status || USER_STATUS.ACTIVE,
+            guardId: docData.guardId,
+            isPointer: true,
+            createdAt: docData.createdAt || serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          }
+          await setDoc(pointerRef, pointerProfile).catch(err => {
+            console.warn(`${LOG_PREFIX} Self-healing pointer creation failed:`, err)
+          })
+        }
+        return { id: nonPointer.id, ...docData }
+      }
+      const docSnap = querySnap.docs[0]
+      return { id: docSnap.id, ...docSnap.data() }
+    }
+
     return null
   } catch (error) {
     console.error(`${LOG_PREFIX} Error fetching profile:`, error)
@@ -112,15 +145,16 @@ export async function createUserProfile(firebaseUser, overrides = {}) {
  */
 export async function updateLastLogin(uid) {
   try {
-    const userRef = doc(db, COLLECTIONS.USERS, uid)
+    const profile = await getUserProfile(uid)
+    if (!profile) return
+
+    const userRef = doc(db, COLLECTIONS.USERS, profile.id)
     await updateDoc(userRef, {
       lastLogin: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    // console.log(`${LOG_PREFIX} LastLogin updated for: ${uid}`)
   } catch (error) {
     // Non-blocking
-    // console.warn(`${LOG_PREFIX} Failed to update lastLogin:`, error)
   }
 }
 
@@ -197,12 +231,14 @@ function validateProfile(profile) {
  */
 export async function updateUserProfile(uid, fields) {
   try {
-    const userRef = doc(db, COLLECTIONS.USERS, uid)
+    const profile = await getUserProfile(uid)
+    const docId = profile ? profile.id : uid
+
+    const userRef = doc(db, COLLECTIONS.USERS, docId)
     await updateDoc(userRef, {
       ...fields,
       updatedAt: serverTimestamp(),
     })
-    // console.log(`${LOG_PREFIX} Profile updated for: ${uid}`, Object.keys(fields))
   } catch (error) {
     console.error(`${LOG_PREFIX} Error updating profile:`, error)
     throw error
@@ -344,6 +380,15 @@ export async function adminCreateUser(data) {
   let createdUid = null
 
   try {
+    // 0. Check if guardId already taken in Firestore
+    if (guardId) {
+      const q = query(collection(db, COLLECTIONS.USERS), where('guardId', '==', guardId))
+      const snap = await getDocs(q)
+      if (!snap.empty) {
+        throw new Error(`El código de guardia "${guardId}" ya está asignado a otro usuario.`)
+      }
+    }
+
     // 1. Create secondary app
     secondaryApp = initApp(firebaseConfig, 'SecondaryApp_' + Date.now())
     secondaryAuth = getAuth(secondaryApp)
@@ -353,7 +398,8 @@ export async function adminCreateUser(data) {
     createdUid = userCredential.user.uid
 
     // 3. Create Firestore profile
-    const userRef = doc(db, COLLECTIONS.USERS, createdUid)
+    const docId = guardId || createdUid
+    const userRef = doc(db, COLLECTIONS.USERS, docId)
     const profile = {
       uid: createdUid,
       email,
@@ -378,8 +424,25 @@ export async function adminCreateUser(data) {
 
     await setDoc(userRef, profile)
 
+    // Write pointer document for rules & login mapping
+    if (guardId) {
+      const pointerRef = doc(db, COLLECTIONS.USERS, createdUid)
+      const pointerProfile = {
+        uid: createdUid,
+        email,
+        fullName,
+        role,
+        status: USER_STATUS.ACTIVE,
+        guardId,
+        isPointer: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+      await setDoc(pointerRef, pointerProfile)
+    }
+
     // console.log(`${LOG_PREFIX} ✅ User created: ${email} (${role})`)
-    return { id: createdUid, ...profile }
+    return { id: docId, ...profile }
   } catch (error) {
     // Cleanup Auth user if Firestore creation failed
     if (createdUid && secondaryAuth) {
@@ -467,9 +530,87 @@ export function subscribeToUsers(callback) {
   )
 
   return onSnapshot(q, (snapshot) => {
-    const users = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const users = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((u) => !u.isPointer)
     callback(users)
   }, (error) => {
     console.error(`${LOG_PREFIX} Users subscription error:`, error)
   })
 }
+
+/**
+ * Update full user profile, migrating document if guardId changes
+ * @param {string} oldDocId - Current Firestore document ID
+ * @param {string} newGuardId - New Guard ID/Code (might be empty/null, or different)
+ * @param {object} updateData - Object containing updated fields (fullName, phone, role, shiftStart, shiftEnd)
+ */
+export async function updateFullUserProfile(oldDocId, newGuardId, updateData) {
+  try {
+    // 1. Determine target document ID
+    const targetDocId = newGuardId || updateData.uid || oldDocId
+
+    // 2. If changing Guard ID, check uniqueness
+    if (newGuardId && newGuardId !== oldDocId) {
+      const q = query(
+        collection(db, COLLECTIONS.USERS),
+        where('guardId', '==', newGuardId)
+      )
+      const snap = await getDocs(q)
+      if (!snap.empty) {
+        throw new Error(`El código de guardia "${newGuardId}" ya está registrado por otro usuario.`)
+      }
+    }
+
+    const oldRef = doc(db, COLLECTIONS.USERS, oldDocId)
+    const oldSnap = await getDoc(oldRef)
+    if (!oldSnap.exists()) {
+      throw new Error(`El usuario a modificar no existe en la base de datos.`)
+    }
+    const oldData = oldSnap.data()
+    const resolvedUid = oldData.uid || updateData.uid
+
+    if (targetDocId === oldDocId) {
+      // Direct update
+      await updateDoc(oldRef, {
+        ...updateData,
+        guardId: newGuardId || null,
+        updatedAt: serverTimestamp(),
+      })
+    } else {
+      // Document migration required
+      const mergedData = {
+        ...oldData,
+        ...updateData,
+        guardId: newGuardId || null,
+        updatedAt: serverTimestamp(),
+      }
+
+      const newRef = doc(db, COLLECTIONS.USERS, targetDocId)
+      
+      // Write new, then delete old
+      await setDoc(newRef, mergedData)
+      await deleteDoc(oldRef)
+    }
+
+    // 3. Update or create the pointer document at users/resolvedUid
+    if (resolvedUid) {
+      const pointerRef = doc(db, COLLECTIONS.USERS, resolvedUid)
+      const pointerData = {
+        uid: resolvedUid,
+        email: oldData.email || updateData.email || '',
+        fullName: updateData.fullName,
+        role: updateData.role,
+        status: oldData.status || USER_STATUS.ACTIVE,
+        guardId: newGuardId || null,
+        isPointer: true,
+        updatedAt: serverTimestamp(),
+      }
+      await setDoc(pointerRef, pointerData, { merge: true })
+    }
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Error in updateFullUserProfile:`, error)
+    throw error
+  }
+}
+

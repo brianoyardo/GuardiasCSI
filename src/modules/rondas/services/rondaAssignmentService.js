@@ -151,8 +151,6 @@ export async function getAllAssignments(filters = {}) {
  */
 export async function createAssignment(data) {
   try {
-    const assignRef = doc(collection(db, COLLECTIONS.RONDA_ASSIGNMENTS))
-
     // ─── Anti-Lookup: Resolve denormalized names at write time ───
     let guardName = data.guardName || ''
     let guardCode = data.guardCode || ''
@@ -183,6 +181,11 @@ export async function createAssignment(data) {
         if (linked) geofenceName = linked.name || ''
       } catch (_) { /* Non-blocking */ }
     }
+
+    // Generate structured custom ID
+    const guardCodeClean = guardCode || data.guardCode || 'guard'
+    const assignId = `assignment_${guardCodeClean}_${Date.now()}`
+    const assignRef = doc(db, COLLECTIONS.RONDA_ASSIGNMENTS, assignId)
 
     await setDoc(assignRef, {
       rondaId: data.rondaId,

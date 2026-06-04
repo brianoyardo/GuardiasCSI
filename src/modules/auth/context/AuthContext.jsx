@@ -88,9 +88,9 @@ export function AuthProvider({ children }) {
 
   // Real-time user status monitor
   useEffect(() => {
-    if (!user) return
+    if (!profile?.id) return
 
-    const userDocRef = doc(db, 'users', user.uid)
+    const userDocRef = doc(db, 'users', profile.id)
     const unsubscribe = onSnapshot(userDocRef, async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data()
@@ -119,7 +119,7 @@ export function AuthProvider({ children }) {
     })
 
     return () => unsubscribe()
-  }, [user])
+  }, [profile?.id])
 
   useEffect(() => {
     // console.log(`${LOG_PREFIX} 🚀 Initializing auth state listener...`)
@@ -153,8 +153,8 @@ export function AuthProvider({ children }) {
 
           // Shift validation for guards
           if (userProfile.role === ROLES.GUARD) {
-            const { shiftStart, shiftEnd } = userProfile
-            if (shiftStart && shiftEnd) {
+            const { shiftStart, shiftEnd, shiftEnabled } = userProfile
+            if (shiftEnabled && shiftStart && shiftEnd) {
               if (!isTimeInShift(shiftStart, shiftEnd)) {
                 setError(`Acceso restringido: Fuera de horario de turno asignado (${shiftStart} - ${shiftEnd}).`)
                 setProfile(null)
@@ -168,7 +168,7 @@ export function AuthProvider({ children }) {
           setProfile(userProfile)
 
           // Automatic Clock-In registration on successful login during shift
-          if (userProfile.role === ROLES.GUARD && userProfile.shiftStart && userProfile.shiftEnd) {
+          if (userProfile.role === ROLES.GUARD && userProfile.shiftEnabled && userProfile.shiftStart && userProfile.shiftEnd) {
             const shiftDate = getShiftDate(userProfile.shiftStart, userProfile.shiftEnd)
             const attendanceDocId = `attendance_${userProfile.uid || userProfile.id}_${shiftDate}`
             const attendanceRef = doc(db, 'personalAttendance', attendanceDocId)
