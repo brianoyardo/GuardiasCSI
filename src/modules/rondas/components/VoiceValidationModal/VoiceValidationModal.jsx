@@ -113,9 +113,9 @@ export default function VoiceValidationModal({ executionId, passphrase, guardNam
 
         {/* Passphrase */}
         <div className="voice-modal__passphrase-section">
-          <label className="voice-modal__passphrase-label">Frase de verificación:</label>
+          <label className="voice-modal__passphrase-label">Por favor, mantenga presionado el botón y diga la frase de seguridad:</label>
           <div className="voice-modal__passphrase">
-            "{passphrase || 'Guardia Operacional empezando ronda'}"
+            "{passphrase}"
           </div>
         </div>
 

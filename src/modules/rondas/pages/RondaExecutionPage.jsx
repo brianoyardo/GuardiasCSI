@@ -13,6 +13,7 @@ import { BaseMap, CheckpointLayer, TrackingLayer, GuardMarker } from '@/modules/
 import { useMapControlStore } from '@/stores/mapControlStore'
 import PreOpModal from '@/modules/rondas/components/PreOpModal/PreOpModal'
 import VoiceValidationModal from '@/modules/rondas/components/VoiceValidationModal/VoiceValidationModal'
+import NotesModal from '@/modules/rondas/components/NotesModal/NotesModal'
 import { VOICE_PASSPHRASES } from '@/config/constants'
 import './RondaExecutionPage.css'
 
@@ -132,6 +133,7 @@ export default function RondaExecutionPage() {
   const [executionId, setExecutionId] = useState(null)
   const [preOpData, setPreOpData] = useState(null)
   const [preOpKey, setPreOpKey] = useState(0)
+  const [showNotes, setShowNotes] = useState(false)
 
   // ─── Execution Hook (only active in 'execution' phase) ───
   const exec = useRondaExecution({
@@ -267,6 +269,7 @@ export default function RondaExecutionPage() {
       <PreOpModal
         key={preOpKey}
         rondaName={route?.name || assignment?.rondaName || 'Ronda Operativa'}
+        notes={assignment?.notes}
         onConfirm={handlePreOpConfirm}
         onCancel={handlePreOpCancel}
       />
@@ -416,6 +419,25 @@ export default function RondaExecutionPage() {
           )}
         </div>
       </div>
+
+      {/* ─── Floating Notes Button ─── */}
+      {assignment?.notes && phase === 'execution' && (
+        <button 
+          className="ronda-exec__btn-notes-float"
+          onClick={() => setShowNotes(true)}
+          title="Ver Indicaciones"
+        >
+          📝
+        </button>
+      )}
+
+      {/* ─── Notes Modal ─── */}
+      {showNotes && (
+        <NotesModal 
+          notes={assignment?.notes} 
+          onClose={() => setShowNotes(false)} 
+        />
+      )}
     </div>
   )
 }

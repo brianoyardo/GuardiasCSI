@@ -3,7 +3,7 @@ import { PATROL_TYPES, SHIFT_TYPES } from '@/config/constants'
 import CustomSelect from '@/components/ui/CustomSelect/CustomSelect'
 import './PreOpModal.css'
 
-export default function PreOpModal({ rondaName, onConfirm, onCancel }) {
+export default function PreOpModal({ rondaName, notes, onConfirm, onCancel }) {
   const [patrolType, setPatrolType] = useState(PATROL_TYPES.A_PIE)
   const [vehicleId, setVehicleId] = useState('')
   const [shift, setShift] = useState(SHIFT_TYPES.DIURNO)
@@ -97,6 +97,14 @@ export default function PreOpModal({ rondaName, onConfirm, onCancel }) {
           {error && (
             <div className="preop-modal__error">{error}</div>
           )}
+
+          {/* Indicaciones de la Ronda */}
+          <div className="preop-modal__field">
+            <label className="preop-modal__label">Indicaciones de la ronda</label>
+            <div className={`preop-modal__notes-box ${!notes ? 'preop-modal__notes-box--empty' : ''}`}>
+              {notes ? notes : 'Sin indicaciones adicionales'}
+            </div>
+          </div>
         </div>
 
         {/* Actions */}
@@ -113,7 +121,7 @@ export default function PreOpModal({ rondaName, onConfirm, onCancel }) {
             onClick={handleConfirm}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Iniciando...' : 'Continuar →'}
+            {isSubmitting ? 'Iniciando...' : 'Continuar a Validación de Voz'}
           </button>
         </div>
       </div>

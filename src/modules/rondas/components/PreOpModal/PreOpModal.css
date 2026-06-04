@@ -113,6 +113,25 @@
   text-align: center;
 }
 
+.preop-modal__notes-box {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--color-dark-text, #e0e0e0);
+  line-height: 1.4;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.preop-modal__notes-box--empty {
+  color: var(--color-dark-text-muted, #888);
+  font-style: italic;
+  background: var(--color-dark-surface, #2a2a3e);
+  border-color: var(--color-dark-border, #444);
+}
+
 /* ─── Actions ─── */
 .preop-modal__actions {
   display: flex;
