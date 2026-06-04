@@ -4,13 +4,17 @@ import { subscribeToGuardAssignments } from '@/modules/rondas/services/rondaAssi
 import { RONDA_STATES, isActiveState, isTerminalState } from '@/modules/rondas/stateMachine/rondaStateMachine'
 import { syncTrueTime, getTrueTime } from '@/utils/timeSync'
 import RondaCard from '@/modules/rondas/components/RondaCard/RondaCard'
+import VoiceEnrollmentModal from '@/modules/rondas/components/VoiceEnrollmentModal/VoiceEnrollmentModal'
 import './MisRondasPage.css'
 
 export default function MisRondasPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('ALL')
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false)
+
+  const isVoiceEnrolled = profile?.voiceEnrolled === true
 
   useEffect(() => {
     syncTrueTime()
@@ -75,6 +79,20 @@ export default function MisRondasPage() {
         <span className="mis-rondas__date">{today}</span>
       </div>
 
+      {/* Voice Enrollment Banner */}
+      {!loading && !isVoiceEnrolled && (
+        <div 
+          className="mis-rondas__enrollment-banner"
+          onClick={() => setShowEnrollmentModal(true)}
+        >
+          <span className="mis-rondas__enrollment-icon">⚠️</span>
+          <div className="mis-rondas__enrollment-text">
+            <strong>Acción Requerida:</strong> Registre su perfil de voz para poder iniciar rondas.
+          </div>
+          <button className="mis-rondas__enrollment-btn">Registrar</button>
+        </div>
+      )}
+
       {/* Filter tabs */}
       <div className="mis-rondas__filters">
         <button
@@ -102,7 +120,7 @@ export default function MisRondasPage() {
         <div className="mis-rondas__section">
           <div className="mis-rondas__section-title">🔴 En Progreso</div>
           {active.map((a) => (
-            <RondaCard key={a.id} assignment={a} />
+            <RondaCard key={a.id} assignment={a} isVoiceEnrolled={isVoiceEnrolled} />
           ))}
         </div>
       )}
@@ -112,7 +130,7 @@ export default function MisRondasPage() {
         <div className="mis-rondas__section">
           <div className="mis-rondas__section-title">▶ Disponibles</div>
           {pending.map((a) => (
-            <RondaCard key={a.id} assignment={a} hasActiveRonda={hasActiveRonda} />
+            <RondaCard key={a.id} assignment={a} hasActiveRonda={hasActiveRonda} isVoiceEnrolled={isVoiceEnrolled} />
           ))}
         </div>
       )}
@@ -133,6 +151,14 @@ export default function MisRondasPage() {
           <div className="mis-rondas__empty-icon">📋</div>
           <p>No hay rondas en este filtro</p>
         </div>
+      )}
+
+      {/* Voice Enrollment Modal */}
+      {showEnrollmentModal && (
+        <VoiceEnrollmentModal 
+          onClose={() => setShowEnrollmentModal(false)}
+          onSuccess={() => setShowEnrollmentModal(false)}
+        />
       )}
     </div>
   )

@@ -1,19 +1,21 @@
-import { useState, useEffect, useCallback } from 'react'
-import { recordVoiceValidation } from '@/modules/rondas/services/rondaExecutionService'
-import './VoiceValidationModal.css'
+import { useState, useEffect, useCallback, useRef } from "react";
+import { recordVoiceValidation } from "@/modules/rondas/services/rondaExecutionService";
+import { verifyVoiceIdentity } from "@/modules/rondas/services/voiceValidationService";
+import HoldToTalkButton from "@/components/ui/HoldToTalkButton/HoldToTalkButton";
+import "./VoiceValidationModal.css";
 
 /**
  * SentinelOps — Voice Validation Modal (Catar Seguridad Integral)
- * 
+ *
  * Full-screen biometric identity verification before starting a ronda.
  * Simulates Azure Speech / IA voice recognition.
- * 
+ *
  * Flow:
  *   1. Shows passphrase to read
  *   2. Guard presses mic button → "Grabando..." (3s)
  *   3. "Analizando con IA..." (2s)
  *   4. Result → calls recordVoiceValidation → transitions to IN_PROGRESS
- * 
+ *
  * @param {object} props
  * @param {string} props.executionId - Execution document ID
  * @param {string} props.passphrase - Phrase the guard must read
@@ -21,77 +23,104 @@ import './VoiceValidationModal.css'
  * @param {Function} props.onSuccess - Called when validation passes
  * @param {Function} props.onFail - Called when validation fails
  */
-export default function VoiceValidationModal({ executionId, passphrase, guardName, onSuccess, onFail }) {
-  const [phase, setPhase] = useState('idle') // idle | recording | analyzing | success | error
-  const [progress, setProgress] = useState(0)
-  const [matchScore, setMatchScore] = useState(null)
+export default function VoiceValidationModal({
+  executionId,
+  passphrase,
+  guardName,
+  onSuccess,
+  onFail,
+}) {
+  const [phase, setPhase] = useState("idle"); // idle | recording | analyzing | success | error
+  const [progress, setProgress] = useState(0);
+  const [matchScore, setMatchScore] = useState(null);
 
-  // Simulate voice recording + analysis
-  const startValidation = useCallback(async () => {
-    setPhase('recording')
-    setProgress(0)
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
-    // Phase 1: Recording (3 seconds)
-    const recordDuration = 3000
-    const recordInterval = 50
-    let elapsed = 0
+  // Comienza la grabación de voz nativa
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
 
-    const recordTimer = setInterval(() => {
-      elapsed += recordInterval
-      setProgress(Math.min((elapsed / recordDuration) * 50, 50))
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
 
-      if (elapsed >= recordDuration) {
-        clearInterval(recordTimer)
+      mediaRecorder.onstop = async () => {
+        // Detener micrófonos
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        chunksRef.current = []; // <-- Vaciado de chunks explícito
+        processVoiceValidation(blob);
+      };
 
-        // Phase 2: AI Analysis (2 seconds)
-        setPhase('analyzing')
-        setProgress(50)
+      mediaRecorder.start();
+      setPhase("recording");
+    } catch (err) {
+      console.error("[VoiceValidation] Error accediendo al micrófono:", err);
+      setPhase("error");
+    }
+  };
 
-        const analyzeDuration = 2000
-        let analyzeElapsed = 0
+  // Detiene la grabación si está activa
+  const stopRecording = () => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "recording"
+    ) {
+      mediaRecorderRef.current.stop();
+    }
+  };
 
-        const analyzeTimer = setInterval(() => {
-          analyzeElapsed += recordInterval
-          setProgress(50 + Math.min((analyzeElapsed / analyzeDuration) * 50, 50))
+  // Envía el blob a la IA
+  const processVoiceValidation = async (audioBlob) => {
+    setPhase("analyzing");
+    try {
+      // Llamada real al servicio Python (que simula el score 0.92 en el backend, o en el peor de los casos retornará los datos de la IA)
+      const data = await verifyVoiceIdentity(audioBlob);
 
-          if (analyzeElapsed >= analyzeDuration) {
-            clearInterval(analyzeTimer)
+      if (data && data.match) {
+        const score = data.score || 0.96; // Default si la API no manda score exacto
+        setMatchScore(score);
+        setPhase("success");
 
-            // Phase 3: Result (simulated 96% match)
-            const score = 0.96
-            setMatchScore(score)
-            setPhase('success')
-            setProgress(100)
+        // Registrar en Firestore que pasó
+        await recordVoiceValidation(executionId, {
+          matchScore: score,
+          passed: true,
+          position: null,
+        });
 
-            // Send to Firestore (async, non-blocking)
-            recordVoiceValidation(executionId, {
-              matchScore: score,
-              passed: true,
-              position: null,
-            })
-              .then(() => {
-                setTimeout(() => {
-                  if (onSuccess) onSuccess()
-                }, 800)
-              })
-              .catch((err) => {
-                console.error('[VoiceValidation] Error recording result:', err)
-                setPhase('error')
-                if (onFail) onFail(err)
-              })
-          }
-        }, recordInterval)
+        setTimeout(() => {
+          if (onSuccess) onSuccess();
+        }, 1500);
+      } else {
+        throw new Error("Identidad no validada por IA");
       }
-    }, recordInterval)
-  }, [executionId, onSuccess, onFail])
+    } catch (err) {
+      console.error("[VoiceValidation] Error en validación:", err);
+      setPhase("error");
+      if (onFail) onFail(err);
+    }
+  };
 
-  // Cleanup timers on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      setPhase('idle')
-      setProgress(0)
-    }
-  }, [])
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state === "recording"
+      ) {
+        mediaRecorderRef.current.stop();
+      }
+      setPhase("idle");
+    };
+  }, []);
 
   return (
     <div className="voice-modal" id="voice-validation-modal">
@@ -102,74 +131,72 @@ export default function VoiceValidationModal({ executionId, passphrase, guardNam
         <div className="voice-modal__header">
           <div className="voice-modal__shield">🛡</div>
           <h1 className="voice-modal__title">Control de Identidad</h1>
-          <p className="voice-modal__subtitle">Verificación Biométrica Anti-Suplantación</p>
+          <p className="voice-modal__subtitle">
+            Verificación Biométrica Anti-Suplantación
+          </p>
         </div>
 
         {/* Guard Info */}
         <div className="voice-modal__guard">
           <span className="voice-modal__guard-icon">👤</span>
-          <span className="voice-modal__guard-name">{guardName || 'Guardia Operativo'}</span>
+          <span className="voice-modal__guard-name">
+            {guardName || "Guardia Operativo"}
+          </span>
         </div>
 
         {/* Passphrase */}
         <div className="voice-modal__passphrase-section">
-          <label className="voice-modal__passphrase-label">Por favor, mantenga presionado el botón y diga la frase de seguridad:</label>
-          <div className="voice-modal__passphrase">
-            "{passphrase}"
-          </div>
+          <label className="voice-modal__passphrase-label">
+            Por favor, mantenga presionado el botón y diga la frase de
+            seguridad:
+          </label>
+          <div className="voice-modal__passphrase">"{passphrase}"</div>
         </div>
 
         {/* Mic Button / Status */}
         <div className="voice-modal__action-area">
-          {phase === 'idle' && (
-            <button
-              className="voice-modal__mic-btn voice-modal__mic-btn--ready"
-              onClick={startValidation}
-            >
-              <span className="voice-modal__mic-icon">🎤</span>
-              <span className="voice-modal__mic-label">Presiona para grabar</span>
-            </button>
+          {(phase === "idle" || phase === "recording") && (
+            <HoldToTalkButton
+              isRecording={phase === "recording"}
+              disabled={false}
+              onStartRecord={startRecording}
+              onStopRecord={stopRecording}
+            />
           )}
 
-          {phase === 'recording' && (
-            <div className="voice-modal__mic-btn voice-modal__mic-btn--recording">
-              <span className="voice-modal__mic-icon voice-modal__mic-icon--pulse">🎤</span>
-              <span className="voice-modal__mic-label">Grabando...</span>
-              <div className="voice-modal__progress-bar">
-                <div
-                  className="voice-modal__progress-fill"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {phase === 'analyzing' && (
+          {phase === "analyzing" && (
             <div className="voice-modal__mic-btn voice-modal__mic-btn--analyzing">
-              <span className="voice-modal__mic-icon voice-modal__mic-icon--spin">🔍</span>
-              <span className="voice-modal__mic-label">Analizando con IA...</span>
-              <div className="voice-modal__progress-bar">
-                <div
-                  className="voice-modal__progress-fill"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+              <span className="voice-modal__mic-icon voice-modal__mic-icon--spin">
+                🔍
+              </span>
+              <span className="voice-modal__mic-label">
+                Analizando con IA...
+              </span>
             </div>
           )}
 
-          {phase === 'success' && (
+          {phase === "success" && (
             <div className="voice-modal__result voice-modal__result--success">
               <span className="voice-modal__result-icon">✓</span>
-              <span className="voice-modal__result-text">Identidad verificada</span>
-              <span className="voice-modal__result-score">Confianza: {(matchScore * 100).toFixed(0)}%</span>
+              <span className="voice-modal__result-text">
+                Identidad verificada
+              </span>
+              <span className="voice-modal__result-score">
+                Confianza: {(matchScore * 100).toFixed(0)}%
+              </span>
             </div>
           )}
 
-          {phase === 'error' && (
+          {phase === "error" && (
             <div className="voice-modal__result voice-modal__result--error">
               <span className="voice-modal__result-icon">✕</span>
-              <span className="voice-modal__result-text">Error de validación</span>
-              <button className="voice-modal__retry-btn" onClick={startValidation}>
+              <span className="voice-modal__result-text">
+                Error de validación
+              </span>
+              <button
+                className="voice-modal__retry-btn"
+                onClick={() => setPhase("idle")}
+              >
                 Reintentar
               </button>
             </div>
@@ -184,5 +211,5 @@ export default function VoiceValidationModal({ executionId, passphrase, guardNam
         </div>
       </div>
     </div>
-  )
+  );
 }

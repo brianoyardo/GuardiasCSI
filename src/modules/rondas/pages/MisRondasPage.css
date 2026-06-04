@@ -90,3 +90,56 @@
   border-color: var(--color-primary-500);
   color: white;
 }
+
+/* ─── Enrollment Banner ─── */
+.mis-rondas__enrollment-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.mis-rondas__enrollment-banner:hover {
+  background: rgba(239, 68, 68, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+}
+
+.mis-rondas__enrollment-icon {
+  font-size: 1.5rem;
+}
+
+.mis-rondas__enrollment-text {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: #fca5a5;
+  line-height: 1.4;
+}
+
+.mis-rondas__enrollment-text strong {
+  color: #ef4444;
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.mis-rondas__enrollment-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.mis-rondas__enrollment-btn:hover {
+  background: #dc2626;
+}

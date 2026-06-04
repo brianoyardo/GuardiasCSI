@@ -5,7 +5,7 @@ import { getTrueTime, isTimeSynced } from '@/utils/timeSync'
 import { updateAssignmentStatus } from '@/modules/rondas/services/rondaAssignmentService'
 import './RondaCard.css'
 
-export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false }) {
+export default function RondaCard({ assignment, completedCheckpoints = 0, totalCheckpoints = 0, hasActiveRonda = false, isVoiceEnrolled = true }) {
   const navigate = useNavigate()
   const { status, scheduledStart, priority, rondaId, routeName, strictTimeSync } = assignment
   const [localNow, setLocalNow] = useState(Date.now())
@@ -107,7 +107,11 @@ export default function RondaCard({ assignment, completedCheckpoints = 0, totalC
       )}
 
       {canBeStarted(status) && (
-        isSyncBlocked ? (
+        !isVoiceEnrolled ? (
+          <button className="ronda-card__action ronda-card__action--locked" disabled title="Falta enrolamiento de voz">
+            🎙️ Voz No Registrada
+          </button>
+        ) : isSyncBlocked ? (
           <button className="ronda-card__action ronda-card__action--locked" disabled>
             🌐 Sincronizando reloj seguro...
           </button>

@@ -404,6 +404,7 @@ export default function UsersPage() {
                 <th>Usuario</th>
                 <th>Rol</th>
                 <th>Estado</th>
+                <th>Voz</th>
                 <th>Guard ID</th>
                 <th>Horario Turno</th>
                 <th>Último Acceso</th>
@@ -450,6 +451,17 @@ export default function UsersPage() {
                         <span className={`users-page__badge users-page__badge--status-${user.status === USER_STATUS.ACTIVE ? 'active' : 'inactive'}`}>
                           {user.status === USER_STATUS.ACTIVE ? 'Activo' : 'Inactivo'}
                         </span>
+                      </td>
+                      <td>
+                        {user.voiceEnrolled ? (
+                          <span className="users-page__badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}>
+                            🟢 Registrada
+                          </span>
+                        ) : (
+                          <span className="users-page__badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                            🔴 Sin Voz
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span className="users-page__guard-id">{user.guardId || '—'}</span>
