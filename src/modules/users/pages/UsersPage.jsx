@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { subscribeToUsers, adminCreateUser, updateUserRole, toggleUserStatus, updateFullUserProfile } from '@/modules/users/services/userService'
@@ -27,7 +27,7 @@ export default function UsersPage() {
   // Default tab is Guards
   const [filterRole, setFilterRole] = useState(ROLES.GUARD)
   const [searchQuery, setSearchQuery] = useState('')
-  const [tempSearchQuery, setTempSearchQuery] = useState('')
+  const searchInputRef = useRef(null)
   const [currentPage, setCurrentPage] = useState(1)
   const usersPerPage = 10
 
@@ -88,8 +88,12 @@ export default function UsersPage() {
       const presenceMap = {}
       snap.docs.forEach((doc) => {
         const data = doc.data()
+        presenceMap[doc.id] = data // Map by document ID (e.g. R-001 or B-002)
         if (data.guardId) {
           presenceMap[data.guardId] = data
+        }
+        if (data.uid) {
+          presenceMap[data.uid] = data
         }
       })
       setPresences(presenceMap)
@@ -332,25 +336,25 @@ export default function UsersPage() {
         <div className="users-page__tabs">
           <button
             className={`users-page__tab-btn ${filterRole === ROLES.GUARD ? 'users-page__tab-btn--active' : ''}`}
-            onClick={() => { setFilterRole(ROLES.GUARD); setSearchQuery(''); setTempSearchQuery(''); }}
+            onClick={() => { setFilterRole(ROLES.GUARD); setSearchQuery(''); if (searchInputRef.current) searchInputRef.current.value = ''; }}
           >
             Guardias
           </button>
           <button
             className={`users-page__tab-btn ${filterRole === ROLES.SUPERVISOR ? 'users-page__tab-btn--active' : ''}`}
-            onClick={() => { setFilterRole(ROLES.SUPERVISOR); setSearchQuery(''); setTempSearchQuery(''); }}
+            onClick={() => { setFilterRole(ROLES.SUPERVISOR); setSearchQuery(''); if (searchInputRef.current) searchInputRef.current.value = ''; }}
           >
             Supervisores
           </button>
           <button
             className={`users-page__tab-btn ${filterRole === ROLES.OPERATIONS_CHIEF ? 'users-page__tab-btn--active' : ''}`}
-            onClick={() => { setFilterRole(ROLES.OPERATIONS_CHIEF); setSearchQuery(''); setTempSearchQuery(''); }}
+            onClick={() => { setFilterRole(ROLES.OPERATIONS_CHIEF); setSearchQuery(''); if (searchInputRef.current) searchInputRef.current.value = ''; }}
           >
             Jefes de Operaciones
           </button>
           <button
             className={`users-page__tab-btn ${filterRole === ROLES.ADMIN ? 'users-page__tab-btn--active' : ''}`}
-            onClick={() => { setFilterRole(ROLES.ADMIN); setSearchQuery(''); setTempSearchQuery(''); }}
+            onClick={() => { setFilterRole(ROLES.ADMIN); setSearchQuery(''); if (searchInputRef.current) searchInputRef.current.value = ''; }}
           >
             Administradores
           </button>
@@ -363,14 +367,14 @@ export default function UsersPage() {
               <div style={{ position: 'relative', flex: 1 }}>
                 <span className="users-page__search-icon">🔍</span>
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Buscar por nombre, correo o ID de guardia..."
                   className="users-page__search-input"
-                  value={tempSearchQuery}
-                  onChange={(e) => setTempSearchQuery(e.target.value)}
+                  defaultValue={searchQuery}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      setSearchQuery(tempSearchQuery)
+                      setSearchQuery(e.target.value)
                     }
                   }}
                 />
@@ -378,7 +382,7 @@ export default function UsersPage() {
               <button
                 type="button"
                 className="users-page__btn-search"
-                onClick={() => setSearchQuery(tempSearchQuery)}
+                onClick={() => setSearchQuery(searchInputRef.current?.value || '')}
               >
                 Buscar
               </button>
@@ -414,7 +418,7 @@ export default function UsersPage() {
                 <tr><td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>No se encontraron usuarios en esta sección</td></tr>
               ) : (
                 paginatedUsers.map(user => {
-                  const presence = presences[user.id || user.uid]
+                  const presence = presences[user.guardId] || presences[user.id || user.uid]
                   const hasLocation = presence?.location?.lat != null && presence?.location?.lng != null
                   
                   // Security Check: operations chief cannot disable/modify roles of administrators
@@ -575,6 +579,7 @@ export default function UsersPage() {
                       onChange={(e) => setForm({ ...form, password: e.target.value })}
                       required
                       minLength={6}
+                      autoComplete="new-password"
                     />
                   </div>
                 )}
