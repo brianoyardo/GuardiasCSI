@@ -5,7 +5,7 @@ import { convertWebmToWav } from '@/utils/audioUtils'
 /**
  * Servicio para comunicarse con SentinelOps Voice API
  */
-const VOICE_API_URL = 'http://localhost:8000'
+const VOICE_API_URL = import.meta.env.VITE_VOICE_API_URL || 'http://localhost:8000'
 
 // ─── IndexedDB Adapter ───
 const DB_NAME = 'SentinelOpsVoiceDB'
@@ -68,10 +68,12 @@ export const verifyVoiceIdentity = async (liveAudioBlob, enrollmentAudioUrl = nu
     }
 
     const data = await response.json()
+    //alert("Respuesta de la IA: " + JSON.stringify(data))
     return data // Retornará { match: true, score: 0.92 }
 
   } catch (error) {
-    console.error('[VoiceValidationService] Error de red:', error)
+    //console.error('[VoiceValidationService] Error de red:', error)
+    alert(JSON.stringify(error.message || error))
     throw error
   }
 }
