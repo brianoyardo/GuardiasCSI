@@ -7,18 +7,55 @@ import { convertWebmToWav } from '@/utils/audioUtils'
  */
 const VOICE_API_URL = 'http://localhost:8000'
 
+// ─── IndexedDB Adapter ───
+const DB_NAME = 'SentinelOpsVoiceDB'
+const STORE_NAME = 'enrollmentStore'
+
+const initDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1)
+    request.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore(STORE_NAME)
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+const saveEnrollmentAudioLocally = async (blob) => {
+  const db = await initDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    tx.objectStore(STORE_NAME).put(blob, 'enrolledVoice')
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+const getEnrollmentAudioLocally = async () => {
+  const db = await initDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly')
+    const request = tx.objectStore(STORE_NAME).get('enrolledVoice')
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(tx.error)
+  })
+}
+
 export const verifyVoiceIdentity = async (liveAudioBlob, enrollmentAudioUrl = null) => {
   try {
-    const wavBlob = await convertWebmToWav(liveAudioBlob)
+    // 1. Obtener la grabación histórica del dispositivo
+    const enrolledWavBlob = await getEnrollmentAudioLocally()
+    if (!enrolledWavBlob) {
+      throw new Error("No se encontró el perfil de voz guardado en este dispositivo. Debe enrolarse nuevamente.")
+    }
+
+    // 2. Convertir la grabación en vivo actual
+    const liveWavBlob = await convertWebmToWav(liveAudioBlob)
+
     const formData = new FormData()
-    
-    // El audio que el guardia acaba de grabar en su celular
-    formData.append('live_audio', wavBlob, 'live_audio.wav')
-    
-    // NOTA: Como la API espera un 'enrollment_audio', y aún no tenemos 
-    // la URL real del perfil del guardia, mandaremos el mismo audio dos veces
-    // para engañar a la API temporalmente y que no nos dé un error 422.
-    formData.append('enrollment_audio', wavBlob, 'mock_enrollment.wav')
+    formData.append('live_audio', liveWavBlob, 'live_audio.wav')
+    formData.append('enrollment_audio', enrolledWavBlob, 'enrollment_audio.wav')
 
     const response = await fetch(`${VOICE_API_URL}/verify-voice/`, {
       method: 'POST',
@@ -45,6 +82,9 @@ export const enrollVoiceIdentity = async (audioBlob, userId) => {
     const wavBlob = await convertWebmToWav(audioBlob)
     console.log(`[VoiceValidationService] Simulando enrolamiento de voz para usuario: ${userId}... Blob WAV generado de ${wavBlob.size} bytes.`)
     
+    // 1. Guardar la voz original en la base de datos interna del celular
+    await saveEnrollmentAudioLocally(wavBlob)
+
     // Simulamos 1.5 segundos de retraso de red y procesamiento de la IA
     await new Promise(resolve => setTimeout(resolve, 1500))
 

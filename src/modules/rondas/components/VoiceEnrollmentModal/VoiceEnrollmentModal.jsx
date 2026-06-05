@@ -5,15 +5,20 @@ import HoldToTalkButton from '@/components/ui/HoldToTalkButton/HoldToTalkButton'
 import './VoiceEnrollmentModal.css'
 
 export default function VoiceEnrollmentModal({ onClose, onSuccess }) {
-  const { user } = useAuth()
+  const { profile, user } = useAuth()
   const [phase, setPhase] = useState('idle') // idle | recording | analyzing | success | error
   const [error, setError] = useState(null)
   
   // MediaRecorder state
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
+  const isStartingRef = useRef(false)
 
   const startRecording = async () => {
+    if (isStartingRef.current || phase !== 'idle') return
+    isStartingRef.current = true
+    setError(null)
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mediaRecorder = new MediaRecorder(stream)
@@ -37,11 +42,12 @@ export default function VoiceEnrollmentModal({ onClose, onSuccess }) {
 
       mediaRecorder.start()
       setPhase('recording')
-      setError(null)
     } catch (err) {
       console.error('[VoiceEnrollment] Acceso al micrófono denegado:', err)
       setError('Se requiere acceso al micrófono para grabar.')
       setPhase('error')
+    } finally {
+      isStartingRef.current = false
     }
   }
 
@@ -54,8 +60,12 @@ export default function VoiceEnrollmentModal({ onClose, onSuccess }) {
   const processEnrollment = async (audioBlob) => {
     setPhase('analyzing')
     try {
+      if (audioBlob.size < 1000) {
+        throw new Error('La grabación es demasiado corta. Mantén presionado el botón más tiempo.')
+      }
       // Usar nuestro nuevo servicio para simular enrolamiento
-      await enrollVoiceIdentity(audioBlob, user.uid)
+      const targetId = profile?.id || user?.uid
+      await enrollVoiceIdentity(audioBlob, targetId)
       setPhase('success')
       setTimeout(() => {
         if (onSuccess) onSuccess()

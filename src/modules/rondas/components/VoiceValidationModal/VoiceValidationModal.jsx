@@ -36,9 +36,13 @@ export default function VoiceValidationModal({
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const isStartingRef = useRef(false);
 
   // Comienza la grabación de voz nativa
   const startRecording = async () => {
+    if (isStartingRef.current || phase !== "idle") return;
+    isStartingRef.current = true;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -64,6 +68,8 @@ export default function VoiceValidationModal({
     } catch (err) {
       console.error("[VoiceValidation] Error accediendo al micrófono:", err);
       setPhase("error");
+    } finally {
+      isStartingRef.current = false;
     }
   };
 
@@ -81,6 +87,10 @@ export default function VoiceValidationModal({
   const processVoiceValidation = async (audioBlob) => {
     setPhase("analyzing");
     try {
+      if (audioBlob.size < 1000) {
+        throw new Error("Grabación demasiado corta. Mantén presionado el botón más tiempo.");
+      }
+
       // Llamada real al servicio Python (que simula el score 0.92 en el backend, o en el peor de los casos retornará los datos de la IA)
       const data = await verifyVoiceIdentity(audioBlob);
 
