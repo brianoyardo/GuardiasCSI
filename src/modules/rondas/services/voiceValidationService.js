@@ -5,7 +5,7 @@ import { convertWebmToWav } from '@/utils/audioUtils'
 /**
  * Servicio para comunicarse con SentinelOps Voice API
  */
-const VOICE_API_URL = 'http://localhost:8000'
+const VOICE_API_URL = import.meta.env.VITE_VOICE_API_URL || 'http://localhost:8000'
 
 // ─── IndexedDB Adapter ───
 const DB_NAME = 'SentinelOpsVoiceDB'
