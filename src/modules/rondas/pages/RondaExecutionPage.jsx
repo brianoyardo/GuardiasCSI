@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { COLLECTIONS } from '@/config/constants'
 import { useAuth } from '@/modules/auth/context/AuthContext'
@@ -108,6 +108,20 @@ export default function RondaExecutionPage() {
 
         // 2. Si tenemos datos de ejecución activa, saltar al mapa INMEDIATAMENTE
         if (execData && activeStatuses.includes(execData.status)) {
+          const TEN_MIN_MS = 10 * 60 * 1000
+          const createdAt = execData.createdAt?.toMillis?.() || execData.createdAt || 0
+          const isVoiceExpired =
+            execData.status === RONDA_STATES.VALIDATING_VOICE &&
+            Date.now() - createdAt > TEN_MIN_MS
+
+          if (isVoiceExpired) {
+            // Tolerancia vencida: volver al formulario para que el guardia reintente
+            console.warn('[RondaExecution] Validación de voz vencida (>10 min). Reiniciando flujo pre-op.')
+            setPhase('preop')
+            setLoading(false)
+            return
+          }
+
           setExecutionId(foundExecutionId)
           setInitialCompletedIds(execData.completedCheckpoints || [])
           setInitialTrail(execData.gpsTrack || [])
@@ -134,6 +148,44 @@ export default function RondaExecutionPage() {
   const [preOpData, setPreOpData] = useState(null)
   const [preOpKey, setPreOpKey] = useState(0)
   const [showNotes, setShowNotes] = useState(false)
+
+  // ─── Back-button guard during VOICE phase ───
+  // If the guard presses back while in the voice modal, we revert the
+  // execution status in Firestore back to 'pending' / 'available' so the
+  // assignment is not stuck in 'validating_voice' forever.
+  const abortVoiceSession = useCallback(async (execId, assignId) => {
+    if (!execId) return
+    try {
+      const execRef = doc(db, 'rondaExecutions', execId)
+      await updateDoc(execRef, {
+        status: 'pending',
+        updatedAt: serverTimestamp(),
+      })
+      if (assignId) {
+        const assignRef = doc(db, 'rondaAssignments', assignId)
+        await updateDoc(assignRef, {
+          status: 'available',
+          executionId: null,
+          updatedAt: serverTimestamp(),
+        })
+      }
+    } catch (e) {
+      console.warn('[RondaExecution] Could not revert voice state:', e)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (phase !== 'voice') return
+
+    const handlePopState = () => {
+      // Revert Firestore state before leaving
+      abortVoiceSession(executionId, assignment?.id)
+      // Navigation happens naturally via browser back
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [phase, executionId, assignment?.id, abortVoiceSession])
 
   // ─── Execution Hook (only active in 'execution' phase) ───
   const exec = useRondaExecution({
@@ -305,6 +357,15 @@ export default function RondaExecutionPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {assignment?.notes && (
+            <button
+              className="ronda-exec__btn-notes-status"
+              onClick={() => setShowNotes(true)}
+              title="Ver Indicaciones de la Ronda"
+            >
+              📋 Indicaciones
+            </button>
+          )}
           <span className="ronda-exec__progress-text">
             {exec.progress.percentage}%
           </span>
@@ -419,17 +480,6 @@ export default function RondaExecutionPage() {
           )}
         </div>
       </div>
-
-      {/* ─── Floating Notes Button ─── */}
-      {assignment?.notes && phase === 'execution' && (
-        <button 
-          className="ronda-exec__btn-notes-float"
-          onClick={() => setShowNotes(true)}
-          title="Ver Indicaciones"
-        >
-          📝
-        </button>
-      )}
 
       {/* ─── Notes Modal ─── */}
       {showNotes && (

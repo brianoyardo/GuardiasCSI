@@ -36,8 +36,6 @@ export const RONDA_STATUS = {
 export const PATROL_TYPES = {
   A_PIE: 'A_PIE',
   MOTORIZADO: 'MOTORIZADO',
-  DRON: 'DRON',
-  OTRO: 'OTRO',
 }
 
 /* ─── Catar Seguridad Integral — Estados de Reporte ─── */
@@ -54,7 +52,6 @@ export const SHIFT_TYPES = {
   NOCTURNO: 'NOCTURNO',
   PRIMER_TURNO: 'PRIMER_TURNO',
   SEGUNDO_TURNO: 'SEGUNDO_TURNO',
-  PERSONALIZADO: 'PERSONALIZADO',
 }
 
 /* ─── Catar Seguridad Integral — Frases de Biometría de Voz ─── */

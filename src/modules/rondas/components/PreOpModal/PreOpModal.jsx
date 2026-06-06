@@ -29,15 +29,17 @@ export default function PreOpModal({ rondaName, notes, onConfirm, onCancel }) {
     })
   }, [patrolType, vehicleId, shift, isMotorized, onConfirm, isSubmitting])
 
-  const patrolOptions = Object.entries(PATROL_TYPES).map(([key, value]) => ({
-    value,
-    label: key.replace('_', ' ').replace('A PIE', 'A Pie'),
-  }))
+  const patrolOptions = [
+    { value: PATROL_TYPES.A_PIE, label: 'A Pie' },
+    { value: PATROL_TYPES.MOTORIZADO, label: 'Motorizado' },
+  ]
 
-  const shiftOptions = Object.entries(SHIFT_TYPES).map(([key, value]) => ({
-    value,
-    label: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-  }))
+  const shiftOptions = [
+    { value: SHIFT_TYPES.DIURNO, label: 'Diurno' },
+    { value: SHIFT_TYPES.NOCTURNO, label: 'Nocturno' },
+    { value: SHIFT_TYPES.PRIMER_TURNO, label: 'Primer Turno' },
+    { value: SHIFT_TYPES.SEGUNDO_TURNO, label: 'Segundo Turno' },
+  ]
 
   return (
     <div className="preop-modal" id="preop-modal">
@@ -121,7 +123,7 @@ export default function PreOpModal({ rondaName, notes, onConfirm, onCancel }) {
             onClick={handleConfirm}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Iniciando...' : 'Continuar a Validación de Voz'}
+            {isSubmitting ? 'Iniciando...' : 'Continuar'}
           </button>
         </div>
       </div>
