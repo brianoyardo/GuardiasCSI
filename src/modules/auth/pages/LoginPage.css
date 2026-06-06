@@ -1,46 +1,402 @@
-/* ============================================
-   LoginPage — Full-screen tactical background
-   ============================================ */
+/* ============================================================
+   LoginPage — SentinelOps Tactical Command Interface
+   Full-screen neural-network background with animated nodes
+   ============================================================ */
 
-.login-page {
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+.sentinel-login {
   position: relative;
   min-height: 100vh;
+  width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: var(--color-dark-bg);
+  justify-content: space-between;
+  background: #04080f;
   overflow: hidden;
+  font-family: 'Inter', sans-serif;
 }
 
-/* Subtle grid background */
-.login-page__grid-bg {
+/* ─── Animated Neural-Network Canvas ─── */
+.sentinel-login__canvas {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(51, 128, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(51, 128, 255, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
+  z-index: 0;
+}
+
+/* Deep radial vignette over canvas */
+.sentinel-login__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, transparent 30%, #04080f 85%),
+    radial-gradient(ellipse 100% 40% at 50% 0%, rgba(4,8,15,0.6) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 40% at 50% 100%, rgba(4,8,15,0.9) 0%, transparent 60%);
   pointer-events: none;
 }
 
-.login-page__grid-bg::after {
+/* ─── Main content wrapper ─── */
+.sentinel-login__body {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  width: 100%;
+  gap: 2rem;
+}
+
+/* ─── Brand block ─── */
+.sentinel-login__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  animation: sentinelFadeDown 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Shield + eye SVG logo */
+.sentinel-login__shield {
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 0 18px rgba(59, 130, 246, 0.55));
+  animation: shieldPulse 3s ease-in-out infinite;
+}
+
+.sentinel-login__brand-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  color: #60a5fa;
+  text-shadow: 0 0 30px rgba(96, 165, 250, 0.4);
+  margin: 0;
+}
+
+.sentinel-login__tagline {
+  min-height: 22px;
+  font-size: 0.8rem;
+  letter-spacing: 1.5px;
+  color: #64748b;
+}
+
+.sentinel-login__tagline .Typewriter__cursor {
+  color: #3b82f6;
+}
+
+/* ─── Glassmorphic card ─── */
+.sentinel-login__card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(10, 16, 30, 0.75);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 18px;
+  padding: 2rem 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.06) inset,
+    0 30px 80px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(59, 130, 246, 0.04);
+  animation: sentinelFadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+/* ─── Field group ─── */
+.sentinel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.sentinel-field__label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #475569;
+  padding-left: 2px;
+}
+
+.sentinel-field__wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sentinel-field__icon {
+  position: absolute;
+  left: 0.875rem;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.sentinel-field__input {
+  width: 100%;
+  padding: 0.75rem 2.75rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+}
+
+.sentinel-field__input::placeholder {
+  color: #334155;
+}
+
+.sentinel-field__input:focus {
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 0 20px rgba(59, 130, 246, 0.08);
+}
+
+.sentinel-field__input:focus + .sentinel-field__icon,
+.sentinel-field__wrapper:focus-within .sentinel-field__icon {
+  color: #3b82f6;
+}
+
+.sentinel-field__eye-btn {
+  position: absolute;
+  right: 0.875rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.sentinel-field__eye-btn:hover {
+  color: #60a5fa;
+}
+
+/* ─── Forgot password link ─── */
+.sentinel-login__forgot {
+  text-align: right;
+  margin-top: -0.5rem;
+}
+
+.sentinel-login__forgot a {
+  font-size: 0.75rem;
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.2s, text-shadow 0.2s;
+}
+
+.sentinel-login__forgot a:hover {
+  color: #60a5fa;
+  text-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+}
+
+/* ─── Error banner ─── */
+.sentinel-login__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  padding: 0.65rem 0.875rem;
+  color: #f87171;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  animation: sentinelFadeIn 0.25s ease;
+}
+
+/* ─── Submit button ─── */
+.sentinel-login__submit {
+  width: 100%;
+  padding: 0.825rem;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.35);
+}
+
+.sentinel-login__submit::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 30%,
-    var(--color-dark-bg) 80%
-  );
+  background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  pointer-events: none;
 }
 
-.login-page__content {
-  position: relative;
-  z-index: 1;
-  padding: var(--space-6);
-  width: 100%;
+.sentinel-login__submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(37, 99, 235, 0.5);
+  filter: brightness(1.08);
+}
+
+.sentinel-login__submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.sentinel-login__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Loading spinner inside button */
+.sentinel-login__spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sentinelSpin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+/* ─── Status indicator ─── */
+.sentinel-login__status {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 600ms ease forwards;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: #475569;
+  letter-spacing: 0.5px;
+  margin-top: 0.25rem;
+}
+
+.sentinel-login__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+  animation: sentinelPulse 2.5s ease-in-out infinite;
+}
+
+/* ─── Footer ─── */
+.sentinel-login__footer {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 1rem 2rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  font-size: 0.72rem;
+  color: #334155;
+  border-top: 1px solid rgba(51, 65, 85, 0.25);
+}
+
+.sentinel-login__footer-copy {
+  white-space: nowrap;
+}
+
+.sentinel-login__footer-sep {
+  color: #1e293b;
+}
+
+.sentinel-login__footer a {
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.sentinel-login__footer a:hover {
+  color: #60a5fa;
+}
+
+/* ─── Decorative star spark ─── */
+.sentinel-login__spark {
+  position: absolute;
+  bottom: 2.5rem;
+  right: 2.5rem;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  opacity: 0.55;
+  animation: sentinelSparkRotate 8s linear infinite;
+}
+
+/* ─── Keyframes ─── */
+@keyframes sentinelFadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sentinelFadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sentinelFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sentinelSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes sentinelPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes shieldPulse {
+  0%, 100% { filter: drop-shadow(0 0 18px rgba(59, 130, 246, 0.55)); }
+  50%       { filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.85)); }
+}
+
+@keyframes sentinelSparkRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 480px) {
+  .sentinel-login__card {
+    padding: 1.5rem 1.25rem 1.25rem;
+    border-radius: 14px;
+  }
+
+  .sentinel-login__brand-name {
+    font-size: 1.75rem;
+    letter-spacing: 5px;
+  }
+
+  .sentinel-login__spark {
+    display: none;
+  }
+
+  .sentinel-login__footer {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
 }
