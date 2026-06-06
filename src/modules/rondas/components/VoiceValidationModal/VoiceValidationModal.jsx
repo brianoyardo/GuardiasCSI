@@ -4,6 +4,23 @@ import { verifyVoiceIdentity } from "@/modules/rondas/services/voiceValidationSe
 import HoldToTalkButton from "@/components/ui/HoldToTalkButton/HoldToTalkButton";
 import "./VoiceValidationModal.css";
 
+const dispararAlertaN8N = async (datosGuardia, latitud, longitud) => {
+  const payload = {
+    tipoEvento: "Suplantación de Identidad Biométrica",
+    nombreGuardia: datosGuardia,
+    horaExacta: new Date().toLocaleString("es-BO"),
+    coordenadas: { lat: latitud, lng: longitud }
+  };
+
+  return fetch("http://localhost:5678/webhook-test/alerta-seguridad", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+};
+
 /**
  * SentinelOps — Voice Validation Modal (Catar Seguridad Integral)
  *
@@ -110,6 +127,26 @@ export default function VoiceValidationModal({
           if (onSuccess) onSuccess();
         }, 1500);
       } else {
+        // Disparar alerta a n8n en segundo plano si da match: false
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            dispararAlertaN8N(
+              guardName || "Guardia Operativo",
+              pos.coords.latitude,
+              pos.coords.longitude
+            ).catch(console.error);
+          },
+          (err) => {
+            console.error("No se pudo obtener GPS para la alerta n8n", err);
+            dispararAlertaN8N(
+              guardName || "Guardia Operativo",
+              null,
+              null
+            ).catch(console.error);
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+        );
+
         throw new Error("Identidad no validada por IA");
       }
     } catch (err) {
