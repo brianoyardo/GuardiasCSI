@@ -8,7 +8,7 @@ const dispararAlertaN8N = async (assignment, latitud, longitud) => {
   const payload = {
     tipoEvento: "Suplantación de Identidad Biométrica",
     nombreGuardia: assignment.guardName || "Sin Nombre",
-    codigoGuardia: assignment.guardId || "SIN-CODIGO",
+    codigoGuardia: assignment.guardCode || "SIN-CODIGO",
     nombreGeocerca: assignment.geofenceName || "Geocerca Desconocida",
     horaExacta: new Date().toLocaleString("es-BO"),
     coordenadas: { lat: latitud, lng: longitud },
