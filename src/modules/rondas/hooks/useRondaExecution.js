@@ -29,24 +29,23 @@ const isPointInPolygon = (point, polygon) => {
 }
 
 // ─── FÓRMULA DE HAVERSINE (Distancia GPS en metros) ───
-// Calcula la distancia entre dos coordenadas para filtrar deriva de GPS
-const haversineDistance = (a, b) => {
+// Filtra la deriva natural del GPS para detectar inmovilidad real
+const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371000 // Radio de la Tierra en metros
-  const toRad = (deg) => deg * (Math.PI / 180)
-  const dLat = toRad(b.lat - a.lat)
-  const dLng = toRad(b.lng - a.lng)
-  const sinDLat = Math.sin(dLat / 2)
-  const sinDLng = Math.sin(dLng / 2)
-  const aVal =
-    sinDLat * sinDLat +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinDLng * sinDLng
-  return R * 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal))
+  const toRad = (d) => d * (Math.PI / 180)
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
 /**
  * SentinelOps — useRondaExecution Hook
  * Master orchestrator for a guard executing a ronda
- * 
+ *
  * Composes: GPS tracking, checkpoint validation, timer, state machine
  * This is the central hook that ties everything together.
  */
@@ -59,9 +58,12 @@ const LOG_PREFIX = '[useRondaExecution]'
  * @param {string} options.rondaId
  * @param {string} options.routeId
  * @param {string} options.guardId
- * @param {object[]} options.checkpoints - Ordered checkpoint objects
- * @param {number} options.scheduledEnd - Unix timestamp
- * @param {string} [options.executionId] - Pre-existing execution ID (voice validation flow)
+ * @param {string} [options.guardName]     - Nombre completo del guardia
+ * @param {string} [options.guardCode]     - Código de identificación del guardia
+ * @param {string} [options.geofenceName]  - Nombre de la geocerca asignada
+ * @param {object[]} options.checkpoints   - Ordered checkpoint objects
+ * @param {number} options.scheduledEnd    - Unix timestamp
+ * @param {string} [options.executionId]   - Pre-existing execution ID (voice validation flow)
  * @param {{ lat: number, lng: number }[]} [options.geofencePolygon]
  */
 export function useRondaExecution(options) {
@@ -70,6 +72,9 @@ export function useRondaExecution(options) {
     rondaId,
     routeId,
     guardId,
+    guardName    = 'Desconocido',
+    guardCode    = 'SIN-CODIGO',
+    geofenceName = 'Geocerca no identificada',
     checkpoints = [],
     scheduledEnd,
     executionId: preExistingExecutionId = null,
@@ -343,43 +348,53 @@ export function useRondaExecution(options) {
     fetchAssignedGeofence()
   }, [routeId])
 
-  // ─── ABANDONO DE GEOCERCA + INACTIVIDAD PROLONGADA (n8n Webhook unificado) ───
-  const WEBHOOK_URL = "http://192.168.1.6:5678/webhook-test/alerta-operativa"
-  const MOVEMENT_THRESHOLD_M = 15    // metros mínimos para considerar movimiento real
-  const INACTIVITY_THRESHOLD_MS = 30000 // 30 s (QA); cambiar a 300000 para producción
+  // ─── MOTOR CENTRAL DE ALERTAS: GEOCERCA + INACTIVIDAD PROLONGADA ───
+  const WEBHOOK_URL         = 'http://192.168.1.6:5678/webhook-test/alerta-operativa'
+  const MOVEMENT_THRESHOLD_M   = 15       // metros mínimos para considerar movimiento real
+  const INACTIVITY_THRESHOLD_MS = 30000   // 30 s (QA) → cambiar a 300000 para producción
 
+  // ── Refs de geocerca ──────────────────────────────────────────────────────
   const isOutdoorsRef = useRef(false)
-  const lastMoveCoordsRef = useRef(null)  // { lat, lng } del último movimiento significativo
-  const lastMoveTimeRef = useRef(null)    // Date.now() del último movimiento significativo
-  const inactivityAlertFiredRef = useRef(false) // Anti-spam para alerta de inactividad
+
+  // ── Refs de inactividad ───────────────────────────────────────────────────
+  const lastMoveCoordsRef      = useRef(null)  // { lat, lng } del último movimiento real
+  const lastMoveTimeRef        = useRef(null)  // Date.now() de ese movimiento
+  const inactivityAlertFiredRef = useRef(false) // Anti-spam alerta inactividad
 
   useEffect(() => {
-    // ── Salida temprana ──────────────────────────────────────────────────────
+    // ── Salida temprana ───────────────────────────────────────────────────────
     if (status !== RONDA_STATES.IN_PROGRESS) return
     if (!geo.position) return
     if (!activePolygonRef.current) return
 
     const currentLat = geo.position.lat
     const currentLng = geo.position.lng
-    const currentPos = { lat: currentLat, lng: currentLng }
 
-    // ── 1. DETECTOR DE GEOCERCA ──────────────────────────────────────────────
-    const isInside = isPointInPolygon(currentPos, activePolygonRef.current)
+    // Helper local: construye el payload base enriquecido con metadatos del guardia
+    const buildPayload = (tipoEvento, extras = {}) => ({
+      tipoEvento,
+      nombreGuardia: guardName,
+      codigoGuardia: guardCode,
+      nombreGeocerca: geofenceName,
+      horaExacta: new Date().toLocaleString('es-BO'),
+      coordenadas: { lat: currentLat, lng: currentLng },
+      ...extras,
+    })
+
+    const fireWebhook = (payload) =>
+      fetch(WEBHOOK_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      }).catch(console.error)
+
+    // ── BLOQUE 1 — Detector de Geocerca (Ray-Casting) ────────────────────────
+    const isInside = isPointInPolygon({ lat: currentLat, lng: currentLng }, activePolygonRef.current)
 
     if (!isInside) {
       if (!isOutdoorsRef.current) {
         isOutdoorsRef.current = true // Anti-Spam: dispara solo una vez al salir
-
-        fetch(WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tipoEvento: "Abandono de Geocerca",
-            nombreGuardia: guardId,
-            horaExacta: new Date().toLocaleString("es-BO"),
-            coordenadas: currentPos,
-          })
-        }).catch(console.error)
+        fireWebhook(buildPayload('Abandono de Geocerca'))
       }
     } else {
       if (isOutdoorsRef.current) {
@@ -387,39 +402,37 @@ export function useRondaExecution(options) {
       }
     }
 
-    // ── 2. DETECTOR DE INACTIVIDAD PROLONGADA ────────────────────────────────
+    // ── BLOQUE 2 — Detector de Inactividad Prolongada (Hombre Caído) ─────────
     if (!lastMoveCoordsRef.current) {
       // Primera posición recibida: inicializar referencias de movimiento
-      lastMoveCoordsRef.current = currentPos
-      lastMoveTimeRef.current = Date.now()
+      lastMoveCoordsRef.current = { lat: currentLat, lng: currentLng }
+      lastMoveTimeRef.current   = Date.now()
       return
     }
 
-    const distanceMoved = haversineDistance(lastMoveCoordsRef.current, currentPos)
+    const distanceMoved = haversineDistance(
+      lastMoveCoordsRef.current.lat,
+      lastMoveCoordsRef.current.lng,
+      currentLat,
+      currentLng
+    )
 
     if (distanceMoved > MOVEMENT_THRESHOLD_M) {
-      // Movimiento real detectado (supera el drift del GPS)
-      lastMoveCoordsRef.current = currentPos
-      lastMoveTimeRef.current = Date.now()
+      // Movimiento real detectado — supera la deriva natural del GPS
+      lastMoveCoordsRef.current      = { lat: currentLat, lng: currentLng }
+      lastMoveTimeRef.current        = Date.now()
       inactivityAlertFiredRef.current = false // Reset Anti-Spam
     } else {
-      // Guardia no se ha movido significativamente
+      // El guardia no se ha movido significativamente
       const timeElapsed = Date.now() - lastMoveTimeRef.current
 
       if (timeElapsed > INACTIVITY_THRESHOLD_MS && !inactivityAlertFiredRef.current) {
         inactivityAlertFiredRef.current = true // Anti-Spam: dispara solo una vez
-
-        fetch(WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tipoEvento: "Inactividad Prolongada",
-            nombreGuardia: guardId,
-            horaExacta: new Date().toLocaleString("es-BO"),
-            coordenadas: currentPos,
+        fireWebhook(
+          buildPayload('Inactividad Prolongada', {
             tiempoInactivoSegundos: Math.floor(timeElapsed / 1000),
           })
-        }).catch(console.error)
+        )
       }
     }
   }, [status, geo.position, guardId])

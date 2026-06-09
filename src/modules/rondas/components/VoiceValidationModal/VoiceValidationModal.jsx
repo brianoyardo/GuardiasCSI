@@ -4,10 +4,12 @@ import { verifyVoiceIdentity } from "@/modules/rondas/services/voiceValidationSe
 import HoldToTalkButton from "@/components/ui/HoldToTalkButton/HoldToTalkButton";
 import "./VoiceValidationModal.css";
 
-const dispararAlertaN8N = async (datosGuardia, latitud, longitud) => {
+const dispararAlertaN8N = async (assignment, latitud, longitud) => {
   const payload = {
     tipoEvento: "Suplantación de Identidad Biométrica",
-    nombreGuardia: datosGuardia,
+    nombreGuardia: assignment.guardName || "Sin Nombre",
+    codigoGuardia: assignment.guardId || "SIN-CODIGO",
+    nombreGeocerca: assignment.geofenceName || "Geocerca Desconocida",
     horaExacta: new Date().toLocaleString("es-BO"),
     coordenadas: { lat: latitud, lng: longitud },
   };
@@ -34,16 +36,18 @@ const dispararAlertaN8N = async (datosGuardia, latitud, longitud) => {
  *   4. Result → calls recordVoiceValidation → transitions to IN_PROGRESS
  *
  * @param {object} props
- * @param {string} props.executionId - Execution document ID
- * @param {string} props.passphrase - Phrase the guard must read
- * @param {string} props.guardName - Guard display name
- * @param {Function} props.onSuccess - Called when validation passes
- * @param {Function} props.onFail - Called when validation fails
+ * @param {string} props.executionId      - Execution document ID
+ * @param {string} props.passphrase       - Phrase the guard must read
+ * @param {string} props.guardName        - Guard display name
+ * @param {object} props.assignment       - Assignment object { guardName, guardCode, geofenceName }
+ * @param {Function} props.onSuccess      - Called when validation passes
+ * @param {Function} props.onFail         - Called when validation fails
  */
 export default function VoiceValidationModal({
   executionId,
   passphrase,
   guardName,
+  assignment = {},
   onSuccess,
   onFail,
 }) {
@@ -105,7 +109,9 @@ export default function VoiceValidationModal({
     setPhase("analyzing");
     try {
       if (audioBlob.size < 1000) {
-        throw new Error("Grabación demasiado corta. Mantén presionado el botón más tiempo.");
+        throw new Error(
+          "Grabación demasiado corta. Mantén presionado el botón más tiempo.",
+        );
       }
 
       // Llamada real al servicio Python (que simula el score 0.92 en el backend, o en el peor de los casos retornará los datos de la IA)
@@ -131,20 +137,16 @@ export default function VoiceValidationModal({
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             dispararAlertaN8N(
-              guardName || "Guardia Operativo",
+              assignment,
               pos.coords.latitude,
-              pos.coords.longitude
+              pos.coords.longitude,
             ).catch(console.error);
           },
           (err) => {
             console.error("No se pudo obtener GPS para la alerta n8n", err);
-            dispararAlertaN8N(
-              guardName || "Guardia Operativo",
-              null,
-              null
-            ).catch(console.error);
+            dispararAlertaN8N(assignment, null, null).catch(console.error);
           },
-          { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 },
         );
 
         throw new Error("Identidad no validada por IA");
