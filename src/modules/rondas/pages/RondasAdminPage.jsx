@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from 'react'
+import * as XLSX from 'xlsx'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import { createAssignment, subscribeToAllAssignments } from '@/modules/rondas/services/rondaAssignmentService'
 import { getRoutes } from '@/modules/spatial/services/spatialService'
@@ -212,27 +213,45 @@ export default function RondasAdminPage() {
     return groups
   }, [paginatedData, groupByGuard])
 
-  const exportToCSV = () => {
-    const headers = ['Guardia', 'Ruta', 'Inicio Programado', 'Fin Real', 'Prioridad', 'Estado', 'Reloj Global']
-    const rows = filteredAssignments.map(a => [
-      `"${getGuardInfo(a).name}"`,
-      `"${getRouteName(a)}"`,
-      `"${formatTimestamp(a.scheduledStart)}"`,
-      `"${formatTimestamp(a.actualEnd)}"`,
-      a.priority || 'normal',
-      STATE_LABELS[a.status] || a.status,
-      a.strictTimeSync ? 'Sí' : 'No'
-    ])
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `reporte_rondas_${new Date().toISOString().split('T')[0]}.csv`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+  // ─── Exportación Excel (SheetJS) ───
+  const exportToExcel = () => {
+    // Construir filas con columnas limpias y legibles
+    const rows = filteredAssignments.map((a) => {
+      const guardInfo = getGuardInfo(a)
+      const missed    = isVisuallyMissed(a)
+      return {
+        'Guardia':            guardInfo.name,
+        'Código Guardia':     guardInfo.id,
+        'Geocerca / Ruta':    getRouteName(a),
+        'Inicio Programado':  formatTimestamp(a.scheduledStart),
+        'Fin Real':           formatTimestamp(a.actualEnd),
+        'Prioridad':          a.priority === 'urgent' ? 'Urgente'
+                            : a.priority === 'high'   ? 'Alta'
+                            : a.priority === 'low'    ? 'Baja'
+                            : 'Normal',
+        'Estado':             missed ? 'No Cumplida' : (STATE_LABELS[a.status] || a.status),
+        'Reloj Global':       a.strictTimeSync ? 'Sí' : 'No',
+        'Guardia ID (UID)':   a.guardId || '—',
+        'Ronda ID':           a.rondaId  || '—',
+      }
+    })
+
+    // Crear hoja y libro
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+    const workbook  = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Auditoría Rondas')
+
+    // Ajustar ancho de columnas automáticamente
+    const colWidths = Object.keys(rows[0] || {}).map((key) => ({
+      wch: Math.max(
+        key.length,
+        ...rows.map((r) => String(r[key] ?? '').length)
+      ) + 2,
+    }))
+    worksheet['!cols'] = colWidths
+
+    // Descargar archivo
+    XLSX.writeFile(workbook, 'Auditoria_Rondas_CSI.xlsx')
   }
 
   const applyFilters = () => {
@@ -397,8 +416,8 @@ export default function RondasAdminPage() {
           {filteredAssignments.length} resultado{filteredAssignments.length !== 1 ? 's' : ''}
           {totalPages > 1 && ` · Página ${currentPage} de ${totalPages}`}
         </span>
-        <button className="rondas-admin__btn-export" onClick={exportToCSV}>
-          📥 Exportar CSV
+        <button className="rondas-admin__btn-export" onClick={exportToExcel}>
+          📊 Exportar Excel
         </button>
       </div>
 
