@@ -190,12 +190,17 @@ export default function RondaExecutionPage() {
   // ─── Execution Hook (only active in 'execution' phase) ───
   const exec = useRondaExecution({
     assignmentId: paramId,
-    rondaId: assignment?.rondaId || '',
-    routeId: assignment?.routeId || '',
-    guardId: user?.uid || '',
+    rondaId:      assignment?.rondaId  || '',
+    routeId:      assignment?.routeId  || '',
+    guardId:      user?.uid            || '',
+    // ── Metadatos corporativos del guardia y geocerca ──
+    guardName:    assignment?.guardName    || user?.displayName || 'Desconocido',
+    guardCode:    assignment?.guardCode    || 'SIN-CODIGO',
+    geofenceName: assignment?.geofenceName || 'Geocerca no identificada',
+    // ── Resto de opciones ────────────────────────────────
     checkpoints,
-    scheduledEnd: assignment?.scheduledEnd || (Date.now() + 2 * 60 * 60 * 1000),
-    executionId: phase === 'execution' ? executionId : null,
+    scheduledEnd:        assignment?.scheduledEnd || (Date.now() + 2 * 60 * 60 * 1000),
+    executionId:         phase === 'execution' ? executionId : null,
     initialCompletedIds,
     initialTrail,
   })
@@ -334,7 +339,12 @@ export default function RondaExecutionPage() {
       <VoiceValidationModal
         executionId={executionId}
         passphrase={VOICE_PASSPHRASES[0]}
-        guardName={user?.displayName || 'Guardia Operativo'}
+        guardName={assignment?.guardName || user?.displayName || 'Guardia Operativo'}
+        assignment={{
+          guardName:    assignment?.guardName    || user?.displayName || 'Desconocido',
+          guardCode:    assignment?.guardCode    || 'SIN-CODIGO',
+          geofenceName: assignment?.geofenceName || 'Geocerca no identificada',
+        }}
         onSuccess={handleVoiceSuccess}
         onFail={handleVoiceFail}
       />
