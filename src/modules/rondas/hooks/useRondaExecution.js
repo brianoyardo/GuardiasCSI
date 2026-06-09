@@ -28,6 +28,21 @@ const isPointInPolygon = (point, polygon) => {
   return isInside
 }
 
+// ─── FÓRMULA DE HAVERSINE (Distancia GPS en metros) ───
+// Calcula la distancia entre dos coordenadas para filtrar deriva de GPS
+const haversineDistance = (a, b) => {
+  const R = 6371000 // Radio de la Tierra en metros
+  const toRad = (deg) => deg * (Math.PI / 180)
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const sinDLat = Math.sin(dLat / 2)
+  const sinDLng = Math.sin(dLng / 2)
+  const aVal =
+    sinDLat * sinDLat +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinDLng * sinDLng
+  return R * 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal))
+}
+
 /**
  * SentinelOps — useRondaExecution Hook
  * Master orchestrator for a guard executing a ronda
@@ -328,45 +343,83 @@ export function useRondaExecution(options) {
     fetchAssignedGeofence()
   }, [routeId])
 
-  // ─── ABANDONO DE GEOCERCA (n8n Webhook) ───
+  // ─── ABANDONO DE GEOCERCA + INACTIVIDAD PROLONGADA (n8n Webhook unificado) ───
+  const WEBHOOK_URL = "http://192.168.1.6:5678/webhook-test/alerta-operativa"
+  const MOVEMENT_THRESHOLD_M = 15    // metros mínimos para considerar movimiento real
+  const INACTIVITY_THRESHOLD_MS = 30000 // 30 s (QA); cambiar a 300000 para producción
+
   const isOutdoorsRef = useRef(false)
+  const lastMoveCoordsRef = useRef(null)  // { lat, lng } del último movimiento significativo
+  const lastMoveTimeRef = useRef(null)    // Date.now() del último movimiento significativo
+  const inactivityAlertFiredRef = useRef(false) // Anti-spam para alerta de inactividad
 
   useEffect(() => {
-    // Salida temprana: la ronda debe estar en progreso, tener posición GPS y geocerca cargada
+    // ── Salida temprana ──────────────────────────────────────────────────────
     if (status !== RONDA_STATES.IN_PROGRESS) return
     if (!geo.position) return
     if (!activePolygonRef.current) return
 
     const currentLat = geo.position.lat
     const currentLng = geo.position.lng
+    const currentPos = { lat: currentLat, lng: currentLng }
 
-    const isInside = isPointInPolygon(
-      { lat: currentLat, lng: currentLng },
-      activePolygonRef.current
-    )
+    // ── 1. DETECTOR DE GEOCERCA ──────────────────────────────────────────────
+    const isInside = isPointInPolygon(currentPos, activePolygonRef.current)
 
     if (!isInside) {
-      // El guardia salió del polígono permitido
       if (!isOutdoorsRef.current) {
-        isOutdoorsRef.current = true // Set flag Anti-Spam: dispara el webhook solo una vez
+        isOutdoorsRef.current = true // Anti-Spam: dispara solo una vez al salir
 
-        const payload = {
-          tipoEvento: "Abandono de Geocerca",
-          nombreGuardia: guardId,
-          horaExacta: new Date().toLocaleString("es-BO"),
-          coordenadas: { lat: currentLat, lng: currentLng }
-        }
-
-        fetch("http://192.168.1.6:5678/webhook-test/alerta-geocerca", {
+        fetch(WEBHOOK_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            tipoEvento: "Abandono de Geocerca",
+            nombreGuardia: guardId,
+            horaExacta: new Date().toLocaleString("es-BO"),
+            coordenadas: currentPos,
+          })
         }).catch(console.error)
       }
     } else {
-      // El guardia está dentro del polígono permitido
       if (isOutdoorsRef.current) {
-        isOutdoorsRef.current = false // Reset flag cuando vuelve a entrar
+        isOutdoorsRef.current = false // Reset: el guardia volvió al área permitida
+      }
+    }
+
+    // ── 2. DETECTOR DE INACTIVIDAD PROLONGADA ────────────────────────────────
+    if (!lastMoveCoordsRef.current) {
+      // Primera posición recibida: inicializar referencias de movimiento
+      lastMoveCoordsRef.current = currentPos
+      lastMoveTimeRef.current = Date.now()
+      return
+    }
+
+    const distanceMoved = haversineDistance(lastMoveCoordsRef.current, currentPos)
+
+    if (distanceMoved > MOVEMENT_THRESHOLD_M) {
+      // Movimiento real detectado (supera el drift del GPS)
+      lastMoveCoordsRef.current = currentPos
+      lastMoveTimeRef.current = Date.now()
+      inactivityAlertFiredRef.current = false // Reset Anti-Spam
+    } else {
+      // Guardia no se ha movido significativamente
+      const timeElapsed = Date.now() - lastMoveTimeRef.current
+
+      if (timeElapsed > INACTIVITY_THRESHOLD_MS && !inactivityAlertFiredRef.current) {
+        inactivityAlertFiredRef.current = true // Anti-Spam: dispara solo una vez
+
+        fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tipoEvento: "Inactividad Prolongada",
+            nombreGuardia: guardId,
+            horaExacta: new Date().toLocaleString("es-BO"),
+            coordenadas: currentPos,
+            tiempoInactivoSegundos: Math.floor(timeElapsed / 1000),
+          })
+        }).catch(console.error)
       }
     }
   }, [status, geo.position, guardId])

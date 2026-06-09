@@ -9,15 +9,15 @@ const dispararAlertaN8N = async (datosGuardia, latitud, longitud) => {
     tipoEvento: "Suplantación de Identidad Biométrica",
     nombreGuardia: datosGuardia,
     horaExacta: new Date().toLocaleString("es-BO"),
-    coordenadas: { lat: latitud, lng: longitud }
+    coordenadas: { lat: latitud, lng: longitud },
   };
 
-  return fetch("http://localhost:5678/webhook-test/alerta-seguridad", {
+  return fetch("http://192.168.1.6:5678/webhook-test/alerta-operativa", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 };
 
