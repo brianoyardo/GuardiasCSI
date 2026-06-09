@@ -7,6 +7,26 @@ import { useCheckpointValidation } from './useCheckpointValidation'
 import { useGeolocation, useMapTracking } from '@/modules/maps/hooks'
 import { updateLivePosition, appendTrackPoint } from '@/modules/maps/services/trackingService'
 import { POSITION_SYNC_INTERVAL } from '@/config/constants'
+import { getGeofences } from '@/modules/spatial/services/spatialService'
+
+// ─── ALGORITMO DE RAY-CASTING (Point in Polygon) ───
+// Función pura para determinar si un punto está dentro de un polígono
+const isPointInPolygon = (point, polygon) => {
+  if (!polygon || polygon.length === 0) return true // Failsafe
+  let isInside = false
+  const x = point.lng
+  const y = point.lat
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lng, yi = polygon[i].lat
+    const xj = polygon[j].lng, yj = polygon[j].lat
+
+    const intersect = ((yi > y) !== (yj > y)) &&
+      (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+    if (intersect) isInside = !isInside
+  }
+  return isInside
+}
 
 /**
  * SentinelOps — useRondaExecution Hook
@@ -288,6 +308,68 @@ export function useRondaExecution(options) {
       }
     }
   }, [status, executionId, guardId])
+
+  // ─── CARGA DINÁMICA DE GEOCERCA ───
+  const activePolygonRef = useRef(null)
+
+  useEffect(() => {
+    if (!routeId) return
+    const fetchAssignedGeofence = async () => {
+      try {
+        const allGeofences = await getGeofences()
+        const assigned = allGeofences.find(g => g.routeId === routeId)
+        if (assigned && assigned.geometry && assigned.geometry.coordinatesFirestore) {
+          activePolygonRef.current = assigned.geometry.coordinatesFirestore
+        }
+      } catch (err) {
+        console.error(`${LOG_PREFIX} Error cargando geocerca:`, err)
+      }
+    }
+    fetchAssignedGeofence()
+  }, [routeId])
+
+  // ─── ABANDONO DE GEOCERCA (n8n Webhook) ───
+  const isOutdoorsRef = useRef(false)
+
+  useEffect(() => {
+    // Salida temprana: la ronda debe estar en progreso, tener posición GPS y geocerca cargada
+    if (status !== RONDA_STATES.IN_PROGRESS) return
+    if (!geo.position) return
+    if (!activePolygonRef.current) return
+
+    const currentLat = geo.position.lat
+    const currentLng = geo.position.lng
+
+    const isInside = isPointInPolygon(
+      { lat: currentLat, lng: currentLng },
+      activePolygonRef.current
+    )
+
+    if (!isInside) {
+      // El guardia salió del polígono permitido
+      if (!isOutdoorsRef.current) {
+        isOutdoorsRef.current = true // Set flag Anti-Spam: dispara el webhook solo una vez
+
+        const payload = {
+          tipoEvento: "Abandono de Geocerca",
+          nombreGuardia: guardId,
+          horaExacta: new Date().toLocaleString("es-BO"),
+          coordenadas: { lat: currentLat, lng: currentLng }
+        }
+
+        fetch("http://192.168.1.6:5678/webhook-test/alerta-geocerca", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }).catch(console.error)
+      }
+    } else {
+      // El guardia está dentro del polígono permitido
+      if (isOutdoorsRef.current) {
+        isOutdoorsRef.current = false // Reset flag cuando vuelve a entrar
+      }
+    }
+  }, [status, geo.position, guardId])
 
   return {
     // State
