@@ -102,10 +102,6 @@ export default function IncidentManagementPage() {
         (a, b) => b.createdAt?.toMillis?.() - a.createdAt?.toMillis?.(),
       );
       setIncidents(sorted);
-      // Set the first active incident if none is active
-      if (sorted.length > 0 && !activeIncidentId) {
-        setActiveIncidentId(sorted[0].id);
-      }
     } catch (err) {
       console.error("Failed to load incidents:", err);
     }

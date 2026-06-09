@@ -412,7 +412,7 @@
   }
 }
 
-/* ─── Responsive ─── */
+/* ─── Tablet (≤1024px) ─── */
 @media (max-width: 1024px) {
   .lm__main {
     grid-template-columns: 1fr;
@@ -426,3 +426,48 @@
   }
 }
 
+/* ─── Móvil (≤768px) ─── */
+@media (max-width: 768px) {
+  /* Contenedor principal: una sola columna */
+  .lm__main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Mapa: altura fija que deja espacio para el panel inferior */
+  .lm__map-section {
+    height: 45vh;
+    min-height: 350px;
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  /* Panel lateral: ocupa el resto de la pantalla debajo del mapa */
+  .lm__sidebar {
+    width: 100%;
+    flex: 1;
+    max-height: none;   /* anula el 40vh del breakpoint de tablet */
+    min-height: 0;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-y: auto;
+  }
+
+  /* Status strip más compacto en móvil */
+  .lm__status-strip {
+    padding: 0.4rem 0.75rem;
+  }
+
+  .lm__status-items {
+    gap: 0.85rem;
+  }
+
+  .lm__stat-value {
+    font-size: 0.95rem;
+  }
+
+  .lm__stat-label {
+    font-size: 0.65rem;
+  }
+}
