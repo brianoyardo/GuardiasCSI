@@ -14,7 +14,7 @@
   color: var(--color-dark-text, #e0e0e0);
 }
 
-/* ─── Status Strip (Top Bar) ─── */
+/* ─── Status Strip (Top Bar - Desktop) ─── */
 .lm__status-strip {
   display: flex;
   align-items: center;
@@ -61,7 +61,7 @@
   margin-left: auto;
 }
 
-/* ─── Main Grid (Map + Sidebar) ─── */
+/* ─── Main Grid (Map + Sidebar - Desktop) ─── */
 .lm__main {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -81,7 +81,7 @@
   width: 100% !important;
 }
 
-/* ─── Sidebar ─── */
+/* ─── Sidebar (Desktop) ─── */
 .lm__sidebar {
   display: flex;
   flex-direction: column;
@@ -426,48 +426,181 @@
   }
 }
 
-/* ─── Móvil (≤768px) ─── */
+/* ════════════════════════════════════════════════════════════
+   MÓVIL (≤768px) — Rediseño Premium: Isla Flotante + Isla Dinámica
+   ════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Contenedor principal: una sola columna */
-  .lm__main {
-    display: flex;
-    flex-direction: column;
+  
+  /* ── Root Container ── */
+  .live-monitoring {
+    display: block;
+    position: relative;
+    height: calc(100vh - 60px); 
     overflow: hidden;
   }
 
-  /* Mapa: altura fija que deja espacio para el panel inferior */
+  /* ── Main Layout ── */
+  .lm__main {
+    position: absolute;
+    inset: 0;
+    display: block;
+    overflow: hidden;
+  }
+
+  /* ── Mapa: Full Screen ── */
   .lm__map-section {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* ¡Magia aquí! Hemos quitado z-index: 1 para liberar al mapa */
+  }
+
+  /* ── Isla Flotante Inferior (Command Drawer) ── */
+.lm__sidebar {
+    position: absolute;
+    bottom: 15px; 
+    left: 5%;     
+    width: 90%;   
     height: 45vh;
-    min-height: 350px;
+    z-index: 1000; /* ¡MAGIA!: Nivel 1000 para no ser devorada por el mapa */
+
+    /* Arquitectura Glassmorphism */
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 16, 30, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(14, 165, 233, 0.35);
+    border-radius: 24px; 
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+
+  /* Handle visual (la rayita de arriba) */
+  .lm__sidebar::before {
+    content: '';
+    display: block;
     flex-shrink: 0;
-    width: 100%;
+    width: 40px;
+    height: 4px;
+    margin: 12px auto 8px;
+    border-radius: 99px;
+    background: rgba(14, 165, 233, 0.4);
   }
 
-  /* Panel lateral: ocupa el resto de la pantalla debajo del mapa */
-  .lm__sidebar {
-    width: 100%;
-    flex: 1;
-    max-height: none;   /* anula el 40vh del breakpoint de tablet */
-    min-height: 0;
-    border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    overflow-y: auto;
-  }
-
-  /* Status strip más compacto en móvil */
+  /* ── Status Strip (Isla Dinámica Superior Sin Texto) ── */
   .lm__status-strip {
-    padding: 0.4rem 0.75rem;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000; 
+    width: auto; 
+    max-width: none; 
+    display: flex;
+    justify-content: center;
+    padding: 0.4rem 1rem;
+    background: rgba(10, 16, 30, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(14, 165, 233, 0.4);
+    border-radius: 50px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   }
 
   .lm__status-items {
-    gap: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem; 
+    width: 100%;
+    padding: 0;
   }
 
-  .lm__stat-value {
-    font-size: 0.95rem;
+  .lm__stat {
+    padding: 0; 
+    border-right: none; 
+    gap: 0.4rem; 
+    justify-content: center;
   }
 
-  .lm__stat-label {
-    font-size: 0.65rem;
+  .lm__stat-value { font-size: 1rem; }
+  
+  .lm__stat-label { 
+    display: none; 
   }
+  
+  .lm__stat--incidents { margin-left: 0; }
+  
+  /* ── Desplazar botones de Leaflet para no chocar con la Isla ── */
+  .lm__map-section .leaflet-top {
+    top: 55px !important;
+  }
+
+  /* ── Pestañas y Listas internas (Más compactas) ── */
+  .lm__sidebar-tabs {
+    flex-shrink: 0;
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 1rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .lm__sidebar-tab {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 0.75rem;
+    border-bottom: none;
+  }
+
+  .lm__sidebar-tab--active {
+    background: rgba(14, 165, 233, 0.15);
+    border-color: rgba(14, 165, 233, 0.4);
+    color: #38bdf8;
+  }
+
+  .lm__sidebar-section {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .lm__guard-item, .lm__incident-item {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* =======================================================
+   GLOBAL FIXES & FULLSCREEN OVERRIDES
+   ======================================================= */
+
+/* 1. Si la página activa el fullscreen, el módulo entero salta por encima del Navbar */
+.live-monitoring:has(.leaflet-fullscreen-on),
+.live-monitoring:has(.leaflet-pseudo-fullscreen) {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2147483647 !important; /* El nivel máximo del navegador */
+}
+
+/* 2. Ocultamos la Isla Flotante y Dinámica en Fullscreen para tener un mapa 100% limpio */
+.live-monitoring:has(.leaflet-fullscreen-on) .lm__sidebar,
+.live-monitoring:has(.leaflet-fullscreen-on) .lm__status-strip,
+.live-monitoring:has(.leaflet-pseudo-fullscreen) .lm__sidebar,
+.live-monitoring:has(.leaflet-pseudo-fullscreen) .lm__status-strip {
+  display: none !important;
+}
+
+/* 3. Aseguramos que el contenedor de Leaflet llene el nuevo espacio maestro */
+.leaflet-container.leaflet-fullscreen-on,
+.leaflet-pseudo-fullscreen {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
