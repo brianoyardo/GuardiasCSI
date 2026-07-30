@@ -14,7 +14,7 @@ const dispararAlertaN8N = async (assignment, latitud, longitud) => {
     coordenadas: { lat: latitud, lng: longitud },
   };
 
-  return fetch("http://192.168.1.6:5678/webhook-test/alerta-operativa", {
+  return fetch("http://192.168.1.6:5678/webhook/alerta-operativa", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

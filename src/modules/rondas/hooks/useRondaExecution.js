@@ -185,14 +185,6 @@ export function useRondaExecution(options) {
     }
   }, [executionId, status, geo, tracking])
 
-  const completedCountRef = useRef(0)
-
-  useEffect(() => {
-    if (validation.completedCount === checkpoints.length && checkpoints.length > 0 && validation.completedCount > 0) {
-      finishRonda()
-    }
-  }, [validation.completedCount, checkpoints.length])
-
   // ─── Register checkpoint ───
   const registerCheckpointHit = useCallback(
     async (checkpointId) => {
@@ -349,7 +341,7 @@ export function useRondaExecution(options) {
   }, [routeId])
 
   // ─── MOTOR CENTRAL DE ALERTAS: GEOCERCA + INACTIVIDAD PROLONGADA ───
-  const WEBHOOK_URL         = 'http://192.168.1.6:5678/webhook-test/alerta-operativa'
+  const WEBHOOK_URL         = 'http://192.168.1.6:5678/webhook/alerta-operativa'
   const MOVEMENT_THRESHOLD_M   = 15       // metros mínimos para considerar movimiento real
   const INACTIVITY_THRESHOLD_MS = 30000   // 30 s (QA) → cambiar a 300000 para producción
 

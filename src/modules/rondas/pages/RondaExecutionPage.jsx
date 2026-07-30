@@ -14,6 +14,7 @@ import { useMapControlStore } from '@/stores/mapControlStore'
 import PreOpModal from '@/modules/rondas/components/PreOpModal/PreOpModal'
 import VoiceValidationModal from '@/modules/rondas/components/VoiceValidationModal/VoiceValidationModal'
 import NotesModal from '@/modules/rondas/components/NotesModal/NotesModal'
+import EndRoundReportModal from '@/modules/rondas/components/EndRoundReportModal/EndRoundReportModal'
 import { VOICE_PASSPHRASES } from '@/config/constants'
 import './RondaExecutionPage.css'
 
@@ -148,6 +149,7 @@ export default function RondaExecutionPage() {
   const [preOpData, setPreOpData] = useState(null)
   const [preOpKey, setPreOpKey] = useState(0)
   const [showNotes, setShowNotes] = useState(false)
+  const [showEndReportModal, setShowEndReportModal] = useState(false)
 
   // ─── Back-button guard during VOICE phase ───
   // If the guard presses back while in the voice modal, we revert the
@@ -279,6 +281,24 @@ export default function RondaExecutionPage() {
     }
   }, [phase, executionId])
 
+  // ─── Interception of End Ronda ───
+  useEffect(() => {
+    if (
+      phase === 'execution' &&
+      exec.isActive &&
+      checkpoints.length > 0 &&
+      exec.validation?.completedCount === checkpoints.length &&
+      !showEndReportModal
+    ) {
+      setShowEndReportModal(true)
+    }
+  }, [exec.isActive, exec.validation?.completedCount, checkpoints.length, phase, showEndReportModal])
+
+  const handleEndRoundComplete = () => {
+    setShowEndReportModal(false)
+    exec.finishRonda()
+  }
+
   // ─── Redirect to Mis Rondas when completed ───
   useEffect(() => {
     if (exec.status === RONDA_STATES.COMPLETED) {
@@ -347,6 +367,18 @@ export default function RondaExecutionPage() {
         }}
         onSuccess={handleVoiceSuccess}
         onFail={handleVoiceFail}
+      />
+    )
+  }
+
+  // ─── Render: End Round Report Modal ───
+  if (showEndReportModal) {
+    return (
+      <EndRoundReportModal
+        assignment={assignment}
+        executionId={executionId}
+        currentPosition={exec.position || { lat: 0, lng: 0, accuracy: 5 }}
+        onComplete={handleEndRoundComplete}
       />
     )
   }
