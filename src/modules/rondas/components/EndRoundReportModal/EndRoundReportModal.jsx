@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import HoldToTalkButton from "@/components/ui/HoldToTalkButton/HoldToTalkButton";
+import { N8N_WEBHOOK_CIERRE_RONDA } from "@/config/n8n";
 import "./EndRoundReportModal.css";
+
 
 /**
  * Modal obligatorio para el reporte final de ronda (Voz -> n8n).
@@ -104,8 +106,12 @@ export default function EndRoundReportModal({
 
       formData.append("metadata", JSON.stringify(metadata));
 
+      if (!N8N_WEBHOOK_CIERRE_RONDA) {
+        throw new Error('URL de cierre de ronda no configurada. Verifica VITE_N8N_BASE_URL en .env.')
+      }
+
       const response = await fetch(
-        "http://192.168.1.6:5678/webhook/cierre-ronda-ia",
+        N8N_WEBHOOK_CIERRE_RONDA,
         {
           method: "POST",
           body: formData,

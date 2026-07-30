@@ -8,6 +8,7 @@ import { useGeolocation, useMapTracking } from '@/modules/maps/hooks'
 import { updateLivePosition, appendTrackPoint } from '@/modules/maps/services/trackingService'
 import { POSITION_SYNC_INTERVAL } from '@/config/constants'
 import { getGeofences } from '@/modules/spatial/services/spatialService'
+import { N8N_WEBHOOK_ALERTA } from '@/config/n8n'
 
 // ─── ALGORITMO DE RAY-CASTING (Point in Polygon) ───
 // Función pura para determinar si un punto está dentro de un polígono
@@ -341,7 +342,7 @@ export function useRondaExecution(options) {
   }, [routeId])
 
   // ─── MOTOR CENTRAL DE ALERTAS: GEOCERCA + INACTIVIDAD PROLONGADA ───
-  const WEBHOOK_URL         = 'http://192.168.1.6:5678/webhook/alerta-operativa'
+  // URL configurada desde .env → VITE_N8N_BASE_URL + VITE_N8N_ENV
   const MOVEMENT_THRESHOLD_M   = 15       // metros mínimos para considerar movimiento real
   const INACTIVITY_THRESHOLD_MS = 30000   // 30 s (QA) → cambiar a 300000 para producción
 
@@ -373,12 +374,17 @@ export function useRondaExecution(options) {
       ...extras,
     })
 
-    const fireWebhook = (payload) =>
-      fetch(WEBHOOK_URL, {
+    const fireWebhook = (payload) => {
+      if (!N8N_WEBHOOK_ALERTA) {
+        console.warn('[Alertas] N8N_WEBHOOK_ALERTA no configurado en .env — alerta omitida.')
+        return
+      }
+      fetch(N8N_WEBHOOK_ALERTA, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
       }).catch(console.error)
+    }
 
     // ── BLOQUE 1 — Detector de Geocerca (Ray-Casting) ────────────────────────
     const isInside = isPointInPolygon({ lat: currentLat, lng: currentLng }, activePolygonRef.current)

@@ -2,9 +2,16 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { recordVoiceValidation } from "@/modules/rondas/services/rondaExecutionService";
 import { verifyVoiceIdentity } from "@/modules/rondas/services/voiceValidationService";
 import HoldToTalkButton from "@/components/ui/HoldToTalkButton/HoldToTalkButton";
+import { N8N_WEBHOOK_ALERTA } from "@/config/n8n";
 import "./VoiceValidationModal.css";
 
+
 const dispararAlertaN8N = async (assignment, latitud, longitud) => {
+  if (!N8N_WEBHOOK_ALERTA) {
+    console.warn('[VoiceValidation] N8N_WEBHOOK_ALERTA no configurado en .env — alerta omitida.')
+    return
+  }
+
   const payload = {
     tipoEvento: "Suplantación de Identidad Biométrica",
     nombreGuardia: assignment.guardName || "Sin Nombre",
@@ -14,7 +21,7 @@ const dispararAlertaN8N = async (assignment, latitud, longitud) => {
     coordenadas: { lat: latitud, lng: longitud },
   };
 
-  return fetch("http://192.168.1.6:5678/webhook/alerta-operativa", {
+  return fetch(N8N_WEBHOOK_ALERTA, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
