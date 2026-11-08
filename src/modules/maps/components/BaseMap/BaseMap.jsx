@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import { useShallow } from 'zustand/react/shallow'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/config/constants'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, TILE_PROVIDERS } from '@/config/constants'
 import { useMapLayerStore, MAP_LAYERS_CONFIG, getLayerList } from '@/stores/mapLayerStore'
 import { useRealtimeStore } from '@/stores/realtimeStore'
 import { useMapControlStore } from '@/stores/mapControlStore'
@@ -12,22 +12,8 @@ import IncidentMarker from '@/modules/maps/components/IncidentMarker/IncidentMar
 import './BaseMap.css'
 
 /**
- * Tile providers — supports dark mode via CSS filter
+ * Tile providers — centralized from constants.js with CARTO API Key
  */
-const TILE_PROVIDERS = {
-  osm: {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://openstreetmap.org">OSM</a>',
-  },
-  carto_dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://carto.com">CARTO</a>',
-  },
-  carto_light: {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://carto.com">CARTO</a>',
-  },
-}
 
 /**
  * MapController — provides imperative map access to parent
@@ -167,7 +153,7 @@ export default function BaseMap({
 
   const tileConfig = darkMode
     ? TILE_PROVIDERS.carto_dark
-    : (TILE_PROVIDERS[tileProvider] || TILE_PROVIDERS.osm)
+    : (TILE_PROVIDERS[tileProvider] || TILE_PROVIDERS.carto_voyager)
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev)

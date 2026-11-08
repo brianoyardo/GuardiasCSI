@@ -3,7 +3,7 @@ import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { subscribeToUsers, adminCreateUser, updateUserRole, toggleUserStatus, updateFullUserProfile } from '@/modules/users/services/userService'
 import { ROLES } from '@/config/roles'
-import { USER_STATUS } from '@/config/constants'
+import { USER_STATUS, TILE_PROVIDERS } from '@/config/constants'
 import { useAuth } from '@/modules/auth/context/AuthContext'
 import CustomSelect from '../components/CustomSelect'
 import CustomTimePicker from '../components/CustomTimePicker'
@@ -764,8 +764,8 @@ function LocationModal({ user, presence, onClose }) {
             style={{ height: '400px', width: '100%' }}
           >
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url={TILE_PROVIDERS.carto_dark.url}
+              attribution={TILE_PROVIDERS.carto_dark.attribution}
             />
             <Marker position={position} icon={icon}>
               <Popup>

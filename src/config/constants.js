@@ -12,6 +12,31 @@ export const DEFAULT_MAP_CENTER = {
 }
 export const DEFAULT_MAP_ZOOM = 16
 
+/* ─── CARTO Basemaps API Key ─── */
+const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY || ''
+const cartoKeyParam = CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : ''
+
+/* ─── Tile Providers (CARTO Voyager con API Key) ─── */
+export const TILE_PROVIDERS = {
+  carto_voyager: {
+    url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
+    attribution: '&copy; <a href="https://carto.com">CARTO</a> &copy; <a href="https://openstreetmap.org">OSM</a>',
+  },
+  carto_dark: {
+    url: `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png${cartoKeyParam}`,
+    attribution: '&copy; <a href="https://carto.com">CARTO</a> &copy; <a href="https://openstreetmap.org">OSM</a>',
+  },
+  carto_light: {
+    url: `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png${cartoKeyParam}`,
+    attribution: '&copy; <a href="https://carto.com">CARTO</a> &copy; <a href="https://openstreetmap.org">OSM</a>',
+  },
+}
+
+/* ─── CARTO Vector Style URL (para uso futuro con MapLibre GL) ─── */
+export const CARTO_VECTOR_STYLE_URL = CARTO_API_KEY
+  ? `https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json?key=${CARTO_API_KEY}`
+  : null
+
 /* ─── Geolocation ─── */
 export const GPS_OPTIONS = {
   enableHighAccuracy: true,

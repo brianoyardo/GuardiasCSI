@@ -9,6 +9,7 @@ import {
 } from 'react-leaflet'
 import { useEffect } from 'react'
 import L from 'leaflet'
+import { TILE_PROVIDERS } from '@/config/constants'
 
 const defaultCenter = [-16.5, -68.15]
 
@@ -64,8 +65,8 @@ export default function MapView({
       style={{ height: '100%', width: '100%' }}
     >
       <TileLayer
-        attribution="&copy; OpenStreetMap contributors"
-        url="https://tile.openstreetmap.de/{z}/{x}/{y}.png"
+        attribution={TILE_PROVIDERS.carto_dark.attribution}
+        url={TILE_PROVIDERS.carto_dark.url}
       />
 
       <RecenterMap center={center} />
