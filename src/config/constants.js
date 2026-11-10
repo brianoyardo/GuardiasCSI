@@ -16,14 +16,16 @@ export const DEFAULT_MAP_ZOOM = 16
 const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY || ''
 const cartoKeyParam = CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : ''
 
-/* ─── Tile Providers (CARTO Voyager con API Key) ─── */
+/* ─── Tile Providers (CARTO con API Key — modo compuesto) ─── */
 export const TILE_PROVIDERS = {
   carto_voyager: {
     url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
     attribution: '&copy; <a href="https://carto.com">CARTO</a> &copy; <a href="https://openstreetmap.org">OSM</a>',
   },
   carto_dark: {
-    url: `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png${cartoKeyParam}`,
+    url: `https://basemaps.cartocdn.com/rastertiles/dark_nolabels/{z}/{x}/{y}.png${cartoKeyParam}`,
+    labelsUrl: `https://basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png${cartoKeyParam}`,
+    invertLabels: true,
     attribution: '&copy; <a href="https://carto.com">CARTO</a> &copy; <a href="https://openstreetmap.org">OSM</a>',
   },
   carto_light: {

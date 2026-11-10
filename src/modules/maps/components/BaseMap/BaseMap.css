@@ -58,6 +58,12 @@
   /* Native dark tiles need no filter */
 }
 
+/* ─── Bright labels overlay (inverts Voyager labels → white on dark) ─── */
+.basemap__labels-bright {
+  filter: invert(1) brightness(1.6);
+  pointer-events: none;
+}
+
 /* ─── Sentinel marker reset ─── */
 .sentinel-marker {
   background: none !important;

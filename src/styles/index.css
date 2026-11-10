@@ -147,3 +147,9 @@ select {
 .leaflet-popup-tip {
   background: var(--color-dark-card) !important;
 }
+
+/* ─── CARTO Bright Labels Overlay (dark mode maps) ─── */
+.basemap__labels-bright {
+  filter: invert(1) brightness(1.6);
+  pointer-events: none;
+}

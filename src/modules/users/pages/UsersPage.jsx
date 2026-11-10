@@ -767,6 +767,11 @@ function LocationModal({ user, presence, onClose }) {
               url={TILE_PROVIDERS.carto_dark.url}
               attribution={TILE_PROVIDERS.carto_dark.attribution}
             />
+            <TileLayer
+              url={TILE_PROVIDERS.carto_dark.labelsUrl}
+              maxZoom={19}
+              className="basemap__labels-bright"
+            />
             <Marker position={position} icon={icon}>
               <Popup>
                 <div style={{ color: '#fff', fontSize: '12px', lineHeight: '1.4' }}>

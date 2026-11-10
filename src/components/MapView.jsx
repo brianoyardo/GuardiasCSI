@@ -68,6 +68,11 @@ export default function MapView({
         attribution={TILE_PROVIDERS.carto_dark.attribution}
         url={TILE_PROVIDERS.carto_dark.url}
       />
+      <TileLayer
+        url={TILE_PROVIDERS.carto_dark.labelsUrl}
+        maxZoom={19}
+        className="basemap__labels-bright"
+      />
 
       <RecenterMap center={center} />
 

@@ -184,6 +184,15 @@ export default function BaseMap({
           maxZoom={19}
         />
 
+        {/* ─── Labels Overlay (bright white text on dark base) ─── */}
+        {tileConfig.labelsUrl && (
+          <TileLayer
+            url={tileConfig.labelsUrl}
+            maxZoom={19}
+            className={tileConfig.invertLabels ? 'basemap__labels-bright' : ''}
+          />
+        )}
+
         <MapController onMapReady={onMapReady} />
         <MapSizeSync isFullscreen={isFullscreen} />
         <MapFlyToListener />
